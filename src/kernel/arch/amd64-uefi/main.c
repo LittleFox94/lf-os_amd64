@@ -141,6 +141,7 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE* system_tab
     status = uefi_call_wrapper(BS->GetMemoryMap, 5, &memory_map_size, memory_map, &map_key, &descriptor_size, &descriptor_version);
     if(status != EFI_BUFFER_TOO_SMALL) {
         fbconsole_write("Unexpected status from first GetMemoryMap call: %d\n", status);
+        while(1);
     }
 
     memory_map = AllocatePool(memory_map_size);
@@ -148,24 +149,35 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE* system_tab
     status = uefi_call_wrapper(BS->GetMemoryMap, 5, &memory_map_size, memory_map, &map_key, &descriptor_size, &descriptor_version);
     if(status != EFI_SUCCESS) {
         fbconsole_write("Unexpected status from second GetMemoryMap call: %d\n", status);
+        while(1);
     }
 
-    uefi_call_wrapper(BS->ExitBootServices, 2, image_handle, map_key);
+    status = uefi_call_wrapper(BS->ExitBootServices, 2, image_handle, map_key);
 
     if(status == EFI_SUCCESS) {
-        fbconsole_write("Initializing memory management ...\n");
+        fbconsole_write("Initializing memory management (%d entries with %d bytes each) ...\n", memory_map_size / descriptor_size, descriptor_size);
 
-        for(EFI_MEMORY_DESCRIPTOR* desc = memory_map; desc < memory_map + memory_map_size; desc += descriptor_size) {
+        uint64_t pages_free         = 0;
+        EFI_MEMORY_DESCRIPTOR* desc = memory_map;
+
+        while((void*)desc < (void*)memory_map + memory_map_size) {
             if(desc->Type == EfiConventionalMemory) {
-                //mm_mark_pages_used(desc->PhysicalStart, desc->NumberOfPages);
-                fbconsole_write("  marking %d pages as free\n", desc->NumberOfPages);
+                pages_free += desc->NumberOfPages;
+                mm_mark_physical_pages(desc->PhysicalStart, desc->NumberOfPages, MM_FREE);
             }
+
+            desc = (void*)desc + descriptor_size;
         }
+        fbconsole_write("  marked %u (%u bytes) pages as free\n", pages_free, pages_free * 4096);
+        mm_print_physical_free_regions();
+        fbconsole_write("> allocating 5 pages\n");
+        mm_alloc_kernel_pages(5);
+        mm_print_physical_free_regions();
 
         fbconsole_write("Kernel boot completed, starting userland ...\n");
     }
     else {
-        Print(L" and it has gone wrong :(\nStatus: %r\n", status);
+        fbconsole_write(" and it has gone wrong :(\nStatus: %d\n", status);
     }
 
     while(1);

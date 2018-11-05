@@ -11,7 +11,36 @@ int sputs(char* buffer, int buffer_size, char* string, int length) {
     return i;
 }
 
-int sputi(char* buffer, int buffer_size, long number, int base) {
+int sputui(char* buffer, int buffer_size, uint64_t number, int base) {
+    char chars[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+    int count = 0;
+
+    if(number < 0) {
+        buffer[0] = '-';
+        buffer++;
+
+        buffer_size--;
+        count++;
+        number *= -1;
+    }
+
+    const int size = 64;
+    int i          = size - 1;
+    char num_buffer[size];
+
+    do {
+        char c          = chars[number % base];
+        num_buffer[i--] = c;
+        number         /= base;
+        count++;
+    } while(number && i >= 0 && count < buffer_size);
+
+    sputs(buffer, buffer_size, num_buffer + (size - count), count);
+    return count;
+}
+
+int sputi(char* buffer, int buffer_size, int64_t number, int base) {
     char chars[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
     int count = 0;
@@ -27,16 +56,17 @@ int sputi(char* buffer, int buffer_size, long number, int base) {
     int i          = size - 1;
     char num_buffer[size];
 
-    while(number && i >= 0 && count < buffer_size) {
+    do {
         char c          = chars[number % base];
         num_buffer[i--] = c;
         number         /= base;
         count++;
-    }
+    } while(number && i >= 0 && count < buffer_size);
 
     sputs(buffer, buffer_size, num_buffer + (size - count), count);
     return count;
 }
+
 
 int kvsnprintf(char* buffer, int buffer_size, const char* format, va_list args) {
     int i            = 0;
@@ -53,6 +83,9 @@ int kvsnprintf(char* buffer, int buffer_size, const char* format, va_list args) 
             switch(c) {
                 case 'c':
                     buffer[i++] = va_arg(args, int);
+                    break;
+                case 'u':
+                    i += sputui(buffer + i, buffer_size - i, va_arg(args, uint64_t), 10);
                     break;
                 case 'd':
                     i += sputi(buffer + i, buffer_size - i, va_arg(args, int), 10);
