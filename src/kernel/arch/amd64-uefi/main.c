@@ -38,7 +38,7 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE* system_tab
                 file_buffer_size = file_size + buffer_size;
                 buffer = ReallocatePool(buffer, file_size, file_buffer_size);
                 status = ReadSimpleReadFile(read_handle, file_size, &read_size, buffer + file_size);
-                
+
                 file_size += read_size;
 
                 if(status == EFI_SUCCESS) {
@@ -70,23 +70,36 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE* system_tab
             ValueToHex(number, mm_get_pml4_address());
             Print(L"  address of pml4: 0x%016s\n", number);
 
-            UINT64 test_addresses[1] = {
-                0xF000000000,
-            };
+            UINTN descriptor_size             = 0;
+            UINT32 descriptor_version         = 0;
+            UINTN map_key                     = 0;
+            UINTN memory_map_size             = 65536;
+            EFI_MEMORY_DESCRIPTOR* memory_map = AllocatePool(memory_map_size);
 
-            for(int i = 0; i < 1; i++) {
-                ValueToHex(number, test_addresses[i]);
-                Print(L"Testing mm with address 0x%016s\n", number);
-                ValueToHex(number, mm_get_mapping(test_addresses[i]));
-                Print(L"  physical: 0x%016s\n", number);
+            status = uefi_call_wrapper(system_table->BootServices->GetMemoryMap, &memory_map_size, memory_map, &map_key, &descriptor_size, &descriptor_version);
+            Print(L"Status: %d, Size: %d, Key: %d, DSize: %d, DVer: %d\n", status, memory_map_size, map_key, descriptor_size, descriptor_version);
+
+            for(UINTN i = 0; i < memory_map_size / descriptor_size; i++) {
+                EFI_MEMORY_DESCRIPTOR* desc = memory_map + (i * descriptor_size);
+
+        //        if(desc->Type == EfiConventionalMemory) {
+        //            mm_mark_pages_free(desc->PhysicalStart, desc->NumberOfPages);
+
+                    CHAR16 start[17];
+                    ValueToHex(start, desc->PhysicalStart);
+                    Print(L"  added %d pages (%dMB) at 0x%016s\n", desc->NumberOfPages, desc->NumberOfPages * 4096 / 1024 / 1024, start);
+        //        }
             }
+            Print(L"done! Now exiting boot services");
+            uefi_call_wrapper(BS->ExitBootServices, image_handle, map_key);
+            Print(L" and being on my own feet :)");
+
+            while(1);
         }
         else {
             Print(L"Could not open init: %d\n", status);
         }
     }
 
-    while(1);
-
-    return EFI_SUCCESS;
+    return EFI_NOT_FOUND;
 }
