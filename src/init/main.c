@@ -1,3 +1,6 @@
 void _start() {
-    return;
+    asm volatile("syscall");
+    asm volatile("syscall");
+    asm volatile("syscall");
+    while(1);
 }

@@ -36,6 +36,19 @@ typedef struct {
     uint16_t sectionHeaderSectionNameIndex;
 }__attribute__((packed)) elf_file_header_t;
 
+typedef struct {
+    uint32_t type;
+    uint32_t flags;
+
+    uint64_t offset;
+    uint64_t vaddr;
+    uint64_t paddr;
+    uint64_t fileLength;
+    uint64_t memLength;
+
+    uint64_t align;
+}__attribute__((packed)) elf_program_header_t;
+
 void load_elf(ptr_t start);
 
 #endif

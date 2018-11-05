@@ -1,10 +1,17 @@
+#define GNU_EFI_USE_EXTERNAL_STDARG
+#include "stdarg.h"
 #include <efi.h>
 #include <efilib.h>
 
 #include "mm.h"
+#include "vm.h"
 #include "fbconsole.h"
 #include "sd.h"
+#include "sc.h"
 #include "elf.h"
+#include "string.h"
+
+extern void jump_higher_half(ptr_t newBase, ptr_t base);
 
 /** Load the initial ramdisk from the boot device.
  *
@@ -107,32 +114,58 @@ EFI_STATUS initialize_console() {
         }
     }
 
-    fbconsole_write("Initialized framebuffer console\n", width, height, (long)fb);
+    fbconsole_write("Initialized framebuffer console @ 0x%x\n", (long)fb);
 
     return EFI_SUCCESS;
 }
 
+void relocate_high(ptr_t imageBase, ptr_t imageSize) {
+    ptr_t newImageBase = 0xFFFF800000000000; // start of higher half
+
+    for(size_t i = 0; i < imageSize; i+= 4096) {
+        vm_context_map(VM_KERNEL_CONTEXT, newImageBase + i, imageBase + i);
+    }
+
+    for(size_t i = 0; i < 1024 * 1024 * 1024; i+=4096) {
+        vm_context_map(VM_KERNEL_CONTEXT, i, i);
+    }
+
+    for(size_t i = 0; i < fbconsole.width * fbconsole.height * 4; i+=4096) {
+        vm_context_map(VM_KERNEL_CONTEXT, (ptr_t)(fbconsole.fb + i), (ptr_t)(fbconsole.fb + i));
+    }
+
+    vm_context_activate(VM_KERNEL_CONTEXT);
+
+    jump_higher_half(newImageBase, imageBase);
+}
+
 EFI_STATUS EFIAPI efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE* system_table) {
     InitializeLib(image_handle, system_table);
-    Print(L"LF OS amd64-uefi kernel initializing. Build: %a %a\n", __DATE__, __TIME__);
+    Print(L"LF OS amd64-uefi kernel initializing. Built: %a %a\n", __DATE__, __TIME__);
 
     EFI_STATUS status;
     EFI_LOADED_IMAGE* li;
+    ptr_t imageBase;
+    size_t imageSize;
 
     uefi_call_wrapper(BS->HandleProtocol, 3, image_handle, &LoadedImageProtocol, (void**)&li);
 
-    static const int debugger_timeout = 3;
-    Print(L"  Image base: 0x%016x - Waiting to attach debugger (%ds): ", li->ImageBase, debugger_timeout);
+    imageBase = (ptr_t)li->ImageBase;
+    imageSize = li->ImageSize;
 
-    for(int i = 0; i < debugger_timeout; i++) {
-        Print(L".");
+    Print(L"  Image base: 0x%x", imageBase);
+#ifdef DEBUG_BUILD
+    Print(L" - Waiting to attach debugger (press RETURN to abort)");
+    int wait_for_debugger = 1;
+    while(wait_for_debugger) {
+        unsigned char code = 0;
+        asm volatile("inb $0x60, %0":"=r"(code));
 
-        EFI_EVENT event;
-        uefi_call_wrapper(BS->CreateEvent, 5, EVT_TIMER, TPL_APPLICATION, NULL, NULL, &event);
-        uefi_call_wrapper(BS->SetTimer, 3, event, TimerRelative, 10000000);
-        UINTN index;
-        uefi_call_wrapper(BS->WaitForEvent, 3, 1, &event, &index);
+        if(code == 0x1c) {
+            wait_for_debugger = 0;
+        }
     }
+#endif
 
     Print(L"\nInitializing console ...\n");
 
@@ -181,6 +214,7 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE* system_tab
     }
 
     status = uefi_call_wrapper(BS->ExitBootServices, 2, image_handle, map_key);
+    asm volatile("cli");
 
     if(status == EFI_SUCCESS) {
         fbconsole_write("  Initializing memory management (%u entries with %u bytes each) ...\n", memory_map_size / descriptor_size, descriptor_size);
@@ -198,11 +232,19 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE* system_tab
         }
         fbconsole_write("    marked %u (%u bytes, %B) pages as free\n", pages_free, pages_free * 4096, pages_free * 4096);
 
+        fbconsole_write("  Installing new virtual memory management ...\n");
+        init_vm();
+
+        fbconsole_write("  Relocating to higher half ...\n");
+        relocate_high(imageBase, imageSize);
+
         fbconsole_write("  Initializing service registry ...\n");
         init_sd();
 
+        fbconsole_write("  Initializing syscall interface ...\n");
+//        init_sc();
+
         fbconsole_write("  Kernel boot completed, starting userland\n\n\n");
-        load_elf((ptr_t)initrd_buffer);
     }
     else {
         fbconsole_write("  and it has gone wrong :(\nStatus: %d\n", status);

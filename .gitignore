@@ -1,5 +1,8 @@
 *.o
+*.O
 *.img
 *.efi
+*.efi.debug
 *.so
 .*.s??
+src/init/init

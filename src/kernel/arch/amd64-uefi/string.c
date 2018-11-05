@@ -12,37 +12,24 @@ size_t strlen(char* str) {
     return i;
 }
 
-void* memcpy(void* dest, void* source, size_t size) {
-    if((ptr_t)dest % 4 == 0 && (ptr_t)source % 4 == 0) {
-        uint32_t* dst_32 = (uint32_t*)dest;
-        uint32_t* src_32 = (uint32_t*)source;
-
-        while(size > 32) {
-            *dst_32++ = *src_32++;
-            *dst_32++ = *src_32++;
-            *dst_32++ = *src_32++;
-            *dst_32++ = *src_32++;
-            *dst_32++ = *src_32++;
-            *dst_32++ = *src_32++;
-            *dst_32++ = *src_32++;
-            *dst_32++ = *src_32++;
-
-            size -= 32;
-        }
-
-        while(size) {
-            *dst_32++ = *src_32++;
-            size -= 4;
-        }
+void memset32(uint32_t* dest, uint32_t c, size_t size) {
+    for(size_t i = 0; i < size; ++i) {
+        dest[i] = c;
     }
-    else {
-        uint8_t* dst_8 = (uint8_t*)dest;
-        uint8_t* src_8 = (uint8_t*)source;
+}
 
-        while(size) {
-            *dst_8++ = *src_8++;
-            size--;
-        }
+void memset(uint8_t* dest, uint8_t c, size_t size) {
+    for(size_t i = 0; i < size; ++i) {
+        dest[i] = c;
+    }
+}
+
+void* memcpy(void* dest, void* source, size_t size) {
+    uint8_t* dst_8 = (uint8_t*)dest;
+    uint8_t* src_8 = (uint8_t*)source;
+
+    for(int i = 0; i < size; ++i) {
+        dst_8[i] = src_8[i];
     }
 
     return dest;
@@ -161,7 +148,7 @@ int kvsnprintf(char* buffer, int buffer_size, const char* format, va_list args) 
                     i += sputi(buffer + i, buffer_size - i, va_arg(args, int), 10);
                     break;
                 case 'x':
-                    i += sputi(buffer + i, buffer_size - i, va_arg(args, long), 16);
+                    i += sputui(buffer + i, buffer_size - i, va_arg(args, uint64_t), 16);
                     break;
                 case 'B':
                     i += sputbytes(buffer + i, buffer_size - i, va_arg(args, long));

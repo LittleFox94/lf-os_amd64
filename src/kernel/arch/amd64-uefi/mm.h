@@ -76,7 +76,29 @@ void mm_set_caching_mode(mm_caching_mode_t mode, ptr_t start, size_t len);
  */
 void mm_mark_physical_pages(ptr_t start, uint64_t count, mm_page_status_t status);
 
+/**
+ * Allocate kernel physical page
+ *
+ * \param count Number of pages to allocate
+ * \returns physical address of first page allocated.
+ */
 void* mm_alloc_kernel_pages(uint64_t count);
+
+/**
+ * Map physical address to virtual
+ *
+ * \param virtual Where to map
+ * \param physical what to map
+ */
+void mm_map(ptr_t virtual, ptr_t physical);
+
+/**
+ * Make page writeable
+ *
+ * \param address Address to modify
+ * \param writeable Shall the page be writeable or readonly?
+ */
+void mm_make_writeable(ptr_t address, int writeable);
 
 void mm_print_physical_free_regions();
 

@@ -41,11 +41,7 @@ void fbconsole_init(int width, int height, uint8_t* fb) {
 }
 
 void fbconsole_clear(int r, int g, int b) {
-    for(int y = 0; y < fbconsole.height; y++) {
-        for(int x = 0; x < fbconsole.width; x++) {
-            fbconsole_setpixel(x, y, r, g, b);
-        }
-    }
+    memset32((uint32_t*)fbconsole.fb, (r << 24) | (g << 16) | (b << 8), fbconsole.width * fbconsole.height);
 }
 
 void fbconsole_setpixel(int x, int y, int r, int g, int b) {

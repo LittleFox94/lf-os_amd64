@@ -1,6 +1,9 @@
 #include "arch.h"
 #include "mm.h"
+#include "vm.h"
 #include "fbconsole.h"
+
+#define PRESENT_BIT 1
 
 typedef struct {
     ptr_t               start;
@@ -41,12 +44,10 @@ ptr_t mm_get_mapping(ptr_t address) {
 
     uint64_t* pml4 = (uint64_t*)mm_get_pml4_address();
 
-    // check if pml4_entry is present
-    if(pml4[pml4_index] & 1) {
+    if(pml4[pml4_index] & PRESENT_BIT) {
         uint64_t* pdp = (uint64_t*)(pml4[pml4_index] & 0xFFFFFFFFFF000);
 
-        // check if pdp_entry is present
-        if(pdp[pdp_index] & 1) {
+        if(pdp[pdp_index] & PRESENT_BIT) {
             // check if last level
             if(pdp[pdp_index] & 0x80) {
                 return (pdp[pdp_index] & 0xFFFFF80000000) | (address & 0x3FFFFFFF);
@@ -54,8 +55,7 @@ ptr_t mm_get_mapping(ptr_t address) {
             else {
                 uint64_t* pd = (uint64_t*)(pdp[pdp_index] & 0xFFFFFFFFFF000);
 
-                // check if pd_entry is present
-                if(pd[pd_index] & 1) {
+                if(pd[pd_index] & PRESENT_BIT) {
                     // check if last level
                     if(pd[pd_index] & 0x80) {
                         return (pd[pd_index] & 0xFFFFFFFE00000) | (address & 0x1FFFFF);
@@ -63,8 +63,7 @@ ptr_t mm_get_mapping(ptr_t address) {
                     else {
                         uint64_t* pt = (uint64_t*)(pd[pd_index] & 0xFFFFFFFFFF000);
 
-                        // check if pt_entry is present
-                        if(pt[pt_index] & 1) {
+                        if(pt[pt_index] & PRESENT_BIT) {
                             return pt[pt_index] & 0xFFFFFFFFFF000;
                         }
                     }

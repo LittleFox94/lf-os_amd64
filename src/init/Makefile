@@ -1,4 +1,4 @@
-CFLAGS := -ffreestanding -nostdinc
+CFLAGS := -ffreestanding -nostdinc -O3
 OBJECTS = main.o
 
 all: init
