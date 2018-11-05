@@ -2,6 +2,42 @@
 #include "stdbool.h"
 #include "stdint.h"
 
+void* memcpy(void* dest, void* source, size_t size) {
+    if((ptr_t)dest % 8 == 0 && (ptr_t)source % 8 == 0) {
+        uint64_t* dst_64 = (uint64_t*)dest;
+        uint64_t* src_64 = (uint64_t*)source;
+
+        while(size > 64) {
+            *dst_64++ = *src_64++;
+            *dst_64++ = *src_64++;
+            *dst_64++ = *src_64++;
+            *dst_64++ = *src_64++;
+            *dst_64++ = *src_64++;
+            *dst_64++ = *src_64++;
+            *dst_64++ = *src_64++;
+            *dst_64++ = *src_64++;
+
+            size -= 64;
+        }
+
+        while(size) {
+            *dst_64++ = *src_64++;
+            size -= 8;
+        }
+    }
+    else {
+        uint8_t* dst_8 = (uint8_t*)dest;
+        uint8_t* src_8 = (uint8_t*)source;
+
+        while(size) {
+            *dst_8++ = *src_8++;
+            size--;
+        }
+    }
+
+    return dest;
+}
+
 int sputs(char* buffer, int buffer_size, char* string, int length) {
     int i;
     for(i = 0; i < length && i < buffer_size; i++) {

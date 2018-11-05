@@ -2,6 +2,9 @@
 #define _STRING_H_INCLUDED
 
 #include "stdarg.h"
+#include "stdint.h"
+
+void* memcpy(void* dest, void* source, size_t size);
 
 int kvsnprintf(char* buffer, int buffer_size, const char* format, va_list args);
 

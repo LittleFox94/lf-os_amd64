@@ -60,9 +60,7 @@ void fbconsole_scroll(unsigned int scroll_amount) {
     unsigned int begin     = row_start * fbconsole.width * 4;
     unsigned int end       = fbconsole.width * fbconsole.height * 4;
 
-    for(unsigned int i = begin; i < end; i++) {
-        fbconsole.fb[i - begin] = fbconsole.fb[i];
-    }
+    memcpy(fbconsole.fb, fbconsole.fb + begin, end - begin);
 
     for(unsigned int i = end - begin; i < end; i++) {
         fbconsole.fb[i] = 0;

@@ -170,9 +170,14 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE* system_tab
         }
         fbconsole_write("  marked %u (%u bytes) pages as free\n", pages_free, pages_free * 4096);
         mm_print_physical_free_regions();
-        fbconsole_write("> allocating 5 pages\n");
-        mm_alloc_kernel_pages(5);
-        mm_print_physical_free_regions();
+
+        for(;;) {
+            fbconsole_write("> allocating 10 pages\n");
+            if(!mm_alloc_kernel_pages(10)) {
+                break;
+            }
+            mm_print_physical_free_regions();
+        }
 
         fbconsole_write("Kernel boot completed, starting userland ...\n");
     }
