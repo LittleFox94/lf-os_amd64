@@ -1,69 +1,6 @@
 #include "arch.h"
 #include "mm.h"
 
-typedef struct {
-    unsigned int p     : 1;
-    unsigned int rw    : 1;
-    unsigned int us    : 1;
-    unsigned int pwt   : 1;
-    unsigned int pcd   : 1;
-    unsigned int a     : 1;
-    unsigned int d     : 1;
-    unsigned int pat   : 1;
-    unsigned int g     : 1;
-    unsigned int avl   : 3;
-    ptr_t        phys  : 40;
-    unsigned int flags : 11;
-    unsigned int nx    : 1;
-}__attribute__((packed)) pt_entry;
-
-typedef struct {
-    unsigned int p     : 1;
-    unsigned int rw    : 1;
-    unsigned int us    : 1;
-    unsigned int pwt   : 1;
-    unsigned int pcd   : 1;
-    unsigned int a     : 1;
-    unsigned int ign1  : 1;
-    unsigned int o     : 1;
-    unsigned int ign2  : 1;
-    unsigned int avl   : 3;
-    ptr_t        pt    : 40;
-    unsigned int flags : 11;
-    unsigned int nx    : 1;
-}__attribute__((packed)) pd_entry;
-
-typedef struct {
-    unsigned int p     : 1;
-    unsigned int rw    : 1;
-    unsigned int us    : 1;
-    unsigned int pwt   : 1;
-    unsigned int pcd   : 1;
-    unsigned int a     : 1;
-    unsigned int ign   : 1;
-    unsigned int o     : 1;
-    unsigned int mbz   : 1;
-    unsigned int avl   : 3;
-    ptr_t        pd    : 40;
-    unsigned int flags : 11;
-    unsigned int nx    : 1;
-}__attribute__((packed)) pdp_entry;
-
-typedef struct {
-    unsigned int p     : 1;
-    unsigned int rw    : 1;
-    unsigned int us    : 1;
-    unsigned int pwt   : 1;
-    unsigned int pcd   : 1;
-    unsigned int a     : 1;
-    unsigned int ign   : 1;
-    unsigned int mbz   : 2;
-    unsigned int avl   : 3;
-    ptr_t        pdp   : 40;
-    unsigned int flags : 11;
-    unsigned int nx    : 1;
-}__attribute__((packed)) pml4_entry;
-
 ptr_t mm_get_pml4_address() {
     ptr_t pml4_address = 0;
     asm volatile("mov %%cr3, %0":"=r"(pml4_address));
