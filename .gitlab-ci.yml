@@ -1,5 +1,5 @@
 before_script:
-  - apt-get -qq update && apt-get -y -qq install gnu-efi mtools gdisk gcc make g++
+  - apt-get -qq update && apt-get -y -qq install gnu-efi mtools gdisk gcc make g++ dosfstools
 
 make:
   script:
