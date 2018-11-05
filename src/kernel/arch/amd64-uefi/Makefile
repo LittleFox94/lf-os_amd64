@@ -49,7 +49,7 @@ hd.img:
 runnable-image: hd.img bootable-fs
 	dd if=bootfs.img of=hd.img seek=2048 obs=512 ibs=512 count=131072 conv=notrunc
 
-compressed-image: hd.img
+compressed-image: runnable-image
 	gzip -fk hd.img
 
 .PHONY: all clean test test-kvm
