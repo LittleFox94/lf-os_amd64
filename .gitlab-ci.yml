@@ -5,3 +5,8 @@ make:
   script:
     - cd src/kernel/arch/amd64-uefi
     - make compressed-image
+  artifacts:
+    paths:
+      - src/kernel/arch/amd64-uefi/hd.img.gz
+      - src/kernel/arch/amd64-uefi/main.efi
+  
