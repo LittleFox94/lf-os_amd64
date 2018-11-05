@@ -55,8 +55,18 @@ void fbconsole_draw_char(int start_x, int start_y, char c) {
     }
 }
 
-void fbconsole_scroll(int scroll_amount) {
-    
+void fbconsole_scroll(unsigned int scroll_amount) {
+    unsigned int row_start = scroll_amount * 16;
+    unsigned int begin     = row_start * fbconsole.width * 4;
+    unsigned int end       = fbconsole.width * fbconsole.height * 4;
+
+    for(unsigned int i = begin; i < end; i++) {
+        fbconsole.fb[i - begin] = fbconsole.fb[i];
+    }
+
+    for(unsigned int i = end - begin; i < end; i++) {
+        fbconsole.fb[i] = 0;
+    }
 }
 
 void fbconsole_next_line() {
@@ -65,6 +75,7 @@ void fbconsole_next_line() {
 
     if(fbconsole.current_row == fbconsole.rows) {
         fbconsole_scroll(1);
+        fbconsole.current_row--;
     }
 }
 
