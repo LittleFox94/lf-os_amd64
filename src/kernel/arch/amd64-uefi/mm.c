@@ -23,10 +23,6 @@ short mm_get_pt_index(ptr_t address) {
     return (address >> 12) & 0x1FF;
 }
 
-short mm_get_page_offset(ptr_t address) {
-    return address & 0x1000;
-}
-
 ptr_t mm_get_mapping(ptr_t address) {
     ptr_t pml4_index = mm_get_pml4_index(address);
     ptr_t pdp_index  = mm_get_pdp_index(address);

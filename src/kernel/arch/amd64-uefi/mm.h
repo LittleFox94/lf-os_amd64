@@ -38,14 +38,6 @@ short mm_get_pd_index(ptr_t address);
 short mm_get_pt_index(ptr_t address);
 
 /**
- * return offset of address in page
- *
- * \param address Address to calculate page offset from
- * \returns offset of address from start of page
- */
-short mm_get_page_offset(ptr_t address);
-
-/**
  * return the mapped physical address of the given virtual address
  *
  * \param address Address to retrieve physical address for
