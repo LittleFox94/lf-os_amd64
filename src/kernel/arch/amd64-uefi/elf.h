@@ -2,6 +2,7 @@
 #define _ELF_H_INCLUDED
 
 #include <stdint.h>
+#include "vm.h"
 
 #define ELF_MAGIC 0x464c457f
 
@@ -49,6 +50,6 @@ typedef struct {
     uint64_t align;
 }__attribute__((packed)) elf_program_header_t;
 
-void load_elf(ptr_t start);
+ptr_t load_elf(ptr_t start, vm_table_t* context);
 
 #endif

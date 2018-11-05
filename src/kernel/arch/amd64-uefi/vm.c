@@ -15,8 +15,6 @@ extern void load_cr3(ptr_t cr3);
 void init_vm() {
     vm_table_t* kernel_context = vm_context_new();
     VM_KERNEL_CONTEXT = kernel_context;
-
-    fbconsole_write("Kernel PML4 located at: 0x%x\n", kernel_context);
 }
 
 vm_table_t* vm_context_new() {
@@ -40,6 +38,7 @@ void vm_context_map(vm_table_t* context, ptr_t virtual, ptr_t physical) {
         pml4_entry->next_base = pdp >> 12;
         pml4_entry->present   = 1;
         pml4_entry->writeable = 1;
+        pml4_entry->userspace = 1;
     }
 
     vm_table_t*       pdp       = BASE_TO_TABLE(pml4_entry->next_base);
@@ -52,6 +51,7 @@ void vm_context_map(vm_table_t* context, ptr_t virtual, ptr_t physical) {
         pdp_entry->next_base = pd >> 12;
         pdp_entry->present   = 1;
         pdp_entry->writeable = 1;
+        pdp_entry->userspace = 1;
     }
 
     vm_table_t*       pd       = BASE_TO_TABLE(pdp_entry->next_base);
@@ -64,6 +64,7 @@ void vm_context_map(vm_table_t* context, ptr_t virtual, ptr_t physical) {
         pd_entry->next_base = pt >> 12;
         pd_entry->present   = 1;
         pd_entry->writeable = 1;
+        pd_entry->userspace = 1;
     }
 
     vm_table_t*       pt       = BASE_TO_TABLE(pd_entry->next_base);
@@ -72,6 +73,7 @@ void vm_context_map(vm_table_t* context, ptr_t virtual, ptr_t physical) {
     pt_entry->next_base = physical >> 12;
     pt_entry->present   = 1;
     pt_entry->writeable = 1;
+    pt_entry->userspace = 1;
 }
 
 ptr_t vm_context_get_free_address(vm_table_t *table, bool kernel) {

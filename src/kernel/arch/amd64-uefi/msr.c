@@ -3,7 +3,7 @@
 void write_msr(uint32_t msr, uint64_t value) {
     asm volatile(
         "wrmsr" ::
-        "a"(value & 0xFFFFFFFF), "d"(value >> 32), "c"(msr)
+        "a"(value & 0xFFFFFFFF), "d"((value >> 32) & 0xFFFFFFFF), "c"(msr)
     );
 }
 

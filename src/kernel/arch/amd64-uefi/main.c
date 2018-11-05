@@ -3,15 +3,43 @@
 #include <efi.h>
 #include <efilib.h>
 
+#include "config.h"
+
 #include "mm.h"
 #include "vm.h"
 #include "fbconsole.h"
 #include "sd.h"
 #include "sc.h"
 #include "elf.h"
+#include "scheduler.h"
 #include "string.h"
+#include "pic.h"
+#include "pit.h"
+
+char* LAST_INIT_STEP;
+
+#define INIT_STEP(message, code)                                                \
+    LAST_INIT_STEP = message;                                                   \
+    fbconsole_write("   " message);                                             \
+                                                                                \
+    if(single_stepping) {                                                       \
+        unsigned char c;                                                        \
+        do {                                                                    \
+            asm volatile("inb $0x60, %0":"=r"(c));                              \
+        } while(c != 0x1c);                                                     \
+                                                                                \
+        do {                                                                    \
+            asm volatile("inb $0x60, %0":"=r"(c));                              \
+        } while(c != 0x9c);                                                     \
+    }                                                                           \
+                                                                                \
+    code                                                                        \
+    fbconsole.current_col = 0;                                                  \
+    fbconsole_write("\e[38;2;109;128;255mok\e[38;5;15m\n");
 
 extern void jump_higher_half(ptr_t newBase, ptr_t base);
+
+extern const char* build_id;
 
 /** Load the initial ramdisk from the boot device.
  *
@@ -32,12 +60,10 @@ int64_t load_initrd(EFI_DEVICE_PATH* path, void** buffer) {
 
     if(status == EFI_SUCCESS) {
         void* temp_buffer          = NULL;
-        const unsigned buffer_size = 65536;
+        const unsigned buffer_size = 512;
         UINTN file_buffer_size     = 0;
         UINTN read_size            = buffer_size;
         UINTN file_size            = 0;
-
-        fbconsole_write("Loading init ");
 
         while(read_size == buffer_size) {
             read_size        = buffer_size;
@@ -55,7 +81,7 @@ int64_t load_initrd(EFI_DEVICE_PATH* path, void** buffer) {
             }
         }
 
-        fbconsole_write("\n  loaded 0x%x (%u bytes, %B)\n", (long)temp_buffer, file_size, file_size);
+        fbconsole_write(" -> 0x%x (%u bytes, %B)", (long)temp_buffer, file_size, file_size);
 
         temp_buffer = ReallocatePool(temp_buffer, file_buffer_size, file_size);
         *buffer     = temp_buffer;
@@ -102,19 +128,15 @@ EFI_STATUS initialize_console() {
         for(int x = 0; x < gimp_image.width; x++) {
             int coord = ((y * gimp_image.width) + x) * gimp_image.bytes_per_pixel;
             fbconsole_setpixel(
-                x, y,
-                gimp_image.pixel_data[coord + 2],
+                fbconsole.width - gimp_image.width + x - 5, y + 5,
+                gimp_image.pixel_data[coord + 0],
                 gimp_image.pixel_data[coord + 1],
-                gimp_image.pixel_data[coord + 0]
+                gimp_image.pixel_data[coord + 2]
             );
-        }
-
-        if(y % 16 == 0) {
-            fbconsole_write("\n");
         }
     }
 
-    fbconsole_write("Initialized framebuffer console @ 0x%x\n", (long)fb);
+    fbconsole_write("   Initializing framebuffer console @ 0x%x", (long)fb);
 
     return EFI_SUCCESS;
 }
@@ -135,13 +157,53 @@ void relocate_high(ptr_t imageBase, ptr_t imageSize) {
     }
 
     vm_context_activate(VM_KERNEL_CONTEXT);
+}
 
-    jump_higher_half(newImageBase, imageBase);
+void settings_ui(EFI_SYSTEM_TABLE *system_table, ptr_t imageBase, bool* single_stepping) {
+    int draw = 1;
+
+    while(1) {
+        if(draw) {
+            uefi_call_wrapper(system_table->ConOut->ClearScreen, 1, system_table->ConOut);
+            Print(L"LF OS amd64-uefi kernel - version: %a\n\n", build_id);
+
+            Print(L"Kernel configuration flags:\n");
+            Print(L"      init location:       $ESP%s\n", INIT_LOCATION);
+            Print(L"      image base:          0x%x\n",   imageBase);
+            Print(L" [S]  single stepping:     %a\n",     *single_stepping ? "on (press RETURN for stepping)" : "off");
+
+            Print(L"\nPress key from first column to change setting.");
+            Print(L"\nPress RETURN to boot kernel with the given settings.\n\n");
+
+            Print(L"You can also attach the debugger now:\n");
+            Print(L"    add-symbol-file main.efi.debug 0xFFFF800000003000\n");
+            Print(L"    target remote :1234\n");
+            Print(L"    continue\n");
+        }
+
+        unsigned char code = 0;
+        asm volatile("inb $0x60, %0":"=r"(code));
+
+        if(draw == code) {
+            continue;
+        }
+
+        draw = code;
+
+        switch(code) {
+            case 0x1c:
+                return;
+            case 0x1F:
+                *single_stepping = !*single_stepping;
+                break;
+            default:
+                draw = 0;
+        }
+    }
 }
 
 EFI_STATUS EFIAPI efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE* system_table) {
     InitializeLib(image_handle, system_table);
-    Print(L"LF OS amd64-uefi kernel initializing. Built: %a %a\n", __DATE__, __TIME__);
 
     EFI_STATUS status;
     EFI_LOADED_IMAGE* li;
@@ -153,102 +215,135 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE* system_tab
     imageBase = (ptr_t)li->ImageBase;
     imageSize = li->ImageSize;
 
-    Print(L"  Image base: 0x%x", imageBase);
-#ifdef DEBUG_BUILD
-    Print(L" - Waiting to attach debugger (press RETURN to abort)");
-    int wait_for_debugger = 1;
-    while(wait_for_debugger) {
-        unsigned char code = 0;
-        asm volatile("inb $0x60, %0":"=r"(code));
+    bool single_stepping = false;
 
-        if(code == 0x1c) {
-            wait_for_debugger = 0;
+    settings_ui(system_table, imageBase, &single_stepping);
+
+    INIT_STEP(
+        "",
+        Print(L"\nInitializing console ...\n");
+
+        status = initialize_console();
+
+        if(status != EFI_SUCCESS) {
+            Print(L"  not able to get a console: %r\n", status);
+            return EFI_UNSUPPORTED;
         }
-    }
-#endif
+    )
 
-    Print(L"\nInitializing console ...\n");
+    INIT_STEP(
+        "Loading init",
+        EFI_DEVICE_PATH* init_path = FileDevicePath(li->DeviceHandle, INIT_LOCATION);
 
-    status = initialize_console();
+        if(!init_path) {
+            fbconsole_write("\nCould not find init to load\n");
+            while(1);
+        }
 
-    if(status != EFI_SUCCESS) {
-        Print(L"  not able to get a console: %r\n", status);
-        return EFI_UNSUPPORTED;
-    }
+        void*   initrd_buffer      = NULL;
+        int64_t initrd_size        = load_initrd(init_path, &initrd_buffer);
 
-    EFI_DEVICE_PATH* init_path = FileDevicePath(li->DeviceHandle, L"\\LFOS\\init");
+        if(initrd_size < 0) {
+            fbconsole_write("\nCould not load init: %d\n", -initrd_size);
+            return -initrd_size;
+        }
+    )
 
-    if(!init_path) {
-        fbconsole_write("Could not find init to load\n");
-        while(1);
-    }
+    INIT_STEP(
+        "Retrieving memory map",
+        UINTN descriptor_size             = 0;
+        UINT32 descriptor_version         = 0;
+        UINTN map_key                     = 0;
+        UINTN memory_map_size             = 128;
+        EFI_MEMORY_DESCRIPTOR* memory_map = AllocatePool(memory_map_size);
 
-    void*   initrd_buffer      = NULL;
-    int64_t initrd_size        = load_initrd(init_path, &initrd_buffer);
+        do {
+            status = uefi_call_wrapper(BS->GetMemoryMap, 5, &memory_map_size, memory_map, &map_key, &descriptor_size, &descriptor_version);
 
-    if(initrd_size < 0) {
-        fbconsole_write("Could not load init: %d\n", -initrd_size);
-        return -initrd_size;
-    }
-
-    fbconsole_write("Now trying to stand on my own feet ...\n");
-
-    UINTN descriptor_size             = 0;
-    UINT32 descriptor_version         = 0;
-    UINTN map_key                     = 0;
-    UINTN memory_map_size             = 0;
-    EFI_MEMORY_DESCRIPTOR* memory_map = NULL;
-
-    status = uefi_call_wrapper(BS->GetMemoryMap, 5, &memory_map_size, memory_map, &map_key, &descriptor_size, &descriptor_version);
-    if(status != EFI_BUFFER_TOO_SMALL) {
-        fbconsole_write("  Unexpected status from first GetMemoryMap call: %d\n", status);
-        while(1);
-    }
-
-    memory_map = AllocatePool(memory_map_size);
-
-    status = uefi_call_wrapper(BS->GetMemoryMap, 5, &memory_map_size, memory_map, &map_key, &descriptor_size, &descriptor_version);
-    if(status != EFI_SUCCESS) {
-        fbconsole_write("  Unexpected status from second GetMemoryMap call: %d\n", status);
-        while(1);
-    }
-
-    status = uefi_call_wrapper(BS->ExitBootServices, 2, image_handle, map_key);
-    asm volatile("cli");
-
-    if(status == EFI_SUCCESS) {
-        fbconsole_write("  Initializing memory management (%u entries with %u bytes each) ...\n", memory_map_size / descriptor_size, descriptor_size);
-
-        uint64_t pages_free         = 0;
-        EFI_MEMORY_DESCRIPTOR* desc = memory_map;
-
-        while((void*)desc < (void*)memory_map + memory_map_size) {
-            if(desc->Type == EfiConventionalMemory) {
-                pages_free += desc->NumberOfPages;
-                mm_mark_physical_pages(desc->PhysicalStart, desc->NumberOfPages, MM_FREE);
+            if(status == EFI_SUCCESS) {
+                break;
             }
 
-            desc = (void*)desc + descriptor_size;
-        }
-        fbconsole_write("    marked %u (%u bytes, %B) pages as free\n", pages_free, pages_free * 4096, pages_free * 4096);
+            if(status != EFI_BUFFER_TOO_SMALL) {
+                fbconsole_write("\nUnexpected status from GetMemoryMap call: %d\n", status);
+                while(1);
+            }
 
-        fbconsole_write("  Installing new virtual memory management ...\n");
-        init_vm();
+            FreePool(memory_map);
+            memory_map = AllocatePool(memory_map_size);
+        } while(status == EFI_BUFFER_TOO_SMALL);
+    )
 
-        fbconsole_write("  Relocating to higher half ...\n");
-        relocate_high(imageBase, imageSize);
+    INIT_STEP(
+        "Exiting UEFI boot services",
+        asm volatile("cli");
+        status = uefi_call_wrapper(BS->ExitBootServices, 2, image_handle, map_key);
 
-        fbconsole_write("  Initializing service registry ...\n");
-        init_sd();
+        init_gdt();
+        init_sc();
+    )
 
-        fbconsole_write("  Initializing syscall interface ...\n");
-//        init_sc();
+    if(status == EFI_SUCCESS) {
+        INIT_STEP(
+            "Initializing physical memory management",
 
-        fbconsole_write("  Kernel boot completed, starting userland\n\n\n");
+            uint64_t pages_free         = 0;
+            EFI_MEMORY_DESCRIPTOR* desc = memory_map;
+
+            while((void*)desc < (void*)memory_map + memory_map_size) {
+                if(desc->Type == EfiConventionalMemory) {
+                    pages_free += desc->NumberOfPages;
+                    mm_mark_physical_pages(desc->PhysicalStart, desc->NumberOfPages, MM_FREE);
+                }
+
+                desc = (void*)desc + descriptor_size;
+            }
+            fbconsole_write(" -> %u pages (%B) free", pages_free, pages_free * 4096);
+        )
+
+        INIT_STEP(
+            "Initializing virtual memory management",
+            init_vm();
+        )
+
+        INIT_STEP(
+            "Relocating kernel",
+            relocate_high(imageBase, imageSize);
+            jump_higher_half(0xFFFF800000000000, imageBase);
+        )
+
+        INIT_STEP(
+            "Initializing service registry",
+            init_sd();
+        )
+
+        INIT_STEP(
+            "Initializing syscall interface",
+            init_gdt();
+            init_sc();
+        )
+
+        INIT_STEP(
+            "Initializing scheduling and program execution",
+            init_scheduler();
+        )
+
+        INIT_STEP(
+            "Initializing interrupt management",
+            init_pic();
+            init_pit();
+        )
+
+        INIT_STEP(
+            "Preparing and starting userspace",
+            vm_table_t* init_context = vm_context_new();
+            memcpy(init_context, VM_KERNEL_CONTEXT, 4096);
+
+            ptr_t entry = load_elf((ptr_t)initrd_buffer, init_context);
+            start_task(init_context, entry);
+        )
     }
-    else {
-        fbconsole_write("  and it has gone wrong :(\nStatus: %d\n", status);
-    }
 
+    asm("sti");
     while(1);
 }

@@ -1,24 +1,25 @@
 #include "elf.h"
 #include "fbconsole.h"
 #include "string.h"
+#include "mm.h"
 
-void load_elf(ptr_t start) {
+ptr_t load_elf(ptr_t start, vm_table_t* context) {
     elf_file_header_t* header = (elf_file_header_t*)start;
 
     if(header->ident_magic != ELF_MAGIC) {
         fbconsole_write("[ELF] not an ELF file, invalid magic (%x != %x)!\n", header->ident_magic, ELF_MAGIC);
-        return;
+        return 0;
     }
 
     if(header->machine != 0x3E || header->version != 1) {
         fbconsole_write("[ELF] incompatible ELF file, invalid machine or version\n");
-        return;
+        return 0;
     }
 
     // check if file is an executable
     if(header->type != 0x02) {
         fbconsole_write("[ELF] file not executable (%u != %u)\n", header->type, 2);
-        return;
+        return 0;
     }
 
     int phStart = 0;
@@ -29,16 +30,12 @@ void load_elf(ptr_t start) {
             continue;
         }
 
-        fbconsole_write("[ELF] len: 0x%x, offset: 0x%x, vaddr: 0x%x\n", programHeader->fileLength, programHeader->offset, programHeader->vaddr);
+        for(size_t i = 0; i < programHeader->fileLength; i += 4096) {
+            vm_context_map(context, (ptr_t)programHeader->vaddr + i, mm_get_mapping(start + programHeader->offset + i));
+        }
 
-        memcpy((void*)programHeader->vaddr, (void*)(start + programHeader->offset), programHeader->fileLength);
         phStart += header->programHeaderEntrySize;
     }
 
-    asm("mov $0x2000,%rsp");
-
-    void (*entry)() = (void(*)())header->entrypoint;
-    entry();
-
-    fbconsole_write("[ELF] program executed\n");
+    return header->entrypoint;
 }

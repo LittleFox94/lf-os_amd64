@@ -11,6 +11,8 @@ struct fbconsole_data {
     int cols, rows, current_col, current_row;
     int foreground_r, foreground_g, foreground_b;
     int background_r, background_g, background_b;
+
+    int palette[16][3];
 };
 
 extern struct fbconsole_data fbconsole;

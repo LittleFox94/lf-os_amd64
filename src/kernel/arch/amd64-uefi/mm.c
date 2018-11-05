@@ -162,7 +162,7 @@ void mm_mark_physical_pages(ptr_t start, uint64_t count, mm_page_status_t status
 
         return;
     }
-    else if(mm_physical_page_list && status != MM_FREE) {
+    else if(!mm_physical_page_list && status != MM_FREE) {
         return; // this should crash, but there is no crash handling yet, so just ignore this happened
     }
 

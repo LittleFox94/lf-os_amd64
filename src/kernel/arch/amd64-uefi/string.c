@@ -5,7 +5,7 @@
 size_t strlen(char* str) {
     size_t i = 0;
 
-    while(*++str) {
+    while(*str++) {
         ++i;
     }
 
@@ -18,26 +18,27 @@ void memset32(uint32_t* dest, uint32_t c, size_t size) {
     }
 }
 
-void memset(uint8_t* dest, uint8_t c, size_t size) {
-    for(size_t i = 0; i < size; ++i) {
-        dest[i] = c;
-    }
-}
-
-void* memcpy(void* dest, void* source, size_t size) {
-    uint8_t* dst_8 = (uint8_t*)dest;
-    uint8_t* src_8 = (uint8_t*)source;
-
-    for(int i = 0; i < size; ++i) {
-        dst_8[i] = src_8[i];
-    }
-
-    return dest;
-}
+//void memset(uint8_t* dest, uint8_t c, size_t size) {
+//    for(size_t i = 0; i < size; ++i) {
+//        dest[i] = c;
+//    }
+//}
+//
+//void* memcpy(void* dest, void* source, size_t size) {
+//    uint8_t* dst_8 = (uint8_t*)dest;
+//    uint8_t* src_8 = (uint8_t*)source;
+//
+//    for(int i = 0; i < size; ++i) {
+//        dst_8[i] = src_8[i];
+//    }
+//
+//    return dest;
+//}
 
 int sputs(char* buffer, int buffer_size, char* string, int length) {
     int i;
-    for(i = 0; i < length && i < buffer_size; i++) {
+
+    for(i = 0; i < length && i < buffer_size; ++i) {
         buffer[i] = string[i];
     }
 
@@ -126,36 +127,69 @@ int sputbytes(char* buffer, int buffer_size, int64_t number) {
 }
 
 int kvsnprintf(char* buffer, int buffer_size, const char* format, va_list args) {
-    int i            = 0;
-    char c           = 0;
-    bool placeholder = false;
+    int i                = 0;
+    char c               = 0;
+    bool placeholder     = false;
+    char placeholderChar = ' ';
+    int minLength        = 0;
 
     while((c = *format++) && i < buffer_size) {
         if(c == '%') {
-            placeholder = true;
+            placeholder     = true;
+            placeholderChar = ' ';
+            minLength       = 0;
             continue;
         }
 
         if(placeholder) {
-            switch(c) {
-                case 'c':
-                    buffer[i++] = va_arg(args, int);
-                    break;
-                case 'u':
-                    i += sputui(buffer + i, buffer_size - i, va_arg(args, uint64_t), 10);
-                    break;
-                case 'd':
-                    i += sputi(buffer + i, buffer_size - i, va_arg(args, int), 10);
-                    break;
-                case 'x':
-                    i += sputui(buffer + i, buffer_size - i, va_arg(args, uint64_t), 16);
-                    break;
-                case 'B':
-                    i += sputbytes(buffer + i, buffer_size - i, va_arg(args, long));
-                    break;
+            if((minLength == 0 && c == '0') || c == ' ') {
+                placeholderChar = c;
+                continue;
             }
+            else if(c >= '0' && c <= '9') {
+                minLength *= 10;
+                minLength += c - '0';
+            }
+            else {
+                char argBuffer[256];
+                int  length;
 
-            placeholder = false;
+                memset((void*)argBuffer, 0, 256);
+
+                switch(c) {
+                    case 'c':
+                        argBuffer[0] = va_arg(args, int);
+                        length = 1;
+                        break;
+                    case 'u':
+                        length = sputui(argBuffer, 256, va_arg(args, uint64_t), 10);
+                        break;
+                    case 'd':
+                        length = sputi(argBuffer, 256, va_arg(args, int), 10);
+                        break;
+                    case 'x':
+                        length = sputui(argBuffer, 256, va_arg(args, uint64_t), 16);
+                        break;
+                    case 'B':
+                        length = sputbytes(argBuffer, 256, va_arg(args, long));
+                        break;
+                    case 's':
+                        {
+                            char* arg = va_arg(args, char*);
+                            length = sputs(argBuffer, 256, arg, strlen(arg));
+                        }
+                        break;
+                }
+
+                while(length < minLength && i < buffer_size) {
+                    buffer[i++] = placeholderChar;
+                    --minLength;
+                }
+
+                i += sputs(buffer + i, buffer_size - i, argBuffer, length);
+
+                placeholder = false;
+            }
         }
         else {
             buffer[i++] = c;
