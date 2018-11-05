@@ -5,6 +5,7 @@
 #include "stdint.h"
 
 void* memcpy(void* dest, void* source, size_t size);
+size_t strlen(char* str);
 
 int kvsnprintf(char* buffer, int buffer_size, const char* format, va_list args);
 

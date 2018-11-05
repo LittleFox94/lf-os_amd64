@@ -226,3 +226,4 @@ void mm_print_physical_free_regions() {
         current = current->next;
     }
 }
+

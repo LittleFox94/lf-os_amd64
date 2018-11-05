@@ -1,10 +1,22 @@
 #include "fbconsole.h"
 #include "font_sun8x16.c"
+#include "mm.h"
 
 #include "string.h"
 #include "stdarg.h"
 
 struct fbconsole_data fbconsole;
+
+void __set_mtrr_wc(uint64_t fb, uint64_t len) {
+    fb = mm_get_mapping(fb);
+
+    uint64_t fb_lo = fb  & 0x0FFFFF000;
+    uint64_t fb_hi = (fb & 0x700000000) >> 32;
+
+    asm volatile("wrmsr" :: "a"(fb_lo | 1),     "c"(0x202), "d"(fb_hi));
+    asm volatile("wrmsr" :: "a"(0xF8000800),    "c"(0x203), "d"(0x7));
+    asm volatile("wrmsr" :: "a"(0x800 | 0x04), "c"(0x2FF), "d"(0));
+}
 
 void fbconsole_init(int width, int height, uint8_t* fb) {
     fbconsole.width  = width;
@@ -16,12 +28,14 @@ void fbconsole_init(int width, int height, uint8_t* fb) {
     fbconsole.current_col = 0;
     fbconsole.current_row = 0;
 
-    fbconsole.foreground_r = 255;
-    fbconsole.foreground_g = 255;
-    fbconsole.foreground_b = 255;
+    fbconsole.foreground_r = 127;
+    fbconsole.foreground_g = 127;
+    fbconsole.foreground_b = 127;
     fbconsole.background_r = 0;
     fbconsole.background_g = 0;
     fbconsole.background_b = 0;
+
+    __set_mtrr_wc((uint64_t)fb, width * height * 4);
 
     fbconsole_clear(0, 0, 0);
 }

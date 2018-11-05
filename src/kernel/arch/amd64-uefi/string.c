@@ -2,27 +2,37 @@
 #include "stdbool.h"
 #include "stdint.h"
 
+size_t strlen(char* str) {
+    size_t i = 0;
+
+    while(*++str) {
+        ++i;
+    }
+
+    return i;
+}
+
 void* memcpy(void* dest, void* source, size_t size) {
-    if((ptr_t)dest % 8 == 0 && (ptr_t)source % 8 == 0) {
-        uint64_t* dst_64 = (uint64_t*)dest;
-        uint64_t* src_64 = (uint64_t*)source;
+    if((ptr_t)dest % 4 == 0 && (ptr_t)source % 4 == 0) {
+        uint32_t* dst_32 = (uint32_t*)dest;
+        uint32_t* src_32 = (uint32_t*)source;
 
-        while(size > 64) {
-            *dst_64++ = *src_64++;
-            *dst_64++ = *src_64++;
-            *dst_64++ = *src_64++;
-            *dst_64++ = *src_64++;
-            *dst_64++ = *src_64++;
-            *dst_64++ = *src_64++;
-            *dst_64++ = *src_64++;
-            *dst_64++ = *src_64++;
+        while(size > 32) {
+            *dst_32++ = *src_32++;
+            *dst_32++ = *src_32++;
+            *dst_32++ = *src_32++;
+            *dst_32++ = *src_32++;
+            *dst_32++ = *src_32++;
+            *dst_32++ = *src_32++;
+            *dst_32++ = *src_32++;
+            *dst_32++ = *src_32++;
 
-            size -= 64;
+            size -= 32;
         }
 
         while(size) {
-            *dst_64++ = *src_64++;
-            size -= 8;
+            *dst_32++ = *src_32++;
+            size -= 4;
         }
     }
     else {
@@ -103,6 +113,30 @@ int sputi(char* buffer, int buffer_size, int64_t number, int base) {
     return count;
 }
 
+int sputbytes(char* buffer, int buffer_size, int64_t number) {
+    char *prefixes       = " KMGT";
+    static const int div = 1024;
+
+    int prefix = 0;
+
+    while(number / div > 1 && prefix < strlen(prefixes)) {
+        number /= div;
+        prefix++;
+    }
+
+    buffer[0] = '~';
+
+    int len = sputi(buffer + 1, buffer_size, number, 10) + 1;
+    
+    if(prefix && len < buffer_size) {
+        buffer[len++] = prefixes[prefix];
+        buffer[len++] = 'i';
+    }
+
+    buffer[len++] = 'B';
+
+    return len;
+}
 
 int kvsnprintf(char* buffer, int buffer_size, const char* format, va_list args) {
     int i            = 0;
@@ -128,6 +162,9 @@ int kvsnprintf(char* buffer, int buffer_size, const char* format, va_list args) 
                     break;
                 case 'x':
                     i += sputi(buffer + i, buffer_size - i, va_arg(args, long), 16);
+                    break;
+                case 'B':
+                    i += sputbytes(buffer + i, buffer_size - i, va_arg(args, long));
                     break;
             }
 

@@ -10,6 +10,12 @@ typedef enum {
     MM_UEFI_MAPPING_REQUIRED,
 } mm_page_status_t;
 
+typedef enum {
+    MM_UNCACHED,
+    MM_WRITETHROUGH,
+    MM_WRITEBACK,
+} mm_caching_mode_t;
+
 ptr_t mm_get_pml4_address();
 
 /**
@@ -51,6 +57,15 @@ short mm_get_pt_index(ptr_t address);
  * \returns physical address mapped to the given virtual address
  */
 ptr_t mm_get_mapping(ptr_t address);
+
+/**
+ * set the caching mode for the pages starting at start until start + len
+ *
+ * \param mode caching mode to set
+ * \param start start address
+ * \param len number of bytes
+ */
+void mm_set_caching_mode(mm_caching_mode_t mode, ptr_t start, size_t len);
 
 /**
  * Mark physical pages with information from UEFI memory map

@@ -3,6 +3,8 @@
 
 #include "mm.h"
 #include "fbconsole.h"
+#include "sd.h"
+#include "elf.h"
 
 /** Load the initial ramdisk from the boot device.
  *
@@ -23,12 +25,12 @@ int64_t load_initrd(EFI_DEVICE_PATH* path, void** buffer) {
 
     if(status == EFI_SUCCESS) {
         void* temp_buffer          = NULL;
-        const unsigned buffer_size = 4096;
+        const unsigned buffer_size = 65536;
         UINTN file_buffer_size     = 0;
         UINTN read_size            = buffer_size;
         UINTN file_size            = 0;
 
-        Print(L"Loading init ");
+        fbconsole_write("Loading init ");
 
         while(read_size == buffer_size) {
             read_size        = buffer_size;
@@ -39,14 +41,14 @@ int64_t load_initrd(EFI_DEVICE_PATH* path, void** buffer) {
             file_size += read_size;
 
             if(status == EFI_SUCCESS) {
-                Print(L".");
+                fbconsole_write(".");
             }
             else {
-                Print(L"x");
+                fbconsole_write("x");
             }
         }
 
-        Print(L"\n  loaded: %d bytes at 0x%016x\n", file_size, (UINTN)temp_buffer);
+        fbconsole_write("\n  loaded 0x%x (%u bytes, %B)\n", (long)temp_buffer, file_size, file_size);
 
         temp_buffer = ReallocatePool(temp_buffer, file_buffer_size, file_size);
         *buffer     = temp_buffer;
@@ -84,22 +86,42 @@ EFI_STATUS initialize_console() {
     UINTN height = gop->Mode->Info->VerticalResolution;
     uint8_t* fb  = (uint8_t*)gop->Mode->FrameBufferBase;
 
+    Print(L"  got UEFI GOP framebuffer %dx%d located at 0x%x @ 0x%x\n", width, height, (ptr_t)fb, mm_get_mapping((ptr_t)fb));
     fbconsole_init(width, height, fb);
-    fbconsole_write("Got framebuffer console %dx%d located at 0x%x\n", width, height, (long)fb);
+
+    #include "bootlogo.c"
+
+    for(int y = 0; y < gimp_image.height; y++) {
+        for(int x = 0; x < gimp_image.width; x++) {
+            int coord = ((y * gimp_image.width) + x) * gimp_image.bytes_per_pixel;
+            fbconsole_setpixel(
+                x, y,
+                gimp_image.pixel_data[coord + 2],
+                gimp_image.pixel_data[coord + 1],
+                gimp_image.pixel_data[coord + 0]
+            );
+        }
+
+        if(y % 16 == 0) {
+            fbconsole_write("\n");
+        }
+    }
+
+    fbconsole_write("Initialized framebuffer console\n", width, height, (long)fb);
 
     return EFI_SUCCESS;
 }
 
 EFI_STATUS EFIAPI efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE* system_table) {
     InitializeLib(image_handle, system_table);
-    Print(L"LF OS amd64-uefi starting up!\n");
+    Print(L"LF OS amd64-uefi kernel initializing. Build: %a %a\n", __DATE__, __TIME__);
 
     EFI_STATUS status;
     EFI_LOADED_IMAGE* li;
 
     uefi_call_wrapper(BS->HandleProtocol, 3, image_handle, &LoadedImageProtocol, (void**)&li);
 
-    static const int debugger_timeout = 10;
+    static const int debugger_timeout = 3;
     Print(L"  Image base: 0x%016x - Waiting to attach debugger (%ds): ", li->ImageBase, debugger_timeout);
 
     for(int i = 0; i < debugger_timeout; i++) {
@@ -112,22 +134,28 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE* system_tab
         uefi_call_wrapper(BS->WaitForEvent, 3, 1, &event, &index);
     }
 
-    EFI_DEVICE_PATH* init_path = FileDevicePath(li->DeviceHandle, L"\\LFOS\\init");
-    void*   initrd_buffer      = NULL;
-    int64_t initrd_size        = load_initrd(init_path, &initrd_buffer);
-
-    if(initrd_size < 0) {
-        Print(L"Could not load initrd: %r\n", -initrd_size);
-        return -initrd_size;
-    }
-
-    Print(L"Initializing console ...\n");
+    Print(L"\nInitializing console ...\n");
 
     status = initialize_console();
 
     if(status != EFI_SUCCESS) {
         Print(L"  not able to get a console: %r\n", status);
         return EFI_UNSUPPORTED;
+    }
+
+    EFI_DEVICE_PATH* init_path = FileDevicePath(li->DeviceHandle, L"\\LFOS\\init");
+
+    if(!init_path) {
+        fbconsole_write("Could not find init to load\n");
+        while(1);
+    }
+
+    void*   initrd_buffer      = NULL;
+    int64_t initrd_size        = load_initrd(init_path, &initrd_buffer);
+
+    if(initrd_size < 0) {
+        fbconsole_write("Could not load init: %d\n", -initrd_size);
+        return -initrd_size;
     }
 
     fbconsole_write("Now trying to stand on my own feet ...\n");
@@ -140,7 +168,7 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE* system_tab
 
     status = uefi_call_wrapper(BS->GetMemoryMap, 5, &memory_map_size, memory_map, &map_key, &descriptor_size, &descriptor_version);
     if(status != EFI_BUFFER_TOO_SMALL) {
-        fbconsole_write("Unexpected status from first GetMemoryMap call: %d\n", status);
+        fbconsole_write("  Unexpected status from first GetMemoryMap call: %d\n", status);
         while(1);
     }
 
@@ -148,14 +176,14 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE* system_tab
 
     status = uefi_call_wrapper(BS->GetMemoryMap, 5, &memory_map_size, memory_map, &map_key, &descriptor_size, &descriptor_version);
     if(status != EFI_SUCCESS) {
-        fbconsole_write("Unexpected status from second GetMemoryMap call: %d\n", status);
+        fbconsole_write("  Unexpected status from second GetMemoryMap call: %d\n", status);
         while(1);
     }
 
     status = uefi_call_wrapper(BS->ExitBootServices, 2, image_handle, map_key);
 
     if(status == EFI_SUCCESS) {
-        fbconsole_write("Initializing memory management (%d entries with %d bytes each) ...\n", memory_map_size / descriptor_size, descriptor_size);
+        fbconsole_write("  Initializing memory management (%u entries with %u bytes each) ...\n", memory_map_size / descriptor_size, descriptor_size);
 
         uint64_t pages_free         = 0;
         EFI_MEMORY_DESCRIPTOR* desc = memory_map;
@@ -168,21 +196,16 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE* system_tab
 
             desc = (void*)desc + descriptor_size;
         }
-        fbconsole_write("  marked %u (%u bytes) pages as free\n", pages_free, pages_free * 4096);
-        mm_print_physical_free_regions();
+        fbconsole_write("    marked %u (%u bytes, %B) pages as free\n", pages_free, pages_free * 4096, pages_free * 4096);
 
-        for(;;) {
-            fbconsole_write("> allocating 10 pages\n");
-            if(!mm_alloc_kernel_pages(10)) {
-                break;
-            }
-            mm_print_physical_free_regions();
-        }
+        fbconsole_write("  Initializing service registry ...\n");
+        init_sd();
 
-        fbconsole_write("Kernel boot completed, starting userland ...\n");
+        fbconsole_write("  Kernel boot completed, starting userland\n\n\n");
+        load_elf((ptr_t)initrd_buffer);
     }
     else {
-        fbconsole_write(" and it has gone wrong :(\nStatus: %d\n", status);
+        fbconsole_write("  and it has gone wrong :(\nStatus: %d\n", status);
     }
 
     while(1);
