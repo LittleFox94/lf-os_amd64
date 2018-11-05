@@ -34,8 +34,8 @@ void start_task(vm_table_t* context, ptr_t entry) {
     processes[i].schedulable = true;
     processes[i].context     = context;
     processes[i].cpu.rip     = entry;
-    processes[i].cpu.cs      = 0x08;
-    processes[i].cpu.ss      = 0x10;
+    processes[i].cpu.cs      = 0x23;
+    processes[i].cpu.ss      = 0x28;
     processes[i].cpu.rsp     = (ptr_t)1024 * 1024 * 4 * 1024;
 
     for(ptr_t map_for_stack = processes[i].cpu.rsp; map_for_stack >= 0x1000; map_for_stack -= 0x1000) {

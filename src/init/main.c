@@ -9,7 +9,7 @@ void puts(char* str) {
 }
 
 void _start() {
-//    asm("cli\nhlt");
+    asm volatile("cli\nhlt");
 //    while(1);
 //    puts("Hello world!\n");
     while(1);

@@ -27,7 +27,7 @@ typedef struct {
     uint64_t rflags;
     uint64_t rsp;
     uint64_t ss;
-}__attribute__((packed)) cpu_state;
+} cpu_state;
 
 #define DUMP_CPU(cpu)  \
     fbconsole_write("<-- cut here [CPU DUMP START] ---->\n"); \

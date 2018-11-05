@@ -148,7 +148,7 @@ void relocate_high(ptr_t imageBase, ptr_t imageSize) {
         vm_context_map(VM_KERNEL_CONTEXT, newImageBase + i, imageBase + i);
     }
 
-    for(size_t i = 0; i < 1024 * 1024 * 1024; i+=4096) {
+    for(size_t i = 0; i < (ptr_t)8192 * 1024 * 1024; i+=4096) {
         vm_context_map(VM_KERNEL_CONTEXT, i, i);
     }
 

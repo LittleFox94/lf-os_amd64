@@ -261,6 +261,11 @@ cpu_state* interrupt_handler(cpu_state* cpu) {
     vm_table_t* new_context;
     schedule_next(&new_cpu, &new_context);
 
+    if(new_cpu->rip < 4096) {
+        DUMP_CPU(new_cpu);
+        while(1);
+    }
+
     vm_context_activate(new_context);
 
     return new_cpu;

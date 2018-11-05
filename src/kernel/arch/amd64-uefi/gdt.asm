@@ -49,12 +49,13 @@ idt_entry_%1:
 	push qword %1
 	__pusha
 
-	mov rsi, rsp
+	mov rdi, rsp
 	call interrupt_handler
 	mov rsp, rax
 
-	add rsp, 16
 	__popa
+	add rsp, 16
+
 	sti
 	iretq
 %endmacro
@@ -67,12 +68,13 @@ idt_entry_%1:
 	push qword %1
 	__pusha
 
-	mov rsi, rsp
+	mov rdi, rsp
 	call interrupt_handler
-
 	mov rsp, rax
-	add rsp, 16 ; remove error code from stack
+
 	__popa
+	add rsp, 16 ; remove error code from stack
+
 	sti
 	iretq
 %endmacro
@@ -160,7 +162,7 @@ _syscall_handler:
 	mov rsp, rax
 	__popa
 
-    add rsp, 8	; ignore bogus error
+    add rsp, 16	; ignore bogus error
 	pop rcx		; user rip
 	add rsp, 32 ; ignore cs, flags, rsp, ss
 

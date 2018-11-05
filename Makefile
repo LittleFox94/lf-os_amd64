@@ -1,6 +1,6 @@
 SGDISK    := /sbin/sgdisk
 MKVFAT    := /sbin/mkfs.vfat
-QEMUFLAGS := -bios /usr/share/ovmf/OVMF.fd -drive format=raw,file=hd.img -monitor stdio -m 1G -d int
+QEMUFLAGS := -bios /usr/share/ovmf/OVMF.fd -drive format=raw,file=hd.img -monitor stdio -m 2G -d int --accel tcg
 
 all: test-kvm
 
