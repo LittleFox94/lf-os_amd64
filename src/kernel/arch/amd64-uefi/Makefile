@@ -1,4 +1,6 @@
 CFLAGS := -std=gnu11 -fpic -fno-stack-protector -fshort-wchar -mno-red-zone
+SGDISK := /sbin/sgdisk
+MKVFAT := /sbin/mkfs.vfat
 
 all: test-kvm
 
@@ -31,7 +33,7 @@ main.efi: main.so
 
 bootfs.img: main.efi
 	dd if=/dev/zero of=bootfs.img bs=1k count=65536
-	mkfs.vfat bootfs.img -F 32
+	$(MKVFAT) bootfs.img -F 32
 	mmd -i bootfs.img ::/LFOS
 	mmd -i bootfs.img ::/EFI
 	mmd -i bootfs.img ::/EFI/BOOT
@@ -42,9 +44,9 @@ bootable-fs: bootfs.img main.efi
 
 hd.img:
 	dd if=/dev/zero of=hd.img bs=512 count=133156
-	sgdisk -Z hd.img
-	sgdisk -o hd.img
-	sgdisk -n 1:2048:133120 -t 1:ef00 hd.img
+	$(SGDISK) -Z hd.img
+	$(SGDISK) -o hd.img
+	$(SGDISK) -n 1:2048:133120 -t 1:ef00 hd.img
 
 runnable-image: hd.img bootable-fs
 	dd if=bootfs.img of=hd.img seek=2048 obs=512 ibs=512 count=131072 conv=notrunc
