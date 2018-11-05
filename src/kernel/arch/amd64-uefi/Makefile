@@ -1,4 +1,4 @@
-CFLAGS := -g -std=gnu11 -fpic -fno-stack-protector -fshort-wchar -mno-red-zone -Wall -Werror -fno-builtin
+CFLAGS := -g -std=gnu11 -fpic -fno-stack-protector -fshort-wchar -mno-red-zone -Wall -Werror -fno-builtin -ffreestanding -nostdinc -I .
 SGDISK := /sbin/sgdisk
 MKVFAT := /sbin/mkfs.vfat
 
