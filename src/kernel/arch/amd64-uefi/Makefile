@@ -1,3 +1,5 @@
+CFLAGS := -std=gnu11 -fpic -fno-stack-protector -fshort-wchar -mno-red-zone
+
 all: test-kvm
 
 clean:
@@ -6,19 +8,20 @@ clean:
 	rm main.so || true
 	rm main.efi || true
 	rm bootfs.img || true
-	rm hd.img || true 
+	rm hd.img || true
+	rm hd.img.gz || true
 
 test: runnable-image
-	qemu-system-x86_64 -bios /usr/share/ovmf/OVMF.fd -drive format=raw,file=hd.img -monitor stdio
+	qemu-system-x86_64 -bios /usr/share/ovmf/OVMF.fd -drive format=raw,file=hd.img -monitor stdio -m 8G
 
 test-kvm: runnable-image
-	kvm -bios /usr/share/ovmf/OVMF.fd -drive format=raw,file=hd.img -monitor stdio
+	kvm -bios /usr/share/ovmf/OVMF.fd -drive format=raw,file=hd.img -monitor stdio -m 8G
 
 main.o: main.c
-	gcc main.c -c -fno-stack-protector -fpic -fshort-wchar -mno-red-zone -I /usr/include/efi/ -I /usr/include/efi/x86_64/ -DEFI_FUNCTION_WRAPPER -o main.o
+	gcc main.c -c $(CFLAGS) -I /usr/include/efi/ -I /usr/include/efi/x86_64/ -DEFI_FUNCTION_WRAPPER -o main.o
 
 mm.o: mm.c mm.h
-	gcc mm.c -c -fno-stack-protector -fpic -fshort-wchar -mno-red-zone -o mm.o
+	gcc mm.c -c $(CFLAGS) -o mm.o
 
 main.so: main.o mm.o
 	ld main.o mm.o /usr/lib/crt0-efi-x86_64.o -nostdlib -znocombreloc -T /usr/lib/elf_x86_64_efi.lds -shared -Bsymbolic -L /usr/lib/ -lgnuefi -lefi -o main.so
@@ -32,8 +35,10 @@ bootfs.img: main.efi
 	mmd -i bootfs.img ::/LFOS
 	mmd -i bootfs.img ::/EFI
 	mmd -i bootfs.img ::/EFI/BOOT
-	mcopy -i bootfs.img main.efi ::/EFI/BOOT/BOOTX64.EFI
-	mcopy -i bootfs.img main.efi ::/LFOS/init
+
+bootable-fs: bootfs.img main.efi
+	mcopy -i bootfs.img -o main.efi ::/EFI/BOOT/BOOTX64.EFI
+	mcopy -i bootfs.img -o main.efi ::/LFOS/init
 
 hd.img:
 	dd if=/dev/zero of=hd.img bs=512 count=133156
@@ -41,7 +46,10 @@ hd.img:
 	sgdisk -o hd.img
 	sgdisk -n 1:2048:133120 -t 1:ef00 hd.img
 
-runnable-image: hd.img bootfs.img
+runnable-image: hd.img bootable-fs
 	dd if=bootfs.img of=hd.img seek=2048 obs=512 ibs=512 count=131072 conv=notrunc
+
+compressed-image: hd.img
+	gzip -fk hd.img
 
 .PHONY: all clean test test-kvm
