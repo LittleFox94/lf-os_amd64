@@ -18,22 +18,22 @@ void memset32(uint32_t* dest, uint32_t c, size_t size) {
     }
 }
 
-//void memset(uint8_t* dest, uint8_t c, size_t size) {
-//    for(size_t i = 0; i < size; ++i) {
-//        dest[i] = c;
-//    }
-//}
-//
-//void* memcpy(void* dest, void* source, size_t size) {
-//    uint8_t* dst_8 = (uint8_t*)dest;
-//    uint8_t* src_8 = (uint8_t*)source;
-//
-//    for(int i = 0; i < size; ++i) {
-//        dst_8[i] = src_8[i];
-//    }
-//
-//    return dest;
-//}
+void memset(uint8_t* dest, uint8_t c, size_t size) {
+    for(size_t i = 0; i < size; ++i) {
+        dest[i] = c;
+    }
+}
+
+void* memcpy(void* dest, void* source, size_t size) {
+    uint8_t* dst_8 = (uint8_t*)dest;
+    uint8_t* src_8 = (uint8_t*)source;
+
+    for(int i = 0; i < size; ++i) {
+        dst_8[i] = src_8[i];
+    }
+
+    return dest;
+}
 
 int sputs(char* buffer, int buffer_size, char* string, int length) {
     int i;

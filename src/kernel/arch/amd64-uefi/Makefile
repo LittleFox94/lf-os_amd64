@@ -1,16 +1,14 @@
-CFLAGS    := -g -std=gnu11 -fpic -fno-stack-protector -fshort-wchar -mno-red-zone -Wall -fno-builtin -ffreestanding -nostdinc -I . -Werror
+CFLAGS    := -g -std=gnu11 -fpic -fno-stack-protector -mno-red-zone -Wall -fno-builtin -ffreestanding -nostdinc -I . -Werror
 NASMFLAGS := -g -f elf64
 
 OBJECTS = main.o mm.o fbconsole.o string.o sd.o elf.o sc.o msr.o gdt.O init.O vm.o version.o scheduler.o pic.o pit.o
 SOURCES = $(OBJECTS:.o=.c)
 
-all: main.efi main.efi.debug
+all: kernel
 
 clean:
 	rm -f $(OBJECTS)
-	rm -f main.so
-	rm -f main.efi
-	rm -f main.efi.debug
+	rm -f kernel
 
 version.c:
 	rm -f version.o
@@ -21,13 +19,7 @@ version.c:
 %.o: %.c config.h
 	gcc $< -c $(CFLAGS) -I /usr/include/efi/ -I /usr/include/efi/x86_64/ -DEFI_FUNCTION_WRAPPER -o $@
 
-main.so: version.o $(OBJECTS)
-	ld $(OBJECTS) /usr/lib/crt0-efi-x86_64.o -nostdlib -znocombreloc -T /usr/lib/elf_x86_64_efi.lds -shared --no-undefined -Bsymbolic -L /usr/lib/ -lgnuefi -lefi -o main.so
+kernel: version.o $(OBJECTS)
+	ld $(OBJECTS) -nostdlib -o $@
 
-main.efi: main.so
-	objcopy -j .text -j .sdata -j .data -j .dynamic -j .dynsym -j .rel -j .rela -j .reloc --target=efi-app-x86_64 main.so main.efi
-
-main.efi.debug: main.so
-	objcopy -j .text -j .sdata -j .data -j .dynamic -j .dynsym -j .rel -j .rela -j .reloc -j .debug_info -j .debug_abbrev -j .debug_loc -j .debug_arranges -j .debug_line -j .debug_macinfo -j .debug_str --target=efi-app-x86_64 main.so main.efi.debug
-
-.PHONY: all clean test test-kvm version.c
+.PHONY: all clean version.c
