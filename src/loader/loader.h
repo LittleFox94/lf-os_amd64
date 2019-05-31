@@ -3,6 +3,10 @@
 
 #include <stdint.h>
 
+static const uint64_t LFOS_LOADER_SIGNATURE = 0x17a15174545c8b4f;
+
+#define MEMORY_REGION_FREE 1ULL
+
 //! Main interface between loader and kernel
 typedef struct {
     //! Signature. always 0x17a15174545c8b4f
@@ -44,5 +48,20 @@ typedef struct {
 
     uint64_t num_mem_desc;
 }__attribute__((packed)) LoaderStruct;
+
+//! Describes a single memory region
+typedef struct {
+    //! Start of the region as physical address
+    ptr_t  start_address;
+
+    //! Number of pages, where page size is 4096 bytes
+    size_t num_pages;
+
+    //! Flags for the memory region. See MEMORY_REGION_ defines
+    uint64_t flags;
+}__attribute__((packed)) MemoryRegion;
+
+typedef struct {
+}__attribute__((packed)) FileDescriptor;
 
 #endif

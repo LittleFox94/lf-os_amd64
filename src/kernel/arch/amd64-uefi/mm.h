@@ -102,4 +102,6 @@ void mm_make_writeable(ptr_t address, int writeable);
 
 void mm_print_physical_free_regions();
 
+void mm_bootstrap(ptr_t usable_page);
+
 #endif

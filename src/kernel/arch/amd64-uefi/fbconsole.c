@@ -15,8 +15,8 @@ void __set_mtrr_wc(uint64_t fb, uint64_t len) {
     uint64_t fb_lo = fb  & 0x0FFFFF000;
     uint64_t fb_hi = (fb & 0x700000000) >> 32;
 
-    asm volatile("wrmsr" :: "a"(fb_lo | 1),     "c"(0x202), "d"(fb_hi));
-    asm volatile("wrmsr" :: "a"(0xF8000800),    "c"(0x203), "d"(0x7));
+    asm volatile("wrmsr" :: "a"(fb_lo | 1),    "c"(0x202), "d"(fb_hi));
+    asm volatile("wrmsr" :: "a"(0xF8000800),   "c"(0x203), "d"(0x7));
     asm volatile("wrmsr" :: "a"(0x800 | 0x04), "c"(0x2FF), "d"(0));
 }
 
@@ -76,8 +76,8 @@ void fbconsole_setpixel(int x, int y, int r, int g, int b) {
 }
 
 void fbconsole_draw_char(int start_x, int start_y, char c) {
-    for(int y = 0; y < FONT_HEIGHT && y + start_y < fbconsole.height; y++) {
-        for(int x = 0; x < FONT_WIDTH && x + start_x < fbconsole.width; x++) {
+    for(int x = 0; x < FONT_WIDTH && x + start_x < fbconsole.width; x++) {
+        for(int y = 0; y < FONT_HEIGHT && y + start_y < fbconsole.height; y++) {
             if(FONT_NAME[(c * FONT_HEIGHT) + y] & (0x80 >> x)) {
                 fbconsole_setpixel(start_x + x, start_y + y, fbconsole.foreground_r, fbconsole.foreground_g, fbconsole.foreground_b);
             }
@@ -102,7 +102,7 @@ void fbconsole_scroll(unsigned int scroll_amount) {
 
 void fbconsole_next_line() {
     fbconsole.current_col = 0;
-    fbconsole.current_row++;
+    ++fbconsole.current_row;
 
     if(fbconsole.current_row == fbconsole.rows) {
         fbconsole_scroll(1);

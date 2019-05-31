@@ -142,7 +142,7 @@ reload_cs:
 	mov fs, ax
 	mov gs, ax
 	mov ss, ax
-	mov rsp, 0x1000
+	;mov rsp, 0x1000
 
     mov qword [rsp+8],  0x08
     mov qword [rsp],    rbx

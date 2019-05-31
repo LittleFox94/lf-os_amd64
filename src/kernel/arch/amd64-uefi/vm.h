@@ -9,7 +9,7 @@
  * A context is the thing you put in CR3.
  *
  * LF OS amd64-uefi
- * Copyright (c) 2018 M "LittleFox" Grosch <littlefox@lf-net.org>
+ * Copyright (c) 2018 Mara Sophie "LittleFox" Grosch <littlefox@lf-net.org>
  *   -- 2018-08-08
  */
 

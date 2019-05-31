@@ -1,7 +1,18 @@
-# Loader internals
+# Loader interface
 
 This defines what the loader does on AMD64, the only supported architecture for now. It's like the API spec for
 the API between loader and kernel.
+
+## Calling the kernel main function
+
+The main function of the kernel is invoked using the SysV ABI for amd64 and with the following prototype:
+
+```c
+void _start(LoaderStruct* loaderStruct);
+```
+
+Interrupts are turned off, everything accessed by the kernel is located in the higher half. Some things
+may be mapped in the lower half, for things required before the loader jumps to the kernel code.
 
 ## Memory layout
 
@@ -14,11 +25,14 @@ has to be a valid ELF executable file interpreted by the loader when everything 
 
 ### List of elements
 
-* Kernel (from harddisk)
-  - the central part of LF OS
-* 16MiB scratch pad for kernel
+* 16MiB scratch pad for kernel and kernel stack
   - safely allocated and mapped to a sane region of physical memory.
   - mostly for memory management data structures to make use of all the memory
+  - stackpointer is set to the top of this area
+    + remember the stack grows downwards!
+* Kernel (from harddisk)
+  - the central part of LF OS
+* framebuffer
 * Loader struct (generated)
   - format defined in loader.h
 * n loaded files described in Loader struct

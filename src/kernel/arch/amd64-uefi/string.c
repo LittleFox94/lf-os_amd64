@@ -179,6 +179,10 @@ int kvsnprintf(char* buffer, int buffer_size, const char* format, va_list args) 
                             length = sputs(argBuffer, 256, arg, strlen(arg));
                         }
                         break;
+                    default:
+                        length = 1;
+                        argBuffer[0] = c;
+                        break;
                 }
 
                 while(length < minLength && i < buffer_size) {

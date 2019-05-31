@@ -4,5 +4,6 @@
 *.efi
 *.efi.debug
 *.so
+*.elf
 .*.s??
 src/init/init

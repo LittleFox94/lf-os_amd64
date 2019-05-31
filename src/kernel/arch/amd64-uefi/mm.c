@@ -134,36 +134,31 @@ mm_page_list_entry_t* mm_get_page_list_entry(mm_page_list_entry_t* start) {
     return new;
 }
 
+void mm_bootstrap(ptr_t usable_page) {
+    while(usable_page % 4096);
+
+    // bootstrap memory management with the first page given to us
+    mm_page_list_entry_t* page_list = mm_physical_page_list = (mm_page_list_entry_t*)usable_page;
+
+    for(int i = 0; i < 4096 / sizeof(mm_page_list_entry_t); i++) {
+        page_list[i].start  = 0;
+        page_list[i].count  = 0;
+        page_list[i].status = MM_UNKNOWN;
+        page_list[i].next   = 0;
+    }
+}
+
 void mm_mark_physical_pages(ptr_t start, uint64_t count, mm_page_status_t status) {
     if(!count) {
         return;
     }
 
     if(!mm_physical_page_list && status == MM_FREE) {
-        // bootstrap memory management with the first page given to us
-        // we can assume 1:1 mapping here, because this is called very early in the boot process
-        // before setting up kernel and user mappings.
-        mm_page_list_entry_t* page_list = mm_physical_page_list = (mm_page_list_entry_t*)start;
-
-        start += 4096;
-        count--;
-
-        mm_physical_page_list->start  = start;
-        mm_physical_page_list->count  = count;
-        mm_physical_page_list->status = status;
-
-        for(int i = 1; i < 4096 / sizeof(mm_page_list_entry_t); i++) {
-            page_list[i-1].next   = page_list + i;
-            page_list[i  ].start  = 0;
-            page_list[i  ].count  = 0;
-            page_list[i  ].status = MM_UNKNOWN;
-            page_list[i  ].next   = 0;
-        }
-
+        mm_bootstrap(start);
         return;
     }
     else if(!mm_physical_page_list && status != MM_FREE) {
-        return; // this should crash, but there is no crash handling yet, so just ignore this happened
+        while(1); // this should crash, but there is no crash handling yet, so just halt
     }
 
     mm_page_list_entry_t* current = mm_physical_page_list;

@@ -1,17 +1,20 @@
-SGDISK    := /sbin/sgdisk
-MKVFAT    := /sbin/mkfs.vfat
-QEMUFLAGS := -bios /usr/share/ovmf/OVMF.fd -drive format=raw,file=hd.img -monitor stdio -m 2G -d int,guest_errors --serial file:log.txt
+SGDISK    		   := /sbin/sgdisk
+MKVFAT    		   := /sbin/mkfs.vfat
+QEMUFLAGS 		   := -bios /usr/share/ovmf/OVMF.fd -drive format=raw,file=hd.img -m 2G -d int,guest_errors --serial file:log.txt
+QEMUFLAGS_NO_DEBUG := -monitor stdio
+
+export OPTIMIZATION := -O2
 
 all: test-kvm
 
 test: runnable-image
-	qemu-system-x86_64 $(QEMUFLAGS) -s
+	qemu-system-x86_64 $(QEMUFLAGS) $(QEMUFLAGS_NO_DEBUG) -s
 
 test-kvm: runnable-image
-	kvm $(QEMUFLAGS)
+	kvm $(QEMUFLAGS) $(QEMUFLAGS_NO_DEBUG)
 
-debug: runnable-image src/kernel/arch/amd64-uefi/main.efi
-	qemu-system-x86_64 $(QEMUFLAGS) -s -S
+debug: runnable-image src/kernel/arch/amd64-uefi/kernel
+	gdb -ex "target remote | qemu-system-x86_64 $(QEMUFLAGS) -gdb stdio -S"
 
 bootfs.img:
 	dd if=/dev/zero of=bootfs.img bs=1k count=65536
