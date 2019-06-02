@@ -24,12 +24,15 @@ char* LAST_INIT_STEP;
 
 extern const char* build_id;
 
+void bootstrap_globals();
 void init_console(LoaderStruct* loaderStruct);
 void init_mm(LoaderStruct* loaderStruct, MemoryRegion* memoryRegions);
 
 void main(void* loaderData) {
     LoaderStruct* loaderStruct  = (LoaderStruct*)loaderData;
     MemoryRegion* memoryRegions = (MemoryRegion*)(loaderData + loaderStruct->size);
+
+    bootstrap_globals();
 
     init_console(loaderStruct);
 
@@ -95,7 +98,9 @@ void init_console(LoaderStruct* loaderStruct) {
         }
     }
 
-    fbconsole_write("\e[38;2;109;128;255mok\e[38;5;15m Initializing framebuffer console @ 0x%x\n", (uint64_t)loaderStruct->fb_location);
+    // FIXME: rodata crashes?!
+    fbconsole_write("LF OS amd64-uefi. Build: %s\n", BUILD_ID);
+    fbconsole_write("  framebuffer console @ 0x%x\n", (uint64_t)loaderStruct->fb_location);
 }
 
 void init_mm(LoaderStruct* loaderStruct, MemoryRegion* memoryRegions) {
@@ -112,6 +117,9 @@ void init_mm(LoaderStruct* loaderStruct, MemoryRegion* memoryRegions) {
         }
     }
 
-    fbconsole_write(" -> %u pages (%B) free", pages_free, pages_free * 4096);
-    while(1);
+    fbconsole_write(" %u pages (%B) free", pages_free, pages_free * 4096);
+}
+
+void bootstrap_globals() {
+    asm("mov %%cr3, %0":"=r"(VM_KERNEL_CONTEXT));
 }

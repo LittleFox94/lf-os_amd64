@@ -18,7 +18,7 @@ void init_vm() {
 }
 
 vm_table_t* vm_context_new() {
-    vm_table_t* context = (vm_table_t*)mm_alloc_kernel_pages(1);
+    vm_table_t* context = (vm_table_t*)mm_alloc_pages(1);
     memset((void*)context, 0, 4096);
 
     return context;
@@ -32,7 +32,7 @@ void vm_context_map(vm_table_t* context, ptr_t virtual, ptr_t physical) {
     vm_table_entry_t* pml4_entry = &context->entries[PML4_INDEX(virtual)];
 
     if(!pml4_entry->present) {
-        ptr_t pdp = (ptr_t)mm_alloc_kernel_pages(1);
+        ptr_t pdp = (ptr_t)mm_alloc_pages(1);
         memset((void*)pdp, 0, 4096);
 
         pml4_entry->next_base = pdp >> 12;
@@ -45,7 +45,7 @@ void vm_context_map(vm_table_t* context, ptr_t virtual, ptr_t physical) {
     vm_table_entry_t* pdp_entry = &pdp->entries[PDP_INDEX(virtual)];
 
     if(!pdp_entry->present) {
-        ptr_t pd = (ptr_t)mm_alloc_kernel_pages(1);
+        ptr_t pd = (ptr_t)mm_alloc_pages(1);
         memset((void*)pd, 0, 4096);
 
         pdp_entry->next_base = pd >> 12;
@@ -58,7 +58,7 @@ void vm_context_map(vm_table_t* context, ptr_t virtual, ptr_t physical) {
     vm_table_entry_t* pd_entry = &pd->entries[PD_INDEX(virtual)];
 
     if(!pd_entry->present) {
-        ptr_t pt = (ptr_t)mm_alloc_kernel_pages(1);
+        ptr_t pt = (ptr_t)mm_alloc_pages(1);
         memset((void*)pt, 0, 4096);
 
         pd_entry->next_base = pt >> 12;
@@ -141,4 +141,110 @@ int vm_table_get_free_index3(vm_table_t *table, int start, int end) {
     }
 
     return -1;
+}
+
+ptr_t vm_context_get_physical_for_virtual(vm_table_t* context, ptr_t virtual) {
+    uint16_t pml4_index = PML4_INDEX(virtual);
+    uint16_t pdp_index  = PDP_INDEX(virtual);
+    uint16_t pd_index   = PD_INDEX(virtual);
+    uint16_t pt_index   = PT_INDEX(virtual);
+
+    if(context->entries[pml4_index].present) {
+        vm_table_t* pdp = BASE_TO_TABLE(context->entries[pml4_index].next_base);
+
+        if(pdp->entries[pdp_index].present) {
+            // check if last level
+            if(pdp->entries[pdp_index].huge) {
+                return (pdp->entries[pdp_index].next_base << 30) | (virtual & 0x3FFFFFFF);
+            }
+            else {
+                vm_table_t* pd = BASE_TO_TABLE(pdp->entries[pdp_index].next_base);
+
+                if(pd->entries[pd_index].present) {
+                    // check if last level
+                    if(pd->entries[pd_index].huge) {
+                        return (pd->entries[pd_index].next_base << 21) | (virtual & 0x1FFFFF);
+                    }
+                    else {
+                        vm_table_t* pt = BASE_TO_TABLE(pd->entries[pd_index].next_base);
+
+                        if(pt->entries[pt_index].present) {
+                            return pt->entries[pt_index].next_base << 12;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // nope
+    return 0;
+}
+
+bool vm_context_page_present(vm_table_t* context, uint16_t pml4_index, uint16_t pdp_index, uint16_t pd_index, uint16_t pt_index) {
+    if(context->entries[pml4_index].present) {
+        vm_table_t* pdp = BASE_TO_TABLE(context->entries[pml4_index].next_base);
+
+        if(pdp->entries[pdp_index].present) {
+            // check if last level
+            if(pdp->entries[pdp_index].huge) {
+                return true;
+            }
+            else {
+                vm_table_t* pd = BASE_TO_TABLE(pdp->entries[pdp_index].next_base);
+
+                if(pd->entries[pd_index].present) {
+                    // check if last level
+                    if(pd->entries[pd_index].huge) {
+                        return true;
+                    }
+                    else {
+                        vm_table_t* pt = BASE_TO_TABLE(pd->entries[pd_index].next_base);
+
+                        if(pt->entries[pt_index].present) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return false;
+}
+
+ptr_t vm_context_alloc_pages(vm_table_t* context, AllocatorRegion region, size_t num) {
+    ptr_t current = region.start;
+    ptr_t found   = 0;
+
+    while(!found && current <= region.end) {
+        if(vm_context_page_present(context, PML4_INDEX(current), PDP_INDEX(current), PD_INDEX(current), PT_INDEX(current))) {
+            current += 4096;
+            continue;
+        }
+
+        bool abortThisCandidate = false;
+        for(size_t i = 0; i < num; ++i) {
+            if(vm_context_page_present(context, PML4_INDEX(current), PDP_INDEX(current), PD_INDEX(current), PT_INDEX(current))) {
+                current += 4096;
+                abortThisCandidate = true;
+                break;
+            }
+        }
+
+        if(abortThisCandidate) {
+            continue;
+        }
+
+        // if we came to this point, enough space is available starting at $current
+        found = current;
+    }
+
+    // we do not need continuous physical memory, so allocate each page on it's own
+    for(size_t i = 0; i < num; ++i) {
+        ptr_t physical = (ptr_t)mm_alloc_pages(1);
+        vm_context_map(context, found + (i * 4096), physical);
+    }
+
+    return found;
 }

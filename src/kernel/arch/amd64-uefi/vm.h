@@ -17,6 +17,15 @@
 #include "stdbool.h"
 
 typedef struct {
+    ptr_t start;
+    ptr_t end;
+} AllocatorRegion;
+
+#define ALLOCATOR_REGION_USER_HEAP   (AllocatorRegion){ .start = 0x0000100000000000, .end = 0x00007F0000000000 }
+#define ALLOCATOR_REGION_USER_EVENT  (AllocatorRegion){ .start = 0x00007F0000001000, .end = 0x00007FFFFFFFF000 }
+#define ALLOCATOR_REGION_KERNEL_HEAP (AllocatorRegion){ .start = 0xFFFF810000000000, .end = 0xFFFF820000000000 }
+
+typedef struct {
     unsigned int present      : 1;
     unsigned int writeable    : 1;
     unsigned int userspace    : 1;
@@ -52,5 +61,9 @@ bool  vm_table_check_present(vm_table_t* table, int index);
 
 int   vm_table_get_free_index1(vm_table_t* table);
 int   vm_table_get_free_index3(vm_table_t* table, int start, int end);
+
+ptr_t vm_context_get_physical_for_virtual(vm_table_t* context, ptr_t virtual);
+
+ptr_t vm_context_alloc_pages(vm_table_t* context, AllocatorRegion region, size_t num);
 
 #endif

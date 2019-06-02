@@ -2,6 +2,7 @@
 #include "fbconsole.h"
 #include "string.h"
 #include "mm.h"
+#include "vm.h"
 
 ptr_t load_elf(ptr_t start, vm_table_t* context) {
     elf_file_header_t* header = (elf_file_header_t*)start;
@@ -31,7 +32,7 @@ ptr_t load_elf(ptr_t start, vm_table_t* context) {
         }
 
         for(size_t i = 0; i < programHeader->fileLength; i += 4096) {
-            vm_context_map(context, (ptr_t)programHeader->vaddr + i, mm_get_mapping(start + programHeader->offset + i));
+            vm_context_map(context, (ptr_t)programHeader->vaddr + i, vm_context_get_physical_for_virtual(VM_KERNEL_CONTEXT, start + programHeader->offset + i));
         }
 
         phStart += header->programHeaderEntrySize;

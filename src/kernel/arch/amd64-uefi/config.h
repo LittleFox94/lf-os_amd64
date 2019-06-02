@@ -1,7 +1,3 @@
-#ifndef INIT_LOCATION
-  #define INIT_LOCATION L"\\LFOS\\init"
-#endif
-
 #ifndef BUILD_ID
   #define BUILD_ID "dev-"__DATE__" "__TIME__
 #endif

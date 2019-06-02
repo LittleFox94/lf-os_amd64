@@ -14,75 +14,13 @@ typedef struct {
 
 mm_page_list_entry_t* mm_physical_page_list = 0;
 
-ptr_t mm_get_pml4_address() {
-    ptr_t pml4_address = 0;
-    asm volatile("mov %%cr3, %0":"=r"(pml4_address));
-    return pml4_address;
-}
-
-short mm_get_pml4_index(ptr_t address) {
-    return (address >> 39) & 0x1FF;
-}
-
-short mm_get_pdp_index(ptr_t address) {
-    return (address >> 30) & 0x1FF;
-}
-
-short mm_get_pd_index(ptr_t address) {
-    return (address >> 21) & 0x1FF;
-}
-
-short mm_get_pt_index(ptr_t address) {
-    return (address >> 12) & 0x1FF;
-}
-
-ptr_t mm_get_mapping(ptr_t address) {
-    ptr_t pml4_index = mm_get_pml4_index(address);
-    ptr_t pdp_index  = mm_get_pdp_index(address);
-    ptr_t pd_index   = mm_get_pd_index(address);
-    ptr_t pt_index   = mm_get_pt_index(address);
-
-    uint64_t* pml4 = (uint64_t*)mm_get_pml4_address();
-
-    if(pml4[pml4_index] & PRESENT_BIT) {
-        uint64_t* pdp = (uint64_t*)(pml4[pml4_index] & 0xFFFFFFFFFF000);
-
-        if(pdp[pdp_index] & PRESENT_BIT) {
-            // check if last level
-            if(pdp[pdp_index] & 0x80) {
-                return (pdp[pdp_index] & 0xFFFFF80000000) | (address & 0x3FFFFFFF);
-            }
-            else {
-                uint64_t* pd = (uint64_t*)(pdp[pdp_index] & 0xFFFFFFFFFF000);
-
-                if(pd[pd_index] & PRESENT_BIT) {
-                    // check if last level
-                    if(pd[pd_index] & 0x80) {
-                        return (pd[pd_index] & 0xFFFFFFFE00000) | (address & 0x1FFFFF);
-                    }
-                    else {
-                        uint64_t* pt = (uint64_t*)(pd[pd_index] & 0xFFFFFFFFFF000);
-
-                        if(pt[pt_index] & PRESENT_BIT) {
-                            return pt[pt_index] & 0xFFFFFFFFFF000;
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    // nope
-    return 0;
-}
-
 void mm_del_page_list_entry(mm_page_list_entry_t* entry) {
     entry->start  = 0;
     entry->count  = 0;
     entry->status = MM_UNKNOWN;
 }
 
-void* mm_alloc_kernel_pages(uint64_t count) {
+void* mm_alloc_pages(uint64_t count) {
     mm_page_list_entry_t* current = mm_physical_page_list;
 
     while(current) {
@@ -118,7 +56,7 @@ mm_page_list_entry_t* mm_get_page_list_entry(mm_page_list_entry_t* start) {
         start    = start->next;
     }
 
-    mm_page_list_entry_t* new = mm_alloc_kernel_pages(1);
+    mm_page_list_entry_t* new = (mm_page_list_entry_t*)vm_context_alloc_pages(VM_KERNEL_CONTEXT, ALLOCATOR_REGION_KERNEL_HEAP, 1);
 
     for(int i = 0; i < 4096 / sizeof(mm_page_list_entry_t); i++) {
         new[i].start  = 0;
@@ -144,8 +82,10 @@ void mm_bootstrap(ptr_t usable_page) {
         page_list[i].start  = 0;
         page_list[i].count  = 0;
         page_list[i].status = MM_UNKNOWN;
-        page_list[i].next   = 0;
+        page_list[i].next   = &page_list[i + 1];
     }
+
+    page_list[(4096 / sizeof(mm_page_list_entry_t)) - 1].next = 0;
 }
 
 void mm_mark_physical_pages(ptr_t start, uint64_t count, mm_page_status_t status) {

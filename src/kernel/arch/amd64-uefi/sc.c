@@ -6,6 +6,7 @@
 #include "cpu.h"
 #include "scheduler.h"
 #include "pic.h"
+#include "config.h"
 
 #define GDT_ACCESSED   0x01
 #define GDT_RW         0x02
@@ -17,7 +18,6 @@
 #define GDT_RING3      0x60
 #define GDT_PRESENT    0x80
 
-extern const char* build_id;
 extern const char* LAST_INIT_STEP;
 
 typedef struct {
@@ -245,7 +245,7 @@ cpu_state* interrupt_handler(cpu_state* cpu) {
         fbconsole_write("An error occured and LF OS has to be halted.\n"
                         "Below you can find more information:\n\n");
 
-        fbconsole_write("LF OS build:    %s\n", build_id);
+        fbconsole_write("LF OS build:    %s\n",   BUILD_ID);
         fbconsole_write("Last init step: %s\n\n", LAST_INIT_STEP);
         fbconsole_write("Interrupt: 0x%02x (%s), error: 0x%04x\n\n", cpu->interrupt, exceptions[cpu->interrupt], cpu->error_code);
 

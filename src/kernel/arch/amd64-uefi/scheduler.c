@@ -39,7 +39,7 @@ void start_task(vm_table_t* context, ptr_t entry) {
     processes[i].cpu.rsp     = (ptr_t)1024 * 1024 * 4 * 1024;
 
     for(ptr_t map_for_stack = processes[i].cpu.rsp; map_for_stack >= 0x1000; map_for_stack -= 0x1000) {
-        vm_context_map(context, map_for_stack, (ptr_t)mm_alloc_kernel_pages(1));
+        vm_context_map(context, map_for_stack, (ptr_t)mm_alloc_pages(1));
     }
 
     if(scheduler_current_process == -1) {

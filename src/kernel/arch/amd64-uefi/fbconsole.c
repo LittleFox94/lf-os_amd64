@@ -1,5 +1,6 @@
 #include "fbconsole.h"
 #include "mm.h"
+#include "vm.h"
 
 #include "string.h"
 #include "stdarg.h"
@@ -10,7 +11,7 @@
 struct fbconsole_data fbconsole;
 
 void __set_mtrr_wc(uint64_t fb, uint64_t len) {
-    fb = mm_get_mapping(fb);
+    fb = vm_context_get_physical_for_virtual(VM_KERNEL_CONTEXT, fb);
 
     uint64_t fb_lo = fb  & 0x0FFFFF000;
     uint64_t fb_hi = (fb & 0x700000000) >> 32;
