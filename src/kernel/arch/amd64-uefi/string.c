@@ -2,10 +2,10 @@
 #include "stdbool.h"
 #include "stdint.h"
 
-size_t strlen(char* str) {
+size_t strlen(const char* str) {
     size_t i = 0;
 
-    while(*str++) {
+    while(*(str + i)) {
         ++i;
     }
 
@@ -46,7 +46,7 @@ int sputs(char* buffer, int buffer_size, char* string, int length) {
 }
 
 int sputui(char* buffer, int buffer_size, uint64_t number, int base) {
-    char chars[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const char chars[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
     int count = 0;
 
@@ -75,7 +75,7 @@ int sputui(char* buffer, int buffer_size, uint64_t number, int base) {
 }
 
 int sputi(char* buffer, int buffer_size, int64_t number, int base) {
-    char chars[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const char chars[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
     int count = 0;
 
@@ -102,7 +102,7 @@ int sputi(char* buffer, int buffer_size, int64_t number, int base) {
 }
 
 int sputbytes(char* buffer, int buffer_size, int64_t number) {
-    char *prefixes       = " KMGT";
+    const char *prefixes = " KMGT";
     static const int div = 1024;
 
     int prefix = 0;

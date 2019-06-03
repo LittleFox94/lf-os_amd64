@@ -41,6 +41,9 @@ void main(void* loaderData) {
         init_mm(loaderStruct, memoryRegions);
     )
 
+    mm_print_physical_free_regions();
+    while(1);
+
     INIT_STEP(
         "Initializing virtual memory management",
         init_vm();
@@ -100,7 +103,7 @@ void init_console(LoaderStruct* loaderStruct) {
 
     // FIXME: rodata crashes?!
     fbconsole_write("LF OS amd64-uefi. Build: %s\n", BUILD_ID);
-    fbconsole_write("  framebuffer console @ 0x%x\n", (uint64_t)loaderStruct->fb_location);
+    fbconsole_write("  framebuffer console @ 0x%x (0x%x)\n\n", (uint64_t)loaderStruct->fb_location, (uint64_t)vm_context_get_physical_for_virtual(VM_KERNEL_CONTEXT, loaderStruct->fb_location));
 }
 
 void init_mm(LoaderStruct* loaderStruct, MemoryRegion* memoryRegions) {

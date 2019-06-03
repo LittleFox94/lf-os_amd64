@@ -16,6 +16,9 @@ test-kvm: runnable-image
 debug: runnable-image src/kernel/arch/amd64-uefi/kernel
 	gdb -ex "target remote | qemu-system-x86_64 $(QEMUFLAGS) -gdb stdio -S"
 
+debug-kvm: runnable-image src/kernel/arch/amd64-uefi/kernel
+	gdb -ex "target remote |kvm $(QEMUFLAGS) -gdb stdio -S"
+
 bootfs.img:
 	dd if=/dev/zero of=bootfs.img bs=1k count=65536
 	$(MKVFAT) bootfs.img -F 32

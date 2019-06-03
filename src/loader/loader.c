@@ -210,12 +210,7 @@ EFI_STATUS retrieve_memory_map(struct LoaderState* state) {
         EFI_MEMORY_DESCRIPTOR* desc = memory_map;
 
         while((void*)desc < (void*)memory_map + efi_memory_map_size) {
-            if(desc->Type == EfiConventionalMemory ||
-               desc->Type == EfiLoaderCode         ||
-               desc->Type == EfiLoaderData         ||
-               desc->Type == EfiBootServicesCode   ||
-               desc->Type == EfiBootServicesData
-            ) {
+            if(desc->Type == EfiConventionalMemory) {
 
                 pages_free += desc->NumberOfPages;
 
@@ -329,8 +324,8 @@ void map_page(struct LoaderState* state, vm_table_t* pml4, ptr_t virtual, ptr_t 
 
 // this needs to be an extra function to have the argument in a register and not on the stack.
 void __attribute__((noinline)) jump_kernel(ptr_t kernel, LoaderStruct* loaderStruct) {
-    asm volatile("mov %0, %%rsp"::"r"(kernel - 8));
-    asm volatile("mov %0, %%rbp"::"r"(kernel - 8));
+    asm volatile("mov %0, %%rsp"::"r"(kernel - 16));
+    asm volatile("mov %0, %%rbp"::"r"(kernel - 16));
     ((kernel_entry)kernel)(loaderStruct);
     while(1);
 }
