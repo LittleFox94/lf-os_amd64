@@ -7,3 +7,4 @@
 *.elf
 .*.s??
 src/init/init
+src/kernel/arch/amd64-uefi/kernel
