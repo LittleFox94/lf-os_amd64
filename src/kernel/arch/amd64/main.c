@@ -23,6 +23,7 @@ extern char build_id[];
     fbconsole.current_col = 0;                                                  \
     fbconsole_write("\e[38;2;109;128;255mok\e[38;5;7m\n");
 
+void nyi();
 void bootstrap_globals();
 void init_console(LoaderStruct* loaderStruct);
 void init_mm(LoaderStruct* loaderStruct, MemoryRegion* memoryRegions);
@@ -45,7 +46,7 @@ void main(void* loaderData) {
 
     INIT_STEP(
         "Initializing virtual memory management",
-        while(1);
+        nyi();
         init_vm();
     )
 
@@ -136,4 +137,9 @@ void print_memory_regions() {
     }
 
     fbconsole_write("\n");
+}
+
+void nyi() {
+    fbconsole_write("\n\e[38;5;9mNot yet implemented. while(1);");
+    while(1);
 }
