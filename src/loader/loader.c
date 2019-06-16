@@ -323,6 +323,8 @@ void map_page(struct LoaderState* state, vm_table_t* pml4, ptr_t virtual, ptr_t 
 }
 
 // this needs to be an extra function to have the argument in a register and not on the stack.
+// TODO: find another way to do this instead of relying on ABI internals implemented by the
+//       compiler
 void __attribute__((noinline)) jump_kernel(ptr_t kernel, LoaderStruct* loaderStruct) {
     asm volatile("mov %0, %%rsp"::"r"(kernel - 16));
     asm volatile("mov %0, %%rbp"::"r"(kernel - 16));
@@ -380,6 +382,7 @@ EFI_STATUS initialize_virtual_memory(struct LoaderState* state) {
         4096
     );
 
+    // XXX: Mara?! the fuck!
     __builtin_memcpy(loaderStructsArea, state->loaderStruct, state->loaderStruct->size);
     __builtin_memcpy(loaderStructsArea + state->loaderStruct->size, state->memoryMapLocation, state->memoryMapEntryCount * sizeof(MemoryRegion));
 
@@ -430,7 +433,7 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE* system_tab
     state.loaderStruct->size      = sizeof(LoaderStruct);
 
     Print(
-        L"LF OS amd64-uefi loader (%u bytes at 0x%x).\n\n",
+        L"LF OS amd64 uefi loader (%u bytes at 0x%x).\n\n",
         state.loaderSize, state.loaderStart
     );
 

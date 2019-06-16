@@ -8,3 +8,4 @@
 .*.s??
 src/init/init
 src/kernel/arch/amd64/kernel
+log.txt

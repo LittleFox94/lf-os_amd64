@@ -14,6 +14,7 @@
 #include "pit.h"
 
 char* LAST_INIT_STEP;
+extern char build_id[];
 
 #define INIT_STEP(message, code)                                                \
     LAST_INIT_STEP = message;                                                   \
@@ -100,7 +101,7 @@ void init_console(LoaderStruct* loaderStruct) {
         }
     }
 
-    fbconsole_write("LF OS amd64-uefi. Build: %s\n", BUILD_ID);
+    fbconsole_write("LF OS for amd64. Build: %s\n", build_id);
     fbconsole_write("  framebuffer console @ 0x%x (0x%x)\n\n", (uint64_t)loaderStruct->fb_location, (uint64_t)vm_context_get_physical_for_virtual(VM_KERNEL_CONTEXT, loaderStruct->fb_location));
 }
 
