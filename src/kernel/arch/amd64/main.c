@@ -17,35 +17,34 @@ char* LAST_INIT_STEP;
 
 #define INIT_STEP(message, code)                                                \
     LAST_INIT_STEP = message;                                                   \
-    fbconsole_write("   " message);                                             \
+    fbconsole_write("\e[38;5;7m   " message);                                   \
     code                                                                        \
     fbconsole.current_col = 0;                                                  \
-    fbconsole_write("\e[38;2;109;128;255mok\e[38;5;15m\n");
-
-extern const char* build_id;
+    fbconsole_write("\e[38;2;109;128;255mok\e[38;5;7m\n");
 
 void bootstrap_globals();
 void init_console(LoaderStruct* loaderStruct);
 void init_mm(LoaderStruct* loaderStruct, MemoryRegion* memoryRegions);
+void print_memory_regions();
 
 void main(void* loaderData) {
     LoaderStruct* loaderStruct  = (LoaderStruct*)loaderData;
     MemoryRegion* memoryRegions = (MemoryRegion*)(loaderData + loaderStruct->size);
 
     bootstrap_globals();
-
     init_console(loaderStruct);
+    print_memory_regions();
+
+    fbconsole_write("\e[38;5;15mInitializing subsystems\n");
 
     INIT_STEP(
         "Initializing physical memory management",
         init_mm(loaderStruct, memoryRegions);
     )
 
-    mm_print_physical_free_regions();
-    while(1);
-
     INIT_STEP(
         "Initializing virtual memory management",
+        while(1);
         init_vm();
     )
 
@@ -101,7 +100,6 @@ void init_console(LoaderStruct* loaderStruct) {
         }
     }
 
-    // FIXME: rodata crashes?!
     fbconsole_write("LF OS amd64-uefi. Build: %s\n", BUILD_ID);
     fbconsole_write("  framebuffer console @ 0x%x (0x%x)\n\n", (uint64_t)loaderStruct->fb_location, (uint64_t)vm_context_get_physical_for_virtual(VM_KERNEL_CONTEXT, loaderStruct->fb_location));
 }
@@ -125,4 +123,16 @@ void init_mm(LoaderStruct* loaderStruct, MemoryRegion* memoryRegions) {
 
 void bootstrap_globals() {
     asm("mov %%cr3, %0":"=r"(VM_KERNEL_CONTEXT));
+}
+
+void print_memory_regions() {
+    fbconsole_write("Memory regions\n");
+    AllocatorRegion* region = ALLOCATOR_REGIONS_KERNEL;
+
+    while(region->start != 0 && region->end != 0) {
+        fbconsole_write("  \e[38;5;15m%20s \e[38;5;7m(0x%x - 0x%x, \e[38;5;15m% 8B\e[38;5;7m)\n", region->name, region->start, region->end, region->end - region->start + 1);
+        ++region;
+    }
+
+    fbconsole_write("\n");
 }

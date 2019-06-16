@@ -3,7 +3,7 @@ MKVFAT    		   := /sbin/mkfs.vfat
 QEMUFLAGS 		   := -bios /usr/share/ovmf/OVMF.fd -drive format=raw,file=hd.img -m 2G -d int,guest_errors --serial file:log.txt
 QEMUFLAGS_NO_DEBUG := -monitor stdio
 
-export OPTIMIZATION := -O2
+export OPTIMIZATION := -Og
 
 all: test-kvm
 
@@ -13,10 +13,10 @@ test: runnable-image
 test-kvm: runnable-image
 	kvm $(QEMUFLAGS) $(QEMUFLAGS_NO_DEBUG)
 
-debug: runnable-image src/kernel/arch/amd64-uefi/kernel
+debug: runnable-image src/kernel/arch/amd64/kernel
 	gdb -ex "target remote | qemu-system-x86_64 $(QEMUFLAGS) -gdb stdio -S"
 
-debug-kvm: runnable-image src/kernel/arch/amd64-uefi/kernel
+debug-kvm: runnable-image src/kernel/arch/amd64/kernel
 	gdb -ex "target remote |kvm $(QEMUFLAGS) -gdb stdio -S"
 
 bootfs.img:
@@ -26,10 +26,10 @@ bootfs.img:
 	mmd -i bootfs.img ::/EFI
 	mmd -i bootfs.img ::/EFI/BOOT
 
-bootable-filesystem: bootfs.img src/loader/loader.efi src/kernel/arch/amd64-uefi/kernel src/init/init
-	mcopy -i bootfs.img -o src/loader/loader.efi 				::/EFI/BOOT/BOOTX64.EFI
-	mcopy -i bootfs.img -o src/init/init  						::/LFOS/init
-	mcopy -i bootfs.img -o src/kernel/arch/amd64-uefi/kernel  	::/LFOS/kernel
+bootable-filesystem: bootfs.img src/loader/loader.efi src/kernel/arch/amd64/kernel src/init/init
+	mcopy -i bootfs.img -o src/loader/loader.efi 		::/EFI/BOOT/BOOTX64.EFI
+	mcopy -i bootfs.img -o src/init/init  				::/LFOS/init
+	mcopy -i bootfs.img -o src/kernel/arch/amd64/kernel ::/LFOS/kernel
 
 hd.img:
 	dd if=/dev/zero of=hd.img bs=512 count=133156
@@ -43,8 +43,8 @@ runnable-image: hd.img bootable-filesystem
 hd.img.gz: runnable-image
 	gzip -fk hd.img
 
-src/kernel/arch/amd64-uefi/kernel:
-	+ make -C src/kernel/arch/amd64-uefi
+src/kernel/arch/amd64/kernel:
+	+ make -C src/kernel/arch/amd64
 
 src/loader/loader.efi:
 	+ make -C src/loader
@@ -52,15 +52,15 @@ src/loader/loader.efi:
 src/init/init:
 	+ make -C src/init
 
-install: src/loader/loader.efi src/kernel/arch/amd64-uefi/kernel src/init/init
+install: src/loader/loader.efi src/kernel/arch/amd64/kernel src/init/init
 	cp src/loader/loader.efi /boot/efi/EFI/LFOS/bootx64.efi
-	cp src/kernel/arch/amd64-uefi/kernel /boot/efi/LFOS/kernel
+	cp src/kernel/arch/amd64/kernel /boot/efi/LFOS/kernel
 	cp src/init/init /boot/efi/LFOS/init
 
 clean:
-	+ make -C src/kernel/arch/amd64-uefi clean
+	+ make -C src/kernel/arch/amd64 clean
 	+ make -C src/loader clean
 	+ make -C src/init clean
 	rm -f bootfs.img hd.img hd.img.gz
 
-.PHONY: clean all test test-kvm src/kernel/arch/amd64-uefi/kernel src/init/init src/loader/loader.efi
+.PHONY: clean all test test-kvm src/kernel/arch/amd64/kernel src/init/init src/loader/loader.efi

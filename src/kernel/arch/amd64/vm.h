@@ -17,13 +17,30 @@
 #include "stdbool.h"
 
 typedef struct {
+    char* name;
     ptr_t start;
     ptr_t end;
 } AllocatorRegion;
 
-#define ALLOCATOR_REGION_USER_HEAP   (AllocatorRegion){ .start = 0x0000100000000000, .end = 0x00007F0000000000 }
-#define ALLOCATOR_REGION_USER_EVENT  (AllocatorRegion){ .start = 0x00007F0000001000, .end = 0x00007FFFFFFFF000 }
-#define ALLOCATOR_REGION_KERNEL_HEAP (AllocatorRegion){ .start = 0xFFFF810000000000, .end = 0xFFFF820000000000 }
+#define ALLOCATOR_REGION_NULL           (AllocatorRegion){ .name = "NULL", .start = 0, .end = 0 }
+
+#define ALLOCATOR_REGION_USER_HEAP      (AllocatorRegion){ .name = "User heap",  .start = 0x0000100000000000, .end = 0x00007F0000000000 }
+#define ALLOCATOR_REGION_USER_EVENT     (AllocatorRegion){ .name = "User event", .start = 0x00007F0000001000, .end = 0x00007FFFFFFFF000 }
+
+#define ALLOCATOR_REGION_SCRATCHPAD     (AllocatorRegion){ .name = "Kernel scratchpad", .start = 0xFFFF800000000000, .end = 0xFFFF800000FFFFFF }
+#define ALLOCATOR_REGION_KERNEL_BINARY  (AllocatorRegion){ .name = "Kernel binary",     .start = 0xFFFF800001000000, .end = 0xFFFF800008FFFFFF }
+#define ALLOCATOR_REGION_SLAB_4K        (AllocatorRegion){ .name = "4k slab allocator", .start = 0xFFFF800009000000, .end = 0xFFFF80000FFFFFFF }
+#define ALLOCATOR_REGION_KERNEL_HEAP    (AllocatorRegion){ .name = "Kernel heap",       .start = 0xFFFF800040000000, .end = 0xFFFF80007FFFFFFF }
+#define ALLOCATOR_REGION_DIRECT_MAPPING (AllocatorRegion){ .name = "Physical mapping",  .start = 0xFFFF840000000000, .end = 0xFFFF87FFFFFFFFFF }
+
+#define ALLOCATOR_REGIONS_KERNEL (AllocatorRegion[]){ \
+    ALLOCATOR_REGION_SCRATCHPAD,     \
+    ALLOCATOR_REGION_KERNEL_BINARY,  \
+    ALLOCATOR_REGION_SLAB_4K,        \
+    ALLOCATOR_REGION_KERNEL_HEAP,    \
+    ALLOCATOR_REGION_DIRECT_MAPPING, \
+    ALLOCATOR_REGION_NULL,           \
+}
 
 typedef struct {
     unsigned int present      : 1;

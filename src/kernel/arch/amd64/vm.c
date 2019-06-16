@@ -18,14 +18,14 @@ void init_vm() {
 }
 
 vm_table_t* vm_context_new() {
-    vm_table_t* context = (vm_table_t*)mm_alloc_pages(1);
+    vm_table_t* context = (vm_table_t*)vm_context_alloc_pages(VM_KERNEL_CONTEXT, ALLOCATOR_REGION_KERNEL_HEAP, 1);
     memset((void*)context, 0, 4096);
 
     return context;
 }
 
 void vm_context_activate(vm_table_t* context) {
-    load_cr3((ptr_t)context);
+    load_cr3(vm_context_get_physical_for_virtual(VM_KERNEL_CONTEXT, (ptr_t)context));
 }
 
 void vm_context_map(vm_table_t* context, ptr_t virtual, ptr_t physical) {
