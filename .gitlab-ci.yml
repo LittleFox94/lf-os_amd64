@@ -1,6 +1,9 @@
 before_script:
 - apt-get -qq update && apt-get -y -qq install gnu-efi mtools gdisk clang lld make g++ dosfstools nasm
 image: debian:buster
+stages:
+- test
+- build
 
 test:
   stage: test
