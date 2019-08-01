@@ -46,8 +46,8 @@ void main(void* loaderData) {
 
     INIT_STEP(
         "Initializing virtual memory management",
-        nyi();
         init_vm();
+        nyi(1);
     )
 
     INIT_STEP(
@@ -139,7 +139,10 @@ void print_memory_regions() {
     fbconsole_write("\n");
 }
 
-void nyi() {
-    fbconsole_write("\n\e[38;5;9mNot yet implemented. while(1);");
-    while(1);
+void nyi(int loop) {
+    fbconsole_write("\n\e[38;5;9mNot yet implemented.%s", loop ? " while(1);" : " Continuing");
+
+    if(loop) {
+        while(1);
+    }
 }

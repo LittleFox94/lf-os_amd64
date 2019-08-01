@@ -3,6 +3,11 @@
 
 #include <stdint.h>
 
+#define KiB (1024)
+#define MiB (1024 * KiB)
+#define GiB (1024 * MiB)
+#define TiB (1024 * GiB)
+
 typedef enum {
     MM_UNKNOWN,
     MM_FREE,
@@ -47,5 +52,7 @@ void mm_make_writeable(ptr_t address, int writeable);
 void mm_print_physical_free_regions();
 
 void mm_bootstrap(ptr_t usable_page);
+
+ptr_t mm_highest_address();
 
 #endif

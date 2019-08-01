@@ -19,4 +19,7 @@ typedef uint64_t size_t;
 
 #define HIGHER_HALF_START 0xFFFF800000000000
 
+// XXX: NotYetImplemented. Print and do_nothing_loop()
+void nyi(int loop);
+
 #endif

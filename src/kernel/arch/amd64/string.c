@@ -106,15 +106,24 @@ int sputbytes(char* buffer, int buffer_size, int64_t number) {
     static const int div = 1024;
 
     int prefix = 0;
+    int exact  = 1;
 
-    while(number / div > 1 && prefix < strlen(prefixes)) {
+    while(number / div >= 1 && prefix < strlen(prefixes)) {
+        if((number / div) * div != number) {
+            exact = 0;
+        }
+
         number /= div;
         prefix++;
     }
 
-    buffer[0] = '~';
+    int len = 0;
 
-    int len = sputi(buffer + 1, buffer_size, number, 10) + 1;
+    if(!exact) {
+        buffer[len++] = '~';
+    }
+
+    len += sputi(buffer + len, buffer_size, number, 10);
     
     if(prefix && len < buffer_size) {
         buffer[len++] = prefixes[prefix];

@@ -52,6 +52,18 @@ Paging structures           | Extra linked list
   - large page mapping required
 
 
+### initialization sequence
+
+* setup physical memory direct mapping in context prepared by loader
+* create new context
+  - map kernel code, framebuffer, stack
+* allocate first page for kernel heap and initialize heap (malloc)
+* relocate data structures from temporary locations to kernel heap
+  - move everything away from scratchpad given from loader
+  - stack stays there
+* activate new context
+
+
 ## Kernel memory map
 
 * addresses are given relative to the start of the higher half on 48bit AMD64, `0xFFFF800000000000`.

@@ -31,6 +31,8 @@ typedef struct {
 #define ALLOCATOR_REGION_KERNEL_BINARY  (AllocatorRegion){ .name = "Kernel binary",     .start = 0xFFFF800001000000, .end = 0xFFFF800008FFFFFF }
 #define ALLOCATOR_REGION_SLAB_4K        (AllocatorRegion){ .name = "4k slab allocator", .start = 0xFFFF800009000000, .end = 0xFFFF80000FFFFFFF }
 #define ALLOCATOR_REGION_KERNEL_HEAP    (AllocatorRegion){ .name = "Kernel heap",       .start = 0xFFFF800040000000, .end = 0xFFFF8007FFFFFFFF }
+
+// this one must be PML4 aligned! (PDP, PD and PT indexes must be zero for the start and 511 for the end)
 #define ALLOCATOR_REGION_DIRECT_MAPPING (AllocatorRegion){ .name = "Physical mapping",  .start = 0xFFFF840000000000, .end = 0xFFFF87FFFFFFFFFF }
 
 #define ALLOCATOR_REGIONS_KERNEL (AllocatorRegion[]){ \

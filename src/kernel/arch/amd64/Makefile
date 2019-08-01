@@ -18,10 +18,10 @@ version.c:
 	nasm $(NASMFLAGS) -o $@ $<
 
 %.o: %.c config.h
-	gcc $< -c $(CFLAGS) -o $@
+	clang $< -c $(CFLAGS) -o $@
 
 kernel.elf: version.o $(OBJECTS)
-	ld $(OBJECTS) -nostdlib -o $@
+	ld.lld $(OBJECTS) -nostdlib -o $@
 
 kernel: kernel.elf
 	objcopy $< -O binary -j .text -j .rodata -j .data -j .bss $@

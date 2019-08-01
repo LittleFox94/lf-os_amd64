@@ -161,3 +161,17 @@ void mm_print_physical_free_regions() {
     }
 }
 
+ptr_t mm_highest_address() {
+    ptr_t res = 0;
+    mm_page_list_entry_t* current = mm_physical_page_list;
+
+    while(current) {
+        if(current->start + current->count > res) {
+            res = current->start + current->count;
+        }
+
+        current = current->next;
+    }
+
+    return res;
+}

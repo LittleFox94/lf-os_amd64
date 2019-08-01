@@ -1,7 +1,14 @@
-make:
-  image: debian:buster
-  before_script:
-    - apt-get -qq update && apt-get -y -qq install gnu-efi mtools gdisk gcc make g++ dosfstools nasm
+before_script:
+- apt-get -qq update && apt-get -y -qq install gnu-efi mtools gdisk clang lld make g++ dosfstools nasm
+image: debian:buster
+
+test:
+  stage: test
+  script:
+    - make test
+
+build:
+  stage: build
   script:
     - make hd.img.gz
   artifacts:

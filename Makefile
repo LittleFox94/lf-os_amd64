@@ -1,16 +1,21 @@
 SGDISK    		   := /sbin/sgdisk
 MKVFAT    		   := /sbin/mkfs.vfat
-QEMUFLAGS 		   := -bios /usr/share/ovmf/OVMF.fd -drive format=raw,file=hd.img -m 2G -d int,guest_errors --serial file:log.txt
+
+QEMU_MEMORY        := 512M
+QEMUFLAGS 		   := -bios /usr/share/ovmf/OVMF.fd -drive format=raw,file=hd.img -m $(QEMU_MEMORY) -d int,guest_errors --serial file:log.txt
 QEMUFLAGS_NO_DEBUG := -monitor stdio
 
 export OPTIMIZATION := -Og
 
 all: test-kvm
 
-test: runnable-image
+test:
+	+ make -C t/kernel
+
+run: runnable-image
 	qemu-system-x86_64 $(QEMUFLAGS) $(QEMUFLAGS_NO_DEBUG) -s
 
-test-kvm: runnable-image
+run-kvm: runnable-image
 	kvm $(QEMUFLAGS) $(QEMUFLAGS_NO_DEBUG)
 
 debug: runnable-image src/kernel/arch/amd64/kernel

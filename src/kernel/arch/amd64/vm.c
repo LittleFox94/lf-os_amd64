@@ -5,16 +5,77 @@
 
 #define BASE_TO_TABLE(x) ((vm_table_t*)((uint64_t)x << 12))
 
-#define PML4_INDEX(x) (x >> 39) & 0x1FF
-#define PDP_INDEX(x)  (x >> 30) & 0x1FF
-#define PD_INDEX(x)   (x >> 21) & 0x1FF
-#define PT_INDEX(x)   (x >> 12) & 0x1FF
+#define PML4_INDEX(x) (((x) >> 39) & 0x1FF)
+#define PDP_INDEX(x)  (((x) >> 30) & 0x1FF)
+#define PD_INDEX(x)   (((x) >> 21) & 0x1FF)
+#define PT_INDEX(x)   (((x) >> 12) & 0x1FF)
 
 extern void load_cr3(ptr_t cr3);
 
+void vm_setup_direct_mapping_init(vm_table_t* context) {
+    // we have to implement a lot code from below in a simpler way since we cannot assume a lot of things assumed below:
+    //  - we do not have the direct mapping of all physical memory yet, so we have to carefully work with virtual and physical addresses
+    //  - we do not have malloc() yet
+    //  - we do not have any exception handlers in place. Creating a page fault _noW_ will reboot the system
+
+    // to make things simple, we just don't call any other function here that relies on the virtual memory management
+    // things allowed here:
+    //  - fbconsole (debugging output)
+    //  - mm        (physical memory management)
+    //  - data structure definitions and macros
+
+    fbconsole_write("\n    Setting up direct mapping for physical memory\n");
+    ptr_t physicalEndAddress = mm_highest_address();
+    fbconsole_write("      physical memory present: %B\n", physicalEndAddress);
+
+    size_t numPages;
+    size_t pageSize;
+
+    if(physicalEndAddress > 1 * GiB) {
+        numPages = (physicalEndAddress + (GiB - 1)) / (1 * GiB);
+        pageSize = 1 * GiB;
+    }
+    else {
+        numPages = (physicalEndAddress + (MiB - 1)) / (2 * MiB);
+        pageSize = 2 * MiB;
+    }
+
+    fbconsole_write("      Going to set up %d pages with %B each\n", numPages, pageSize);
+
+    if(pageSize == 2*MiB) {
+        nyi(0);
+
+        pageSize = 1*GiB;
+        numPages = (physicalEndAddress + (GiB - 1)) / (1 * GiB);
+    }
+
+    uint16_t start_pdp_idx = PDP_INDEX(ALLOCATOR_REGION_DIRECT_MAPPING.start);
+
+    size_t num_pdp = PDP_INDEX(ALLOCATOR_REGION_DIRECT_MAPPING.start + physicalEndAddress)
+                   - start_pdp_idx
+                   + 1; // XXX: this may waste 4k of memory when we perfectly fill a pdp table
+
+
+    // XXX: no alloc_pages()!
+    vm_table_t** pdps = (vm_table_t**)vm_context_alloc_pages(context, ALLOCATOR_REGION_SLAB_4K, num_pdp);
+
+    for(ptr_t i = 0; i <= physicalEndAddress; i += pageSize) {
+        ptr_t vi = ALLOCATOR_REGION_DIRECT_MAPPING.start + i;
+
+        uint16_t pml4_idx = PML4_INDEX(vi);
+        uint16_t pdp_idx  = PDP_INDEX(vi);
+
+        vm_table_t* pdp = pdps[pdp_idx - start_pdp_idx];
+
+        context->entries[pml4_idx].present   = 1;
+        context->entries[pml4_idx].writeable = 1;
+        context->entries[pml4_idx].userspace = 0;
+        context->entries[pml4_idx].next_base = vm_context_get_physical_for_virtual(context, (ptr_t)pdp) >> 12;
+    }
+}
+
 void init_vm() {
-    vm_table_t* kernel_context = vm_context_new();
-    VM_KERNEL_CONTEXT = kernel_context;
+    vm_setup_direct_mapping_init(VM_KERNEL_CONTEXT);
 }
 
 vm_table_t* vm_context_new() {
