@@ -1,5 +1,5 @@
 before_script:
-- apt-get -qq update && apt-get -y -qq install gnu-efi mtools gdisk clang lld make dosfstools
+- apt-get -qq update && apt-get -y -qq install gnu-efi mtools gdisk clang lld make dosfstools gcc
 image: debian:buster
 stages:
 - test

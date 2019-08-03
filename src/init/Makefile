@@ -4,10 +4,10 @@ OBJECTS = main.o
 all: init
 
 init: $(OBJECTS)
-	ld $(OBJECTS) -o $@
+	ld.lld $(OBJECTS) -o $@
 
 %.o: %.c
-	gcc $< -c $(CFLAGS) -o $@
+	clang $< -c $(CFLAGS) -o $@
 
 clean:
 	rm -f $(OBJECTS)
