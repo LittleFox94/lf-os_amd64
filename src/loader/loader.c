@@ -6,6 +6,7 @@
 
 #include "loader.h"
 #include "vm.h"
+#include "../kernel/elf.h"
 
 static const size_t UNIT_CONV = 1024;
 static const size_t KB        = UNIT_CONV;
@@ -20,6 +21,7 @@ struct LoaderState {
 
     ptr_t    physicalKernelLocation;
     size_t   kernelSize;
+    uint64_t kernelEntry;
 
     uint64_t mapKey;
     ptr_t    memoryMapLocation;
@@ -136,21 +138,52 @@ EFI_STATUS load_files(EFI_HANDLE handle, uint16_t* path, struct LoaderState* sta
             }
 
             if(StrCmp(buffer->FileName, L"kernel") == 0) {
+                elf_file_header_t* elf_header = (elf_file_header_t*)fileBuffer;
+                uint64_t ph_header = (uint64_t)fileBuffer + (uint64_t)elf_header->programHeaderOffset;
+
+                size_t kernelSize = 0;
+                for(size_t i = 0; i < elf_header->programHeaderCount; ++i) {
+                    elf_program_header_t* ph = (elf_program_header_t*)(ph_header + (i * elf_header->programHeaderEntrySize));
+
+                    if(ph->type == 1) {
+                        size_t length = ph->memLength;
+
+                        if(ph->align) {
+                            size_t padding = length % ph->align;
+                            length += padding;
+                        }
+
+                        kernelSize += length;
+                    }
+                }
+
                 ptr_t physicalKernelLocation;
 
-                status = uefi_call_wrapper(BS->AllocatePages, 4, AllocateAnyPages, EfiLoaderCode, (buffer->FileSize + PAGE_SIZE - 1) / PAGE_SIZE, &physicalKernelLocation);
+                status = uefi_call_wrapper(BS->AllocatePages, 4, AllocateAnyPages, EfiLoaderCode, (kernelSize + PAGE_SIZE - 1) / PAGE_SIZE, &physicalKernelLocation);
                 if(EFI_ERROR(status)) {
-                    Print(L" cannot get pages for kernel: %d\n", status);
+                    Print(L" cannot get pages for kernel: %d (%x bytes required)\n", status, kernelSize);
                     FreePool(fileBuffer);
                     FreePool(buffer);
                     return status;
                 }
 
-                CopyMem(physicalKernelLocation, fileBuffer, buffer->FileSize);
-                Print(L" @ 0x%x ", physicalKernelLocation);
+                for(size_t i = 0; i < elf_header->programHeaderCount; ++i) {
+                    elf_program_header_t* ph = (elf_program_header_t*)(ph_header + (i * elf_header->programHeaderEntrySize));
+
+                    if(ph->type == 1) {
+                        size_t size   = ph->fileLength;
+                        uint64_t src  = (uint64_t)fileBuffer + ph->offset;
+                        uint64_t dest = (uint64_t)(physicalKernelLocation + ph->vaddr) - 0xFFFF800001000000;
+
+                        CopyMem((ptr_t)dest, (ptr_t)src, size);
+                    }
+                }
 
                 state->physicalKernelLocation = physicalKernelLocation;
-                state->kernelSize             = buffer->FileSize;
+                state->kernelSize             = kernelSize;
+                state->kernelEntry            = (uint64_t)elf_header->entrypoint - 0xFFFF800001000000;
+
+                Print(L" @ 0x%x (0x%x bytes, entry 0x%x)", physicalKernelLocation, kernelSize, state->kernelEntry);
             }
 
             FreePool(fileBuffer);
@@ -325,10 +358,10 @@ void map_page(struct LoaderState* state, vm_table_t* pml4, ptr_t virtual, ptr_t 
 // this needs to be an extra function to have the argument in a register and not on the stack.
 // TODO: find another way to do this instead of relying on ABI internals implemented by the
 //       compiler
-void __attribute__((noinline)) jump_kernel(ptr_t kernel, LoaderStruct* loaderStruct) {
+void __attribute__((noinline)) jump_kernel(ptr_t kernel, uint64_t entry, LoaderStruct* loaderStruct) {
     asm volatile("mov %0, %%rsp"::"r"(kernel - 16));
     asm volatile("mov %0, %%rbp"::"r"(kernel - 16));
-    ((kernel_entry)kernel)(loaderStruct);
+    ((kernel_entry)(kernel + entry))(loaderStruct);
     while(1);
 }
 
@@ -407,7 +440,7 @@ EFI_STATUS initialize_virtual_memory(struct LoaderState* state) {
     asm volatile("mov %0, %%cr3"::"r"(pml4));
 
     // Page fault here
-    jump_kernel(kernelStart, loaderStructFinal);
+    jump_kernel(kernelStart, state->kernelEntry, loaderStructFinal);
 
     return EFI_SUCCESS;
 }

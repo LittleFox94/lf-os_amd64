@@ -8,4 +8,5 @@
 .*.s??
 src/init/init
 src/kernel/arch/amd64/kernel
+src/kernel/liblfos-kernel.a
 log.txt

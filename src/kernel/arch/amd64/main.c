@@ -1,4 +1,4 @@
-#include "config.h"
+#include <config.h>
 
 #include "../../../loader/loader.h"
 
@@ -20,8 +20,7 @@ extern char build_id[];
     LAST_INIT_STEP = message;                                                   \
     fbconsole_write("\e[38;5;7m   " message);                                   \
     code                                                                        \
-    fbconsole.current_col = 0;                                                  \
-    fbconsole_write("\e[38;2;109;128;255mok\e[38;5;7m\n");
+    fbconsole_write("\r\e[38;2;109;128;255mok\e[38;5;7m\n");
 
 void nyi();
 void bootstrap_globals();
@@ -88,16 +87,18 @@ void main(void* loaderData) {
 void init_console(LoaderStruct* loaderStruct) {
     fbconsole_init(loaderStruct->fb_width, loaderStruct->fb_height, (uint8_t*)loaderStruct->fb_location);
 
-    #include "bootlogo.c"
+#include "../../bootlogo.c"
 
-    for(int x = 0; x < gimp_image.width; x++) {
-        for(int y = 0; y < gimp_image.height; y++) {
-            int coord = ((y * gimp_image.width) + x) * gimp_image.bytes_per_pixel;
+    uint16_t fbconsole_width = fbconsole_instance()->width;
+
+    for(int x = 0; x < lf_os_bootlogo.width; x++) {
+        for(int y = 0; y < lf_os_bootlogo.height; y++) {
+            int coord = ((y * lf_os_bootlogo.width) + x) * lf_os_bootlogo.bytes_per_pixel;
             fbconsole_setpixel(
-                fbconsole.width - gimp_image.width + x - 5, y + 5,
-                gimp_image.pixel_data[coord + 0],
-                gimp_image.pixel_data[coord + 1],
-                gimp_image.pixel_data[coord + 2]
+                fbconsole_width - lf_os_bootlogo.width + x - 5, y + 5,
+                lf_os_bootlogo.pixel_data[coord + 0],
+                lf_os_bootlogo.pixel_data[coord + 1],
+                lf_os_bootlogo.pixel_data[coord + 2]
             );
         }
     }

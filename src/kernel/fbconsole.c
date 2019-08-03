@@ -8,7 +8,11 @@
 #include "config.h"
 #include "font_acorn_8x8.c"
 
-struct fbconsole_data fbconsole;
+static struct fbconsole_data fbconsole;
+
+struct fbconsole_data* fbconsole_instance() {
+    return &fbconsole;
+}
 
 void __set_mtrr_wc(uint64_t fb, uint64_t len) {
     fb = vm_context_get_physical_for_virtual(VM_KERNEL_CONTEXT, fb);
@@ -181,6 +185,10 @@ int fbconsole_write(char* string, ...) {
 
         if(c == '\n') {
             fbconsole_next_line();
+            continue;
+        }
+        else if(c == '\r') {
+            fbconsole.current_col = 0;
             continue;
         }
         else if(c == 0x1B && buffer[i] == '[') {

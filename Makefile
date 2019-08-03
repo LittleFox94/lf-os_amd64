@@ -7,7 +7,7 @@ QEMUFLAGS_NO_DEBUG := -monitor stdio
 
 export OPTIMIZATION := -Og
 
-all: test-kvm
+all: run-kvm
 
 test:
 	+ make -C t/kernel
@@ -63,7 +63,7 @@ install: src/loader/loader.efi src/kernel/arch/amd64/kernel src/init/init
 	cp src/init/init /boot/efi/LFOS/init
 
 clean:
-	+ make -C src/kernel/arch/amd64 clean
+	+ make -C src/kernel clean
 	+ make -C src/loader clean
 	+ make -C src/init clean
 	rm -f bootfs.img hd.img hd.img.gz

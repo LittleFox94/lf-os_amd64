@@ -15,9 +15,9 @@ struct fbconsole_data {
     int palette[16][3];
 };
 
-extern struct fbconsole_data fbconsole;
-
 void fbconsole_init(int width, int height, uint8_t* fb);
+struct fbconsole_data* fbconsole_instance();
+
 void fbconsole_clear(int r, int g, int b);
 void fbconsole_setpixel(int x, int y, int r, int g, int b);
 int  fbconsole_write(char* string, ...);

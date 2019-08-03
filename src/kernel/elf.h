@@ -1,8 +1,7 @@
 #ifndef _ELF_H_INCLUDED
 #define _ELF_H_INCLUDED
 
-#include <stdint.h>
-#include "vm.h"
+#include "stdint.h"
 
 #define ELF_MAGIC 0x464c457f
 
@@ -49,7 +48,5 @@ typedef struct {
 
     uint64_t align;
 }__attribute__((packed)) elf_program_header_t;
-
-ptr_t load_elf(ptr_t start, vm_table_t* context);
 
 #endif

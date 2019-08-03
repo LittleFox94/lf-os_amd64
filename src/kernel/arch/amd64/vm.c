@@ -55,6 +55,7 @@ void vm_setup_direct_mapping_init(vm_table_t* context) {
                    - start_pdp_idx
                    + 1; // XXX: this may waste 4k of memory when we perfectly fill a pdp table
 
+    nyi(1);
 
     // XXX: no alloc_pages()!
     vm_table_t** pdps = (vm_table_t**)vm_context_alloc_pages(context, ALLOCATOR_REGION_SLAB_4K, num_pdp);
