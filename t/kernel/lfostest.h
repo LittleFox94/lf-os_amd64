@@ -5,6 +5,9 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <stdlib.h>
+
+#include "../../src/kernel/stdarg.h"
+
 #include <stdio.h>
 
 typedef uint64_t ptr_t;
