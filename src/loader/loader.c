@@ -156,6 +156,7 @@ EFI_STATUS load_files(EFI_HANDLE handle, uint16_t* path, struct LoaderState* sta
                         kernelSize += length;
                     }
                 }
+                kernelSize += 0x100000;
 
                 ptr_t physicalKernelLocation;
 
@@ -496,7 +497,7 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE* system_tab
         return status;
     }
 
-    Print(L"Preparing memory map ...\n");
+    Print(L"Preparing memory map ... (this is the last message from the loader)\n");
     status = retrieve_memory_map(&state);
     if(status != EFI_SUCCESS) {
         Print(L" error: %d\n", status);

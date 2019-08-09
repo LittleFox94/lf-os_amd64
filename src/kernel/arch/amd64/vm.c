@@ -2,8 +2,11 @@
 #include "mm.h"
 #include "string.h"
 #include "fbconsole.h"
+#include "slab.h"
 
-#define BASE_TO_TABLE(x) ((vm_table_t*)((uint64_t)x << 12))
+static bool vm_direct_mapping_initialized = false;
+
+#define BASE_TO_TABLE(x) ((vm_table_t*)((uint64_t)(vm_direct_mapping_initialized ? ALLOCATOR_REGION_DIRECT_MAPPING.start : 0) | ((uint64_t)x << 12)))
 
 #define PML4_INDEX(x) (((x) >> 39) & 0x1FF)
 #define PDP_INDEX(x)  (((x) >> 30) & 0x1FF)
@@ -24,9 +27,13 @@ void vm_setup_direct_mapping_init(vm_table_t* context) {
     //  - mm        (physical memory management)
     //  - data structure definitions and macros
 
-    fbconsole_write("\n    Setting up direct mapping for physical memory\n");
     ptr_t physicalEndAddress = mm_highest_address();
-    fbconsole_write("      physical memory present: %B\n", physicalEndAddress);
+    fbconsole_write(" (%B", physicalEndAddress);
+
+    if(ALLOCATOR_REGION_DIRECT_MAPPING.start + physicalEndAddress > ALLOCATOR_REGION_DIRECT_MAPPING.end) {
+        fbconsole_write(" -> %B", ALLOCATOR_REGION_DIRECT_MAPPING.end - ALLOCATOR_REGION_DIRECT_MAPPING.start);
+        physicalEndAddress = ALLOCATOR_REGION_DIRECT_MAPPING.end - ALLOCATOR_REGION_DIRECT_MAPPING.start;
+    }
 
     size_t numPages;
     size_t pageSize;
@@ -40,43 +47,83 @@ void vm_setup_direct_mapping_init(vm_table_t* context) {
         pageSize = 2 * MiB;
     }
 
-    fbconsole_write("      Going to set up %d pages with %B each\n", numPages, pageSize);
+    fbconsole_write(", %d @ %B)", numPages, pageSize);
 
-    if(pageSize == 2*MiB) {
-        nyi(0);
+    SlabHeader* scratchpad_allocator = (SlabHeader*)ALLOCATOR_REGION_SCRATCHPAD.start;
+    init_slab(ALLOCATOR_REGION_SCRATCHPAD.start, ALLOCATOR_REGION_SCRATCHPAD.end, 4096);
 
-        pageSize = 1*GiB;
-        numPages = (physicalEndAddress + (GiB - 1)) / (1 * GiB);
-    }
+    vm_table_t* pdp;
+    int16_t last_pml4_idx = -1;
 
-    uint16_t start_pdp_idx = PDP_INDEX(ALLOCATOR_REGION_DIRECT_MAPPING.start);
+    vm_table_t* pd; // only used for 1MiB pages
+    int16_t last_pdp_idx = -1;
 
-    size_t num_pdp = PDP_INDEX(ALLOCATOR_REGION_DIRECT_MAPPING.start + physicalEndAddress)
-                   - start_pdp_idx
-                   + 1; // XXX: this may waste 4k of memory when we perfectly fill a pdp table
-
-    nyi(1);
-
-    // XXX: no alloc_pages()!
-    vm_table_t** pdps = (vm_table_t**)vm_context_alloc_pages(context, ALLOCATOR_REGION_SLAB_4K, num_pdp);
-
-    for(ptr_t i = 0; i <= physicalEndAddress; i += pageSize) {
+    for(ptr_t i = 0; i <= physicalEndAddress;) {
         ptr_t vi = ALLOCATOR_REGION_DIRECT_MAPPING.start + i;
 
-        uint16_t pml4_idx = PML4_INDEX(vi);
-        uint16_t pdp_idx  = PDP_INDEX(vi);
+        int16_t pml4_idx = PML4_INDEX(vi);
+        int16_t pdp_idx  = PDP_INDEX(vi);
 
-        vm_table_t* pdp = pdps[pdp_idx - start_pdp_idx];
+        if(pml4_idx != last_pml4_idx) {
+            pdp = (vm_table_t*)slab_alloc(scratchpad_allocator);
+            memset32((void*)pdp, 0, 0x1000);
 
-        context->entries[pml4_idx].present   = 1;
-        context->entries[pml4_idx].writeable = 1;
-        context->entries[pml4_idx].userspace = 0;
-        context->entries[pml4_idx].next_base = vm_context_get_physical_for_virtual(context, (ptr_t)pdp) >> 12;
+            context->entries[pml4_idx] = (vm_table_entry_t){
+                .present   = 1,
+                .writeable = 1,
+                .userspace = 0,
+                .next_base = vm_context_get_physical_for_virtual(context, (ptr_t)pdp) >> 12,
+            };
+
+            last_pml4_idx = pml4_idx;
+        }
+
+        if(pageSize == 1*GiB) {
+            pdp->entries[pdp_idx] = (vm_table_entry_t){
+                .huge      = 1,
+                .present   = 1,
+                .writeable = 1,
+                .userspace = 0,
+                .next_base = i >> 12,
+            };
+
+            i += pageSize;
+        } else {
+            if(pdp_idx != last_pdp_idx) {
+                pd = (vm_table_t*)slab_alloc(scratchpad_allocator);
+                memset32((void*)pd, 0, 0x1000);
+
+                pdp->entries[pdp_idx] = (vm_table_entry_t){
+                    .present   = 1,
+                    .writeable = 1,
+                    .userspace = 0,
+                    .next_base = vm_context_get_physical_for_virtual(context, (ptr_t)pd) >> 12,
+                };
+
+                last_pdp_idx = pdp_idx;
+            }
+
+            int16_t pd_idx = PD_INDEX(vi);
+            pd->entries[pd_idx] = (vm_table_entry_t){
+                .huge      = 1,
+                .present   = 1,
+                .writeable = 1,
+                .userspace = 0,
+                .next_base = i >> 12,
+            };
+
+            i += pageSize;
+        }
     }
+
+    vm_direct_mapping_initialized = true;
 }
 
 void init_vm() {
     vm_setup_direct_mapping_init(VM_KERNEL_CONTEXT);
+}
+
+void vm_setup_direct_mapping(vm_table_t* context) {
 }
 
 vm_table_t* vm_context_new() {

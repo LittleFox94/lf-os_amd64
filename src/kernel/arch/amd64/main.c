@@ -46,7 +46,6 @@ void main(void* loaderData) {
     INIT_STEP(
         "Initializing virtual memory management",
         init_vm();
-        nyi(1);
     )
 
     INIT_STEP(
@@ -73,6 +72,7 @@ void main(void* loaderData) {
 
     INIT_STEP(
         "Preparing and starting userspace",
+        nyi(1);
         vm_table_t* init_context = vm_context_new();
         memcpy(init_context, VM_KERNEL_CONTEXT, 4096);
 
@@ -143,7 +143,7 @@ void print_memory_regions() {
 void nyi(int loop) {
     fbconsole_write("\n\e[38;5;9mNot yet implemented.%s", loop ? " while(1);" : " Continuing");
 
-    if(loop) {
-        while(1);
+    while(loop) {
+        // do_nothing_loop();
     }
 }

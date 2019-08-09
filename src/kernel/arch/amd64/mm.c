@@ -167,7 +167,7 @@ ptr_t mm_highest_address() {
 
     while(current) {
         if(current->start + current->count > res) {
-            res = current->start + current->count;
+            res = current->start + (current->count * 4096);
         }
 
         current = current->next;

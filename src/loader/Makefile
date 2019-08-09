@@ -1,5 +1,5 @@
 GNUEFI_INCLUDE_DIR := /usr/include/efi
-CFLAGS             := $(OPTIMIZATION) -g -std=gnu11 -fpic -fomit-frame-pointer -fno-stack-protector -fshort-wchar -mno-red-zone -Wall -fno-builtin -ffreestanding -nostdinc -I $(GNUEFI_INCLUDE_DIR) -I $(GNUEFI_INCLUDE_DIR)/x86_64 -I . -Werror
+CFLAGS             := -O2 -std=gnu11 -fpic -fomit-frame-pointer -fno-stack-protector -fshort-wchar -mno-red-zone -Wall -fno-builtin -ffreestanding -nostdinc -I $(GNUEFI_INCLUDE_DIR) -I $(GNUEFI_INCLUDE_DIR)/x86_64 -I . -Werror
 
 OBJECTS = loader.o
 SOURCES = $(OBJECTS:.o=.c)

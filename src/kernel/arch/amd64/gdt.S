@@ -127,22 +127,19 @@ __idt_handler            46
 __idt_handler            47
 
 reload_cs: 
-        popq %rbx /* save return address */
-
-        /* save flags */
-        pushf
-        popq %rcx
-
-        movw $0x10,%ax
-        movw %ax,%ds
-        movw %ax,%es
-        movw %ax,%fs
-        movw %ax,%gs
-        movw %ax,%ss
-
-        movl $0x08,8(%rsp)
-        mov (%rsp), %rbx
-        rex64 ret
+	sub $16, %rsp
+	movq $8, 8(%rsp)
+	movabsq $_reload_cs, %rax
+	mov %rax, (%rsp)
+	lretq
+	_reload_cs:
+			mov $0x10,%cx
+			mov %cx,%ds
+			mov %cx,%es
+			mov %cx,%fs
+			mov %cx,%gs
+			mov %cx,%ss
+			ret
 
 _syscall_handler: 
     pushq $0            # ss, doesn't matter here
