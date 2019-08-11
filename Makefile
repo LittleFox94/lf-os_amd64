@@ -45,8 +45,11 @@ hd.img:
 runnable-image: hd.img bootable-filesystem
 	dd if=bootfs.img of=hd.img seek=2048 obs=512 ibs=512 count=131072 conv=notrunc
 
-hd.img.gz: runnable-image
-	gzip -fk hd.img
+%.gz: %
+	gzip -fk $<
+
+lf-os.iso: bootable-filesystem
+	genisoimage -JR --no-emul-boot --eltorito-boot bootfs.img -o $@ bootfs.img
 
 src/kernel/arch/amd64/kernel:
 	+ make -C src/kernel/arch/amd64
@@ -66,6 +69,6 @@ clean:
 	+ make -C src/kernel clean
 	+ make -C src/loader clean
 	+ make -C src/init clean
-	rm -f bootfs.img hd.img hd.img.gz
+	rm -f bootfs.img hd.img hd.img.gz lf-os.iso lf-os.iso.gz
 
 .PHONY: clean all test test-kvm src/kernel/arch/amd64/kernel src/init/init src/loader/loader.efi

@@ -1,5 +1,5 @@
 before_script:
-- apt-get -qq update && apt-get -y -qq install gnu-efi mtools gdisk clang lld make dosfstools gcc
+- apt-get -qq update && apt-get -y -qq install gnu-efi mtools gdisk clang lld make dosfstools gcc genisoimage
 image: debian:buster
 stages:
 - test
@@ -13,7 +13,8 @@ test:
 build:
   stage: build
   script:
-    - make hd.img.gz
+    - make hd.img.gz lf-os.iso.gz
   artifacts:
     paths:
       - hd.img.gz
+      - lf-os.iso.gz
