@@ -1,0 +1,5 @@
+gsp-trace
+gsp-syms
+*.o
+*.trace
+*.syms

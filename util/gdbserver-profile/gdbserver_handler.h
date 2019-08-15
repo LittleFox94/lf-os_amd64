@@ -8,11 +8,12 @@ typedef struct {
     int socket;
     bool paused;
 
-    char* packet;
-    size_t packet_len;
-    size_t packet_checksum;
-    bool  packet_started;
-    bool  packet_ready;
+    char*   packet;
+    size_t  packet_len;
+    uint8_t packet_checksum;
+    size_t  packet_checksum_ctr;
+    bool    packet_started;
+    bool    packet_ready;
 
     bool waiting_for_regs;
     uint64_t address;

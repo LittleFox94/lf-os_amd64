@@ -50,6 +50,7 @@ int main(int argc, char* argv[]) {
     if(!image) {
         fprintf(stderr, "Missing image file\n");
         usage(argv[0]);
+        return -1;
     }
 
     ImageReader reader;
@@ -79,7 +80,7 @@ int main(int argc, char* argv[]) {
     while(!feof(stdin)) {
         gdbserver_handler_loop(&gdbserver_handler);
 
-        if(gdbserver_handler_paused(&gdbserver_handler)) {
+        if(gdbserver_handler_paused(&gdbserver_handler) && !gdbserver_handler.waiting_for_regs) {
             trace_writer_write(&writer, gdbserver_handler.address);
             gdbserver_handler_step(&gdbserver_handler);
         }
