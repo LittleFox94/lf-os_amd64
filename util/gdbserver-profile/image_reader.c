@@ -4,6 +4,19 @@
 
 #include "image_reader.h"
 
+int image_reader_compare_symbols(const void* a, const void* b) {
+    const Symbol* sa = (Symbol*)a;
+    const Symbol* sb = (Symbol*)b;
+
+    if(sa->address == sb->address)
+        return 0;
+
+    if(sa->address < sb->address)
+        return -1;
+
+    return 1;
+}
+
 void image_reader_read_symbols(ImageReader* reader, Elf64_Shdr* symbol_section, Elf64_Shdr* string_section) {
     char* symbol_names = malloc(string_section->sh_size);
     fseeko(reader->image_file, string_section->sh_offset, SEEK_SET);
@@ -26,7 +39,7 @@ void image_reader_read_symbols(ImageReader* reader, Elf64_Shdr* symbol_section, 
     free(symbols);
     free(symbol_names);
 
-    // XXX: sort symbols
+    qsort(reader->symbols, reader->num_symbols, sizeof(Symbol), image_reader_compare_symbols);
 }
 
 int image_reader_init(const char* image_path, ImageReader* reader) {

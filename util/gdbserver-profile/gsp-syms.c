@@ -80,8 +80,8 @@ int main(int argc, char* argv[]) {
         if((symbol = image_reader_get_symbol(&image_reader, addr)) != NULL) {
             fprintf(out_file, "%s", symbol->name);
 
-            if(symbol->address > addr) {
-                fprintf(out_file, "+%lu", addr - symbol->address);
+            if(addr > symbol->address) {
+                fprintf(out_file, "(+0x%lx)", addr - symbol->address);
             }
 
             fprintf(out_file, "\n");
