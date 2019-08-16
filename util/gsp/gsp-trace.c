@@ -102,6 +102,7 @@ int main(int argc, char* argv[]) {
     }
 
     uint64_t stop_symbol_address = 0;
+
     if(stop_symbol != NULL) {
         bool found = false;
         for(size_t i = 0;i < reader.num_symbols; ++i) {
