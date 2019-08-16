@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdbool.h>
+#include <string.h>
 #include <unistd.h>
 
 #include "image_reader.h"
@@ -12,6 +13,8 @@ void usage(char* argv0) {
     fprintf(stderr, "   -i $image_file   Compiled program to read for symbols\n");
     fprintf(stderr, "   -o $output_file  Where to write the trace, defaults to /dev/stdout\n");
     fprintf(stderr, "   -g $gdbserver    Where to reach the gdbserver, defaults to localhost:1234\n");
+    fprintf(stderr, "   -s $start_symbol Where to start profiling (defaults to entry point of image)\n");
+    fprintf(stderr, "   -S $stop_symbol  Where to stop profiling (defaults to never)\n");
 
     fprintf(stderr, "\nFlags\n");
     fprintf(stderr, "   -h               Give this help and exit with status -1\n");
@@ -25,8 +28,10 @@ int main(int argc, char* argv[]) {
     char* gdb_address    = "localhost";
     bool  issue_continue = false;
 
+    char* start_symbol = NULL;
+
     int opt = 0;
-    while((opt = getopt(argc, argv, "i:o:g:hc")) != -1) {
+    while((opt = getopt(argc, argv, "i:o:g:hcs:S:")) != -1) {
         switch(opt) {
             case 'i':
                 image = optarg;
@@ -39,6 +44,12 @@ int main(int argc, char* argv[]) {
                 break;
             case 'c':
                 issue_continue = true;
+                break;
+            case 's':
+                start_symbol = optarg;
+                break;
+            case 'S':
+                // not yet implemented
                 break;
             case 'h':
             default:
@@ -71,7 +82,23 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
-    gdbserver_handler_break(&gdbserver_handler, reader.entry);
+    if(start_symbol != NULL) {
+        bool found = false;
+        for(size_t i = 0;i < reader.num_symbols; ++i) {
+            if(strcmp(reader.symbols[i].name, start_symbol) == 0) {
+                gdbserver_handler_break(&gdbserver_handler, reader.symbols[i].address);
+                found = true;
+            }
+        }
+
+        if(!found) {
+            start_symbol = NULL;
+        }
+    }
+
+    if(start_symbol == NULL) {
+        gdbserver_handler_break(&gdbserver_handler, reader.entry);
+    }
 
     if(issue_continue) {
         gdbserver_handler_continue(&gdbserver_handler);
