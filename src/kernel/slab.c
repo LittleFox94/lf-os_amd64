@@ -1,5 +1,6 @@
 #include "slab.h"
 #include "bitmap.h"
+#include "string.h"
 
 void init_slab(ptr_t mem_start, ptr_t mem_end, size_t allocation_size) {
     size_t mem_total   = mem_end   - mem_start;
@@ -13,9 +14,8 @@ void init_slab(ptr_t mem_start, ptr_t mem_end, size_t allocation_size) {
     header->num_entries     = num_entries;
     header->bitmap_size     = bitmap_size(num_entries);
 
-    for(size_t i = 0; i < num_entries; ++i) {
-        slab_free(header, mem_start + overhead + i);
-    }
+    bitmap_t bitmap = (bitmap_t)((ptr_t)header + sizeof(SlabHeader));
+    memset(bitmap, 0, header->bitmap_size);
 }
 
 ptr_t slab_alloc(SlabHeader* slab) {
@@ -38,15 +38,3 @@ void slab_free(SlabHeader* slab, ptr_t mem) {
     bitmap_clear(bitmap, slab_index(slab, mem));
 }
 
-size_t slab_overhead(SlabHeader* slab) {
-    size_t overhead = sizeof(SlabHeader) + slab->bitmap_size;
-    return overhead + (slab->allocation_size - (overhead % slab->allocation_size));
-}
-
-ptr_t slab_mem(SlabHeader* slab, SlabIndexType idx) {
-    return (idx * slab->allocation_size) + slab_overhead(slab) + (ptr_t)slab;
-}
-
-SlabIndexType slab_index(SlabHeader* slab, ptr_t mem) {
-    return (mem - slab_overhead(slab) - (ptr_t)slab) / slab->allocation_size;
-}
