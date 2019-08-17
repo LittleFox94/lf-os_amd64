@@ -66,7 +66,7 @@ void vm_setup_direct_mapping_init(vm_table_t* context) {
 
         if(pml4_idx != last_pml4_idx) {
             pdp = (vm_table_t*)slab_alloc(scratchpad_allocator);
-            memset32((void*)pdp, 0, 0x1000);
+            memset((void*)pdp, 0, 0x1000);
 
             context->entries[pml4_idx] = (vm_table_entry_t){
                 .present   = 1,
@@ -91,7 +91,7 @@ void vm_setup_direct_mapping_init(vm_table_t* context) {
         } else {
             if(pdp_idx != last_pdp_idx) {
                 pd = (vm_table_t*)slab_alloc(scratchpad_allocator);
-                memset32((void*)pd, 0, 0x1000);
+                memset((void*)pd, 0, 0x1000);
 
                 pdp->entries[pdp_idx] = (vm_table_entry_t){
                     .present   = 1,
