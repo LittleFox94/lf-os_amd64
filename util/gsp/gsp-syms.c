@@ -8,7 +8,7 @@
 #include "trace_reader.h"
 
 void usage(char* argv0) {
-    fprintf(stderr, "Usage: %s -hc -i program.elf -t program.trace [ -o program.trace.syms ]\n\n", argv0);
+    fprintf(stderr, "Usage: %s -h -i program.elf -t program.trace [ -o program.trace.syms ]\n\n", argv0);
     fprintf(stderr, "Parameters\n");
     fprintf(stderr, "   -i $image_file   Compiled program to read for symbols\n");
     fprintf(stderr, "   -t $trace_file   File created by gsp-trace\n");
