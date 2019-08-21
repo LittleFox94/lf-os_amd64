@@ -35,10 +35,7 @@ ptr_t slab_alloc(SlabHeader* slab) {
 
 void slab_free(SlabHeader* slab, ptr_t mem) {
     bitmap_t bitmap = (bitmap_t)((ptr_t)slab + sizeof(SlabHeader));
-
-    for(SlabIndexType i = 0; i < slab->num_entries; ++i) {
-        bitmap_clear(bitmap, i);
-    }
+    bitmap_clear(bitmap, slab_index(slab, mem));
 }
 
 size_t slab_overhead(SlabHeader* slab) {
