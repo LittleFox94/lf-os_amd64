@@ -174,7 +174,7 @@ void _recv_packet(GDBServerHandler* handler) {
 
     char c;
 
-    if(recv(handler->socket, &c, 1, MSG_DONTWAIT) <= 0) { 
+    if(recv(handler->socket, &c, 1, 0) <= 0) {
         if(errno != EAGAIN && errno != EWOULDBLOCK) {
             fprintf(stderr, "Cannot read from socket anymore, exiting\n");
             exit(-1);
