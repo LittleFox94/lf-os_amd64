@@ -18,7 +18,10 @@ while(my $line = <>) {
             # returned from function
             my $count = pop(@counter);
             print join(';', @current) . " $count\n";
-            pop(@current);
+
+            while($current[$#current] ne $sym) {
+                pop(@current);
+            }
         }
 
         $prev_sym = $sym;
