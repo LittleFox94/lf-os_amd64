@@ -24,6 +24,16 @@ Now, to have a visualized version of this, you can use `gsp-stackcollapse` to
 convert the symbolized trace file to a stack trace file compatible with
 [FlameGraph](https://github.com/brendangregg/FlameGraph).
 
+## Demo
+
+Here are profiling results from LF OS, running from `_start()` to `nyi()`:
+
+![FlameChart](https://0x0a.software/lf-os.flamechart.svg)
+
+![Aggregated](https://0x0a.software/lf-os.aggregated.svg)
+
+(those SVGs are interactive when opened in an extra tab, use your browser functions for that)
+
 ## Docs
 
 ### `gsp-trace`
