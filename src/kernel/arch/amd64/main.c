@@ -12,6 +12,7 @@
 #include "string.h"
 #include "pic.h"
 #include "pit.h"
+#include "slab.h"
 
 char* LAST_INIT_STEP;
 extern char build_id[];
@@ -72,6 +73,12 @@ void main(void* loaderData) {
 
     INIT_STEP(
         "Preparing and starting userspace",
+
+        for(int i = 0; i < 100; ++i) {
+            mm_print_physical_free_regions();
+            print_memory_regions();
+        }
+
         nyi(1);
         vm_table_t* init_context = vm_context_new();
         memcpy(init_context, VM_KERNEL_CONTEXT, 4096);
@@ -97,7 +104,10 @@ void init_console(LoaderStruct* loaderStruct) {
 }
 
 void init_mm(LoaderStruct* loaderStruct, MemoryRegion* memoryRegions) {
-    mm_bootstrap(HIGHER_HALF_START);
+    SlabHeader* scratchpad_allocator = (SlabHeader*)ALLOCATOR_REGION_SCRATCHPAD.start;
+    init_slab(ALLOCATOR_REGION_SCRATCHPAD.start, ALLOCATOR_REGION_SCRATCHPAD.end, 4096);
+
+    mm_bootstrap(slab_alloc(scratchpad_allocator));
 
     uint64_t pages_free = 0;
 

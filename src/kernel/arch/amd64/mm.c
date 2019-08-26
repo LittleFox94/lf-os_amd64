@@ -76,7 +76,8 @@ void mm_bootstrap(ptr_t usable_page) {
     while(usable_page % 4096);
 
     // bootstrap memory management with the first page given to us
-    mm_page_list_entry_t* page_list = mm_physical_page_list = (mm_page_list_entry_t*)usable_page;
+    mm_page_list_entry_t* page_list = (mm_page_list_entry_t*)usable_page;
+    mm_physical_page_list = page_list;
 
     for(int i = 0; i < 4096 / sizeof(mm_page_list_entry_t); i++) {
         page_list[i].start  = 0;

@@ -50,7 +50,6 @@ void vm_setup_direct_mapping_init(vm_table_t* context) {
     fbconsole_write(", %d @ %B)", numPages, pageSize);
 
     SlabHeader* scratchpad_allocator = (SlabHeader*)ALLOCATOR_REGION_SCRATCHPAD.start;
-    init_slab(ALLOCATOR_REGION_SCRATCHPAD.start, ALLOCATOR_REGION_SCRATCHPAD.end, 4096);
 
     vm_table_t* pdp;
     int16_t last_pml4_idx = -1;
