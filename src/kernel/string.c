@@ -24,11 +24,11 @@ void memset(uint8_t* dest, uint8_t c, size_t size) {
     }
 }
 
-void* memcpy(void* dest, void* source, size_t size) {
+void* memcpy(void* dest, void const* source, size_t size) {
     uint8_t* dst_8 = (uint8_t*)dest;
     uint8_t* src_8 = (uint8_t*)source;
 
-    for(int i = 0; i < size; ++i) {
+    for(size_t i = 0; i < size; ++i) {
         dst_8[i] = src_8[i];
     }
 
