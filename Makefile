@@ -5,7 +5,7 @@ QEMU_MEMORY        := 512M
 QEMUFLAGS 		   := -bios /usr/share/ovmf/OVMF.fd -drive format=raw,file=hd.img -m $(QEMU_MEMORY) -d int,guest_errors --serial file:log.txt
 QEMUFLAGS_NO_DEBUG := -monitor stdio
 
-export OPTIMIZATION := -Og
+export OPTIMIZATION := -O3
 
 all: run-kvm
 
@@ -17,6 +17,9 @@ run: runnable-image
 
 run-kvm: runnable-image
 	kvm $(QEMUFLAGS) $(QEMUFLAGS_NO_DEBUG)
+
+profile: runnable-image util/gsp/gsp-trace util/gsp/gsp-syms
+	./util/gsp/gsp-trace -i src/kernel/arch/amd64/kernel -c -o lf-os.trace -g "stdio:/usr/bin/qemu-system-x86_64 $(QEMUFLAGS) -gdb stdio -S -display none" -S nyi
 
 debug: runnable-image src/kernel/arch/amd64/kernel
 	gdb -ex "target remote | qemu-system-x86_64 $(QEMUFLAGS) -gdb stdio -S"
@@ -60,6 +63,12 @@ src/loader/loader.efi:
 src/init/init:
 	+ make -C src/init
 
+util/gsp/gsp-trace:
+	+ make -C util/gsp gsp-trace
+
+util/gsp/gsp-syms:
+	+ make -C util/gsp gsp-syms
+
 install: src/loader/loader.efi src/kernel/arch/amd64/kernel src/init/init
 	cp src/loader/loader.efi /boot/efi/EFI/LFOS/bootx64.efi
 	cp src/kernel/arch/amd64/kernel /boot/efi/LFOS/kernel
@@ -69,6 +78,7 @@ clean:
 	+ make -C src/kernel clean
 	+ make -C src/loader clean
 	+ make -C src/init clean
+	+ make -C util/gsp clean
 	rm -f bootfs.img hd.img hd.img.gz lf-os.iso lf-os.iso.gz
 
-.PHONY: clean all test test-kvm src/kernel/arch/amd64/kernel src/init/init src/loader/loader.efi
+.PHONY: clean all test test-kvm src/kernel/arch/amd64/kernel src/init/init src/loader/loader.efi util/gsp/gsp-trace util/gsp/gsp-syms

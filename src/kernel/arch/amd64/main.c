@@ -140,7 +140,7 @@ void print_memory_regions() {
     fbconsole_write("\n");
 }
 
-void nyi(int loop) {
+__attribute__((noinline)) void nyi(int loop) {
     fbconsole_write("\n\e[38;5;9mNot yet implemented.%s", loop ? " while(1);" : " Continuing");
 
     while(loop) {
