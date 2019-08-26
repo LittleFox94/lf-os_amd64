@@ -19,7 +19,7 @@ run-kvm: runnable-image
 	kvm $(QEMUFLAGS) $(QEMUFLAGS_NO_DEBUG)
 
 profile: runnable-image util/gsp/gsp-trace util/gsp/gsp-syms
-	./util/gsp/gsp-trace -i src/kernel/arch/amd64/kernel -c -o lf-os.trace -g "stdio:/usr/bin/qemu-system-x86_64 $(QEMUFLAGS) -gdb stdio -S -display none" -S nyi
+	./util/gsp/gsp-trace -i src/kernel/arch/amd64/kernel -c -o lf-os.trace -g "stdio:qemu-system-x86_64 $(QEMUFLAGS) -gdb stdio -S -display none" -S nyi
 
 debug: runnable-image src/kernel/arch/amd64/kernel
 	gdb -ex "target remote | qemu-system-x86_64 $(QEMUFLAGS) -gdb stdio -S"
