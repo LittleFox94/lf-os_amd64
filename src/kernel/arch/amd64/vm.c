@@ -124,11 +124,19 @@ void init_vm() {
 }
 
 void vm_setup_direct_mapping(vm_table_t* context) {
+    uint16_t pml4_idx_start = PML4_INDEX(ALLOCATOR_REGION_DIRECT_MAPPING.start);
+    uint16_t pml4_idx_end   = PML4_INDEX(ALLOCATOR_REGION_DIRECT_MAPPING.end);
+
+    for(uint16_t i = pml4_idx_start; i <= pml4_idx_end; ++i) {
+        context->entries[i] = VM_KERNEL_CONTEXT->entries[i];
+    }
 }
 
 vm_table_t* vm_context_new() {
     vm_table_t* context = (vm_table_t*)vm_context_alloc_pages(VM_KERNEL_CONTEXT, ALLOCATOR_REGION_KERNEL_HEAP, 1);
     memset((void*)context, 0, 4096);
+
+    vm_setup_direct_mapping(context);
 
     return context;
 }
