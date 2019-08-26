@@ -110,16 +110,16 @@ void fbconsole_draw_char(int start_x, int start_y, char c) {
 }
 
 void fbconsole_scroll(unsigned int scroll_amount) {
-    unsigned int row_start = scroll_amount * FONT_HEIGHT;
-    unsigned int begin     = row_start * fbconsole.width * 4;
-    unsigned int end       = fbconsole.width * fbconsole.height * 4;
+    size_t row_start = scroll_amount * FONT_HEIGHT;
+    size_t begin     = row_start * fbconsole.width * 4;
+    size_t end       = fbconsole.width * fbconsole.height * 4;
 
     memcpy(fbconsole.fb, fbconsole.fb + begin, end - begin);
 
     memset32(
-        (uint32_t*)(fbconsole.fb + (end - begin)),
+        (uint32_t*)(fbconsole.fb + (end - (row_start * 4 * fbconsole.width))),
         (fbconsole.background_r << 16) | (fbconsole.background_g << 8) | (fbconsole.background_b << 0),
-        (begin - end) / 4
+        row_start * fbconsole.width
     );
 }
 
