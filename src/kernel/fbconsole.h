@@ -21,5 +21,6 @@ struct fbconsole_data* fbconsole_instance();
 void fbconsole_clear(int r, int g, int b);
 void fbconsole_setpixel(int x, int y, int r, int g, int b);
 int  fbconsole_write(char* string, ...);
+void fbconsole_blt(uint8_t* image, uint16_t width, uint16_t height, uint16_t x, uint16_t y);
 
 #endif

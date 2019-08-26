@@ -63,7 +63,7 @@ void fbconsole_init(int width, int height, uint8_t* fb) {
 
     __set_mtrr_wc((uint64_t)fb, width * height * 4);
 
-    fbconsole_clear(0, 0, 0);
+    fbconsole_clear(fbconsole.background_r, fbconsole.background_g, fbconsole.background_b);
 }
 
 void fbconsole_clear(int r, int g, int b) {
@@ -72,7 +72,23 @@ void fbconsole_clear(int r, int g, int b) {
     fbconsole.current_col = 0;
 }
 
-void fbconsole_setpixel(int x, int y, int r, int g, int b) {
+void fbconsole_blt(uint8_t* image, uint16_t width, uint16_t height, uint16_t tx, uint16_t ty) {
+    for(uint16_t y = 0; y < height; ++y) {
+        size_t imgRow =  y       *           width * 3;
+        size_t fbRow  = (ty + y) * fbconsole.width * 4;
+        for(uint16_t x = 0; x < width; ++x) {
+            size_t imgCol = imgRow + (x * 3);
+            size_t fbCol  = fbRow  + ((tx + x) * 4);
+
+            fbconsole.fb[fbCol + 2] = image[imgCol + 0];
+            fbconsole.fb[fbCol + 1] = image[imgCol + 1];
+            fbconsole.fb[fbCol + 0] = image[imgCol + 2];
+            fbconsole.fb[fbCol + 3] = 0;
+        }
+    }
+}
+
+void fbconsole_setpixel(const int x, const int y, const int r, const int g, const int b) {
     int index = ((y * fbconsole.width) + x) * 4;
     fbconsole.fb[index + 2] = r;
     fbconsole.fb[index + 1] = g;
@@ -81,8 +97,8 @@ void fbconsole_setpixel(int x, int y, int r, int g, int b) {
 }
 
 void fbconsole_draw_char(int start_x, int start_y, char c) {
-    for(int x = 0; x < FONT_WIDTH && x + start_x < fbconsole.width; x++) {
-        for(int y = 0; y < FONT_HEIGHT && y + start_y < fbconsole.height; y++) {
+    for(int y = 0; y < FONT_HEIGHT && y + start_y < fbconsole.height; y++) {
+        for(int x = 0; x < FONT_WIDTH && x + start_x < fbconsole.width; x++) {
             if(FONT_NAME[(c * FONT_HEIGHT) + y] & (0x80 >> x)) {
                 fbconsole_setpixel(start_x + x, start_y + y, fbconsole.foreground_r, fbconsole.foreground_g, fbconsole.foreground_b);
             }
@@ -100,9 +116,11 @@ void fbconsole_scroll(unsigned int scroll_amount) {
 
     memcpy(fbconsole.fb, fbconsole.fb + begin, end - begin);
 
-    for(unsigned int i = end - begin; i < end; i++) {
-        fbconsole.fb[i] = 0;
-    }
+    memset32(
+        (uint32_t*)(fbconsole.fb + (end - begin)),
+        (fbconsole.background_r << 16) | (fbconsole.background_g << 8) | (fbconsole.background_b << 0),
+        (begin - end) / 4
+    );
 }
 
 void fbconsole_next_line() {

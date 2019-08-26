@@ -90,18 +90,7 @@ void init_console(LoaderStruct* loaderStruct) {
 #include "../../bootlogo.c"
 
     uint16_t fbconsole_width = fbconsole_instance()->width;
-
-    for(int x = 0; x < lf_os_bootlogo.width; x++) {
-        for(int y = 0; y < lf_os_bootlogo.height; y++) {
-            int coord = ((y * lf_os_bootlogo.width) + x) * lf_os_bootlogo.bytes_per_pixel;
-            fbconsole_setpixel(
-                fbconsole_width - lf_os_bootlogo.width + x - 5, y + 5,
-                lf_os_bootlogo.pixel_data[coord + 0],
-                lf_os_bootlogo.pixel_data[coord + 1],
-                lf_os_bootlogo.pixel_data[coord + 2]
-            );
-        }
-    }
+    fbconsole_blt(lf_os_bootlogo.pixel_data, lf_os_bootlogo.width, lf_os_bootlogo.height, fbconsole_width - lf_os_bootlogo.width - 5, 5);
 
     fbconsole_write("LF OS for amd64. Build: %s\n", build_id);
     fbconsole_write("  framebuffer console @ 0x%x (0x%x)\n\n", (uint64_t)loaderStruct->fb_location, (uint64_t)vm_context_get_physical_for_virtual(VM_KERNEL_CONTEXT, loaderStruct->fb_location));
