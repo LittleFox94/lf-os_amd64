@@ -117,9 +117,9 @@ void fbconsole_scroll(unsigned int scroll_amount) {
     memcpy(fbconsole.fb, fbconsole.fb + begin, end - begin);
 
     memset32(
-        (uint32_t*)(fbconsole.fb + (end - begin)),
+        (uint32_t*)(fbconsole.fb + (end - (row_start*fbconsole.width*4))),
         (fbconsole.background_r << 16) | (fbconsole.background_g << 8) | (fbconsole.background_b << 0),
-        (begin - end) / 4
+        row_start * fbconsole.width
     );
 }
 
