@@ -29,6 +29,7 @@ int main(int argc, char* argv[]) {
     bool  issue_continue = false;
 
     char* start_symbol = NULL;
+    char* stop_symbol  = NULL;
 
     int opt = 0;
     while((opt = getopt(argc, argv, "i:o:g:hcs:S:")) != -1) {
@@ -49,7 +50,7 @@ int main(int argc, char* argv[]) {
                 start_symbol = optarg;
                 break;
             case 'S':
-                // not yet implemented
+                stop_symbol = optarg;
                 break;
             case 'h':
             default:
@@ -100,6 +101,21 @@ int main(int argc, char* argv[]) {
         gdbserver_handler_break(&gdbserver_handler, reader.entry);
     }
 
+    uint64_t stop_symbol_address = 0;
+    if(stop_symbol != NULL) {
+        bool found = false;
+        for(size_t i = 0;i < reader.num_symbols; ++i) {
+            if(strcmp(reader.symbols[i].name, stop_symbol) == 0) {
+                stop_symbol_address = reader.symbols[i].address;
+                found = true;
+            }
+        }
+
+        if(!found) {
+            stop_symbol = NULL;
+        }
+    }
+
     if(issue_continue) {
         gdbserver_handler_continue(&gdbserver_handler);
     }
@@ -109,6 +125,12 @@ int main(int argc, char* argv[]) {
 
         if(gdbserver_handler_paused(&gdbserver_handler) && !gdbserver_handler.waiting_for_regs) {
             trace_writer_write(&writer, gdbserver_handler.address);
+
+            if(stop_symbol != NULL && gdbserver_handler.address == stop_symbol_address) {
+                gdbserver_handler_stop(&gdbserver_handler);
+                return 0;
+            }
+
             gdbserver_handler_step(&gdbserver_handler);
         }
     }

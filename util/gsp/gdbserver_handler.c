@@ -11,20 +11,36 @@
 
 #include "gdbserver_handler.h"
 
-int _protocol(const char* address) {
-    if(address[0] == '/')                     return AF_UNIX;
-    if(address[0] == '[')                     return AF_INET6;
-    if(strstr(address, "unix://") == address) return AF_UNIX;
-
-    return AF_INET6;
-}
-
 const char* _unix_path(const char* address) {
     if(address[0] == '/')                     return address;
     if(strstr(address, "unix://") == address) return address + 7;
 
     fprintf(stderr, "Unable to get unix socket path from address '%s'\n", address);
     return NULL;
+}
+
+int _open_unix_socket(const char* address) {
+    int ret = -1;
+
+    struct sockaddr_un pa;
+    pa.sun_family = AF_UNIX;
+    strncpy(pa.sun_path, _unix_path(address), sizeof(pa.sun_path)  -1);
+
+    if(pa.sun_path == NULL) {
+        return -1;
+    }
+
+    if((ret = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
+        fprintf(stderr, "Error opening socket: %d (%s)\n", errno, strerror(errno));
+        return -1;
+    }
+
+    if(connect(ret, (struct sockaddr*)&pa, sizeof(pa)) == -1) {
+        fprintf(stderr, "Error connecting to gdbserver: %d (%s)\n", errno, strerror(errno));
+        return -1;
+    }
+
+    return ret;
 }
 
 char* _inet_host(const char* address) {
@@ -55,6 +71,95 @@ char* _inet_port(const char* address) {
     return res ? res + 1 : "1234";
 }
 
+int _open_inet6_socket(const char* address) {
+    int ret = -1;
+
+    struct addrinfo hints;
+    memset(&hints, 0, sizeof(hints));
+
+    hints.ai_family     = AF_INET6;
+    hints.ai_socktype   = SOCK_STREAM;
+    hints.ai_flags      = 0;
+    hints.ai_protocol   = 0;
+
+    struct addrinfo* result;
+    int err;
+
+    char* host = _inet_host(address);
+    char* port = _inet_port(address);
+
+    if((err = getaddrinfo(host, port, &hints, &result)) != 0) {
+        fprintf(stderr, "Error looking up address: %d (%s)\n", err, gai_strerror(err));
+        return -1;
+    }
+
+    free(host);
+
+    for(struct addrinfo* r = result; r; r = r->ai_next) {
+        if((ret = socket(r->ai_family, r->ai_socktype, r->ai_protocol)) == -1) {
+            continue;
+        }
+
+        if(connect(ret, r->ai_addr, r->ai_addrlen) != -1) {
+            break; /* success */
+        }
+
+        close(ret);
+        ret = -1;
+    }
+
+    if(ret == -1) {
+        fprintf(stderr, "Cannot connect to tcp socket, no address found\n");
+        return -1;
+    }
+
+    freeaddrinfo(result);
+
+    return ret;
+}
+
+int _open_stdio_socket(const char* address) {
+    int sockets[2];
+
+    if(socketpair(AF_LOCAL, SOCK_STREAM, 0, sockets) != 0) {
+        fprintf(stderr, "Unable to create socket pair: %d (%s)\n", errno, strerror(errno));
+        return -1;
+    }
+
+    if(fork()) {
+        close(sockets[1]);
+        return sockets[0];
+    }
+    else {
+        close(sockets[0]);
+
+        dup2(sockets[1], STDIN_FILENO);
+        dup2(sockets[1], STDOUT_FILENO);
+
+        char* program = malloc(strlen(address));
+        sprintf(program, "%s", address+6);
+        fprintf(stderr, "\"%s\"\n", program);
+
+        if(execlp("/bin/sh", "/bin/sh", "-c", program, (char*)0) != 0) {
+            fprintf(stderr, "Error starting profilee: %d (%s)\n", errno, strerror(errno));
+        }
+
+        exit(-1);
+    }
+}
+
+int _open_socket(const char* address) {
+    if(address[0] == '/' || strstr(address, "unix://") == address) {
+        return _open_unix_socket(address);
+    }
+    else if(strstr(address, "stdio:") == address) {
+        return _open_stdio_socket(address);
+    }
+    else {
+        return _open_inet6_socket(address);
+    }
+}
+
 int gdbserver_handler_init(const char* address, GDBServerHandler* handler) {
     memset(handler, 0, sizeof(GDBServerHandler));
 
@@ -63,79 +168,10 @@ int gdbserver_handler_init(const char* address, GDBServerHandler* handler) {
         return -1;
     }
 
-    int protocol = _protocol(address);
+    handler->socket = _open_socket(address);
 
-    switch(protocol) {
-        case AF_UNIX:
-            {
-                struct sockaddr_un pa;
-                pa.sun_family = AF_UNIX;
-                strncpy(pa.sun_path, _unix_path(address), sizeof(pa.sun_path)  -1);
-
-                if(pa.sun_path == NULL) {
-                    return -1;
-                }
-
-                if((handler->socket = socket(protocol, SOCK_STREAM, 0)) == -1) {
-                    fprintf(stderr, "Error opening socket: %d (%s)\n", errno, strerror(errno));
-                    return -1;
-                }
-
-                if(connect(handler->socket, (struct sockaddr*)&pa, sizeof(pa)) == -1) {
-                    fprintf(stderr, "Error connecting to gdbserver: %d (%s)\n", errno, strerror(errno));
-                    return -1;
-                }
-
-            }
-            break;
-        case AF_INET6:
-            {
-                struct addrinfo hints;
-                memset(&hints, 0, sizeof(hints));
-
-                hints.ai_family     = AF_INET6;
-                hints.ai_socktype   = SOCK_STREAM;
-                hints.ai_flags      = 0;
-                hints.ai_protocol   = 0;
-
-                struct addrinfo* result;
-                int err;
-
-                char* host = _inet_host(address);
-                char* port = _inet_port(address);
-
-                if((err = getaddrinfo(host, port, &hints, &result)) != 0) {
-                    fprintf(stderr, "Error looking up address: %d (%s)\n", err, gai_strerror(err));
-                    return -1;
-                }
-
-                free(host);
-
-                for(struct addrinfo* r = result; r; r = r->ai_next) {
-                    if((handler->socket = socket(r->ai_family, r->ai_socktype, r->ai_protocol)) == -1) {
-                        continue;
-                    }
-
-                    if(connect(handler->socket, r->ai_addr, r->ai_addrlen) != -1) {
-                        break; /* success */
-                    }
-
-                    close(handler->socket);
-                    handler->socket = -1;
-                }
-
-                if(handler->socket == -1) {
-                    fprintf(stderr, "Cannot connect to tcp socket, no address found\n");
-                    return -1;
-                }
-
-                freeaddrinfo(result);
-            }
-            break;
-        default:
-            fprintf(stderr, "I understood the address but it's not yet implemented\n");
-            return -1;
-            break;
+    if(handler->socket == -1) {
+        return -1;
     }
 
     return 0;
@@ -256,6 +292,11 @@ void gdbserver_handler_step(GDBServerHandler* handler) {
     _send_packet(handler, "s", 1);
 }
 
+void gdbserver_handler_stop(GDBServerHandler* handler) {
+    handler->paused = false;
+    _send_packet(handler, "k", 1);
+}
+
 void gdbserver_handler_loop(GDBServerHandler* handler) {
     _recv_packet(handler);
 
@@ -269,7 +310,7 @@ void gdbserver_handler_loop(GDBServerHandler* handler) {
             char* str = malloc(17);
             memset(str, 0, 17);
             memcpy(str, handler->packet + (16 * 16), 16);
-          
+
             // XXX: this seems not very elegant, but this part works.
             uint64_t res;
             sscanf(str, "%lx", &res);

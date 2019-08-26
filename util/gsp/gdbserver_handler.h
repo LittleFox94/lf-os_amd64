@@ -23,6 +23,7 @@ int gdbserver_handler_init(const char* address, GDBServerHandler* handler);
 void gdbserver_handler_continue(GDBServerHandler* handler);
 void gdbserver_handler_break(GDBServerHandler* handler, uint64_t addr);
 void gdbserver_handler_step(GDBServerHandler* handler);
+void gdbserver_handler_stop(GDBServerHandler* handler);
 bool gdbserver_handler_paused(GDBServerHandler* handler);
 
 void gdbserver_handler_loop(GDBServerHandler* handler);
