@@ -98,7 +98,8 @@ changes. Single stepping changes the VM state very often and the title is
 updated twice for every single instruction executed after the start symbol. This
 bubbles through X server to your window manager and maybe even your compositor.
 My work computer (Thinkpad P52, 16GB RAM, i7-8850H (6 cores + HT)) was barely
-usable while the profiling was running.
+usable while the profiling was running. You may want to use `-display none` for
+QEMU and `-S` for `gsp-trace` to stop automatically on a given symbol.
 
 ## License
 
