@@ -1,6 +1,4 @@
-before_script:
-- apt-get -qq update && apt-get -y -qq install gnu-efi mtools gdisk clang lld make dosfstools gcc genisoimage
-image: debian:buster
+image: registry.lf-net.org/littlefox/lf-os_amd64/ci:2019082701
 stages:
 - test
 - build
