@@ -79,11 +79,7 @@ void main(void* loaderData) {
 
     INIT_STEP(
         "Preparing and starting userspace",
-
-        for(int i = 0; i < 100; ++i) {
-            mm_print_physical_free_regions();
-            print_memory_regions();
-        }
+        asm("int $0");
 
         nyi(1);
         vm_table_t* init_context = vm_context_new();
