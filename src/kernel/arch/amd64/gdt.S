@@ -43,7 +43,7 @@
 .global idt_entry_\e
 idt_entry_\e: 
     cli
-    push \e
+    push $\e
     __pusha
 
     movq %rsp,%rdi
@@ -62,7 +62,7 @@ idt_entry_\e:
 idt_entry_\e:
     cli
     push $0
-    push \e
+    push $\e
     __pusha
 
     movq %rsp,%rdi

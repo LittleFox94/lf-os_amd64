@@ -14,21 +14,11 @@ struct fbconsole_data* fbconsole_instance() {
     return &fbconsole;
 }
 
-void __set_mtrr_wc(uint64_t fb, uint64_t len) {
-    fb = vm_context_get_physical_for_virtual(VM_KERNEL_CONTEXT, fb);
-
-    uint64_t fb_lo = fb  & 0x0FFFFF000;
-    uint64_t fb_hi = (fb & 0x700000000) >> 32;
-
-    asm volatile("wrmsr" :: "a"(fb_lo | 1),    "c"(0x202), "d"(fb_hi));
-    asm volatile("wrmsr" :: "a"(0xF8000800),   "c"(0x203), "d"(0x7));
-    asm volatile("wrmsr" :: "a"(0x800 | 0x04), "c"(0x2FF), "d"(0));
-}
-
 void fbconsole_init(int width, int height, uint8_t* fb) {
-    fbconsole.width  = width;
-    fbconsole.height = height;
-    fbconsole.fb     = fb;
+    fbconsole.width      = width;
+    fbconsole.height     = height;
+    fbconsole.fb         = fb;
+    fbconsole.backbuffer = fb;
 
     fbconsole.cols        = width  / (FONT_WIDTH + FONT_COL_SPACING);
     fbconsole.rows        = height / (FONT_HEIGHT + FONT_ROW_SPACING);
@@ -61,13 +51,21 @@ void fbconsole_init(int width, int height, uint8_t* fb) {
             { 255, 255, 255 },
         }, sizeof(int) * 16 * 3);
 
-    __set_mtrr_wc((uint64_t)fb, width * height * 4);
-
     fbconsole_clear(fbconsole.background_r, fbconsole.background_g, fbconsole.background_b);
 }
 
+void fbconsole_init_backbuffer(uint8_t* backbuffer) {
+    memcpy(backbuffer, fbconsole.fb, fbconsole.width * fbconsole.height * 4);
+    fbconsole.backbuffer = backbuffer;
+}
+
 void fbconsole_clear(int r, int g, int b) {
-    memset32((uint32_t*)fbconsole.fb, (r << 16) | (g << 8) | (b << 0), fbconsole.width * fbconsole.height);
+    memset32((uint32_t*)fbconsole.backbuffer, (r << 16) | (g << 8) | (b << 0), fbconsole.width * fbconsole.height);
+
+    if(fbconsole.backbuffer != fbconsole.fb) {
+        memset32((uint32_t*)fbconsole.fb, (r << 16) | (g << 8) | (b << 0), fbconsole.width * fbconsole.height);
+    }
+
     fbconsole.current_row = 0;
     fbconsole.current_col = 0;
 }
@@ -80,20 +78,20 @@ void fbconsole_blt(uint8_t* image, uint16_t width, uint16_t height, uint16_t tx,
             size_t imgCol = imgRow + (x * 3);
             size_t fbCol  = fbRow  + ((tx + x) * 4);
 
-            fbconsole.fb[fbCol + 2] = image[imgCol + 0];
-            fbconsole.fb[fbCol + 1] = image[imgCol + 1];
-            fbconsole.fb[fbCol + 0] = image[imgCol + 2];
-            fbconsole.fb[fbCol + 3] = 0;
+            fbconsole.fb[fbCol + 2] = fbconsole.backbuffer[fbCol + 2] = image[imgCol + 0];
+            fbconsole.fb[fbCol + 1] = fbconsole.backbuffer[fbCol + 1] = image[imgCol + 1];
+            fbconsole.fb[fbCol + 0] = fbconsole.backbuffer[fbCol + 0] = image[imgCol + 2];
+            fbconsole.fb[fbCol + 3] = fbconsole.backbuffer[fbCol + 3] = 0;
         }
     }
 }
 
 void fbconsole_setpixel(const int x, const int y, const int r, const int g, const int b) {
     int index = ((y * fbconsole.width) + x) * 4;
-    fbconsole.fb[index + 2] = r;
-    fbconsole.fb[index + 1] = g;
-    fbconsole.fb[index + 0] = b;
-    fbconsole.fb[index + 3] = 0;
+    fbconsole.fb[index + 2] = fbconsole.backbuffer[index + 2] = r;
+    fbconsole.fb[index + 1] = fbconsole.backbuffer[index + 1] = g;
+    fbconsole.fb[index + 0] = fbconsole.backbuffer[index + 0] = b;
+    fbconsole.fb[index + 3] = fbconsole.backbuffer[index + 3] = 0;
 }
 
 void fbconsole_draw_char(int start_x, int start_y, char c) {
@@ -110,17 +108,19 @@ void fbconsole_draw_char(int start_x, int start_y, char c) {
 }
 
 void fbconsole_scroll(unsigned int scroll_amount) {
-    unsigned int row_start = scroll_amount * FONT_HEIGHT;
-    unsigned int begin     = row_start * fbconsole.width * 4;
-    unsigned int end       = fbconsole.width * fbconsole.height * 4;
+    size_t row_start = scroll_amount * FONT_HEIGHT;
+    size_t begin     = row_start * fbconsole.width * 4;
+    size_t end       = fbconsole.width * fbconsole.height * 4;
 
-    memcpy(fbconsole.fb, fbconsole.fb + begin, end - begin);
+    memcpy(fbconsole.backbuffer, fbconsole.backbuffer + begin, end - begin);
 
     memset32(
-        (uint32_t*)(fbconsole.fb + (end - (row_start*fbconsole.width*4))),
+        (uint32_t*)(fbconsole.backbuffer + (end - (row_start * 4 * fbconsole.width))),
         (fbconsole.background_r << 16) | (fbconsole.background_g << 8) | (fbconsole.background_b << 0),
         row_start * fbconsole.width
     );
+
+    memcpy(fbconsole.fb, fbconsole.backbuffer, fbconsole.width * fbconsole.height * 4);
 }
 
 void fbconsole_next_line() {

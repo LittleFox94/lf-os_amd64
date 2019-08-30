@@ -12,6 +12,7 @@
 #include "string.h"
 #include "pic.h"
 #include "pit.h"
+#include "slab.h"
 
 char* LAST_INIT_STEP;
 extern char build_id[];
@@ -25,6 +26,7 @@ extern char build_id[];
 void nyi();
 void bootstrap_globals();
 void init_console(LoaderStruct* loaderStruct);
+void init_console_backbuffer();
 void init_mm(LoaderStruct* loaderStruct, MemoryRegion* memoryRegions);
 void print_memory_regions();
 
@@ -46,6 +48,11 @@ void main(void* loaderData) {
     INIT_STEP(
         "Initializing virtual memory management",
         init_vm();
+    )
+
+    INIT_STEP(
+        "Speed up framebuffer console",
+        init_console_backbuffer(loaderStruct);
     )
 
     INIT_STEP(
@@ -72,6 +79,8 @@ void main(void* loaderData) {
 
     INIT_STEP(
         "Preparing and starting userspace",
+        asm("int $0");
+
         nyi(1);
         vm_table_t* init_context = vm_context_new();
         memcpy(init_context, VM_KERNEL_CONTEXT, 4096);
@@ -96,8 +105,19 @@ void init_console(LoaderStruct* loaderStruct) {
     fbconsole_write("  framebuffer console @ 0x%x (0x%x)\n\n", (uint64_t)loaderStruct->fb_location, (uint64_t)vm_context_get_physical_for_virtual(VM_KERNEL_CONTEXT, loaderStruct->fb_location));
 }
 
+void init_console_backbuffer(LoaderStruct* loaderStruct) {
+    size_t backbuffer_size      = loaderStruct->fb_width * loaderStruct->fb_height * 4;
+    size_t backbuffer_num_pages = (backbuffer_size + 4095) / 4096;
+
+    uint8_t* backbuffer = (uint8_t*)vm_context_alloc_pages(VM_KERNEL_CONTEXT, ALLOCATOR_REGION_KERNEL_HEAP, backbuffer_num_pages);
+    fbconsole_init_backbuffer(backbuffer);
+}
+
 void init_mm(LoaderStruct* loaderStruct, MemoryRegion* memoryRegions) {
-    mm_bootstrap(HIGHER_HALF_START);
+    SlabHeader* scratchpad_allocator = (SlabHeader*)ALLOCATOR_REGION_SCRATCHPAD.start;
+    init_slab(ALLOCATOR_REGION_SCRATCHPAD.start, ALLOCATOR_REGION_SCRATCHPAD.end, 4096);
+
+    mm_bootstrap(slab_alloc(scratchpad_allocator));
 
     uint64_t pages_free = 0;
 

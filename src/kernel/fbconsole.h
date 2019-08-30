@@ -7,6 +7,7 @@ struct fbconsole_data {
     int      width;
     int      height;
     uint8_t* fb;
+    uint8_t* backbuffer;
 
     int cols, rows, current_col, current_row;
     int foreground_r, foreground_g, foreground_b;
@@ -16,6 +17,7 @@ struct fbconsole_data {
 };
 
 void fbconsole_init(int width, int height, uint8_t* fb);
+void fbconsole_init_backbuffer(uint8_t* backbuffer);
 struct fbconsole_data* fbconsole_instance();
 
 void fbconsole_clear(int r, int g, int b);

@@ -50,7 +50,6 @@ void vm_setup_direct_mapping_init(vm_table_t* context) {
     fbconsole_write(", %d @ %B)", numPages, pageSize);
 
     SlabHeader* scratchpad_allocator = (SlabHeader*)ALLOCATOR_REGION_SCRATCHPAD.start;
-    init_slab(ALLOCATOR_REGION_SCRATCHPAD.start, ALLOCATOR_REGION_SCRATCHPAD.end, 4096);
 
     vm_table_t* pdp;
     int16_t last_pml4_idx = -1;
@@ -149,10 +148,10 @@ void vm_context_map(vm_table_t* context, ptr_t virtual, ptr_t physical) {
     vm_table_entry_t* pml4_entry = &context->entries[PML4_INDEX(virtual)];
 
     if(!pml4_entry->present) {
-        ptr_t pdp = (ptr_t)mm_alloc_pages(1);
+        ptr_t pdp = (ptr_t)(ALLOCATOR_REGION_DIRECT_MAPPING.start + mm_alloc_pages(1));
         memset((void*)pdp, 0, 4096);
 
-        pml4_entry->next_base = pdp >> 12;
+        pml4_entry->next_base = (pdp - ALLOCATOR_REGION_DIRECT_MAPPING.start) >> 12;
         pml4_entry->present   = 1;
         pml4_entry->writeable = 1;
         pml4_entry->userspace = 1;
@@ -162,10 +161,10 @@ void vm_context_map(vm_table_t* context, ptr_t virtual, ptr_t physical) {
     vm_table_entry_t* pdp_entry = &pdp->entries[PDP_INDEX(virtual)];
 
     if(!pdp_entry->present) {
-        ptr_t pd = (ptr_t)mm_alloc_pages(1);
+        ptr_t pd = (ptr_t)(ALLOCATOR_REGION_DIRECT_MAPPING.start + mm_alloc_pages(1));
         memset((void*)pd, 0, 4096);
 
-        pdp_entry->next_base = pd >> 12;
+        pdp_entry->next_base = (pd - ALLOCATOR_REGION_DIRECT_MAPPING.start) >> 12;
         pdp_entry->present   = 1;
         pdp_entry->writeable = 1;
         pdp_entry->userspace = 1;
@@ -175,10 +174,10 @@ void vm_context_map(vm_table_t* context, ptr_t virtual, ptr_t physical) {
     vm_table_entry_t* pd_entry = &pd->entries[PD_INDEX(virtual)];
 
     if(!pd_entry->present) {
-        ptr_t pt = (ptr_t)mm_alloc_pages(1);
+        ptr_t pt = (ptr_t)(ALLOCATOR_REGION_DIRECT_MAPPING.start + mm_alloc_pages(1));
         memset((void*)pt, 0, 4096);
 
-        pd_entry->next_base = pt >> 12;
+        pd_entry->next_base = (pt - ALLOCATOR_REGION_DIRECT_MAPPING.start) >> 12;
         pd_entry->present   = 1;
         pd_entry->writeable = 1;
         pd_entry->userspace = 1;
