@@ -1,5 +1,5 @@
 CC 	   := clang
-CFLAGS := $(OPTIMIZATION) -g -std=gnu11 -fno-stack-protector -mno-red-zone -Wall -fno-builtin -ffreestanding -nostdinc -I$(shell pwd) -I$(shell pwd)/../../ -Werror -mcmodel=large
+CFLAGS := $(OPTIMIZATION) -g -std=gnu11 -finline-functions -freroll-loops -fslp-vectorize -funroll-loops -fvectorize -fno-stack-protector -mno-red-zone -Wall -fno-builtin -ffreestanding -nostdinc -I$(shell pwd) -I$(shell pwd)/../../ -Werror -mcmodel=large
 
 export CC
 export CFLAGS
