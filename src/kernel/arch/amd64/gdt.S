@@ -147,6 +147,7 @@ _syscall_handler:
         pushf
         pushq $0        # cs, doesn't matter here
         pushq %rcx      # user rip
+        pushq $0        # bogus interrupt
         pushq $0        # bogus errorcode
 
         __pusha
@@ -155,7 +156,7 @@ _syscall_handler:
         movq %rax,%rsp
         __popa
 
-        addq $16,%rsp # ignore bogus error
+        addq $16,%rsp # ignore bogus error and interrupt
         popq %rcx       # user rip
         addq $32,%rsp # ignore cs, flags, rsp, ss
 

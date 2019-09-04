@@ -31,11 +31,11 @@ typedef struct {
 
 #define DUMP_CPU(cpu)  \
     fbconsole_write("<-- cut here [CPU DUMP START] ---->\n"); \
-    fbconsole_write("\e[38;5;7m%4s: \e[38;5;15m%016x, \e[38;5;7m%4s: \e[38;5;15m%016x, \e[38;5;7m%4s: \e[38;5;15m%016x, \e[38;5;7m%7s: \e[38;5;15m%016x\n", "RAX", cpu->rax, "RBX", cpu->rbx, "RCX", cpu->rcx, "RDX",    cpu->rdx); \
-    fbconsole_write("\e[38;5;7m%4s: \e[38;5;15m%016x, \e[38;5;7m%4s: \e[38;5;15m%016x, \e[38;5;7m%4s: \e[38;5;15m%016x, \e[38;5;7m%7s: \e[38;5;15m%016x\n", "RSI", cpu->rsi, "RDI", cpu->rdi, "RBP", cpu->rbp, "RSP",    cpu->rsp); \
-    fbconsole_write("\e[38;5;7m%4s: \e[38;5;15m%016x, \e[38;5;7m%4s: \e[38;5;15m%016x, \e[38;5;7m%4s: \e[38;5;15m%016x, \e[38;5;7m%7s: \e[38;5;15m%016x\n", "R8",  cpu->r8,  "R9",  cpu->r9,  "R10", cpu->r10, "R11",    cpu->r11); \
-    fbconsole_write("\e[38;5;7m%4s: \e[38;5;15m%016x, \e[38;5;7m%4s: \e[38;5;15m%016x, \e[38;5;7m%4s: \e[38;5;15m%016x, \e[38;5;7m%7s: \e[38;5;15m%016x\n", "R12", cpu->r12, "R13", cpu->r13, "R14", cpu->r14, "R15",    cpu->r15); \
-    fbconsole_write("\e[38;5;7m%4s: \e[38;5;15m%016x, \e[38;5;7m%4s: \e[38;5;15m%016x, \e[38;5;7m%4s: \e[38;5;15m%016x, \e[38;5;7m%7s: \e[38;5;15m%016x\n", "RIP", cpu->rip, "CS",  cpu->cs,  "SS",  cpu->ss,  "RFLAGS", cpu->rflags); \
+    fbconsole_write("\e[38;5;7m%3s: \e[38;5;15m0x%016x \e[38;5;7m%3s: \e[38;5;15m0x%016x \e[38;5;7m%3s: \e[38;5;15m0x%016x \e[38;5;7m%7s: \e[38;5;15m0x%016x\n", "RAX", cpu->rax, "RBX", cpu->rbx, "RCX", cpu->rcx, "RDX",    cpu->rdx); \
+    fbconsole_write("\e[38;5;7m%3s: \e[38;5;15m0x%016x \e[38;5;7m%3s: \e[38;5;15m0x%016x \e[38;5;7m%3s: \e[38;5;15m0x%016x \e[38;5;7m%7s: \e[38;5;15m0x%016x\n", "RSI", cpu->rsi, "RDI", cpu->rdi, "RBP", cpu->rbp, "RSP",    cpu->rsp); \
+    fbconsole_write("\e[38;5;7m%3s: \e[38;5;15m0x%016x \e[38;5;7m%3s: \e[38;5;15m0x%016x \e[38;5;7m%3s: \e[38;5;15m0x%016x \e[38;5;7m%7s: \e[38;5;15m0x%016x\n", "R8",  cpu->r8,  "R9",  cpu->r9,  "R10", cpu->r10, "R11",    cpu->r11); \
+    fbconsole_write("\e[38;5;7m%3s: \e[38;5;15m0x%016x \e[38;5;7m%3s: \e[38;5;15m0x%016x \e[38;5;7m%3s: \e[38;5;15m0x%016x \e[38;5;7m%7s: \e[38;5;15m0x%016x\n", "R12", cpu->r12, "R13", cpu->r13, "R14", cpu->r14, "R15",    cpu->r15); \
+    fbconsole_write("\e[38;5;7m%3s: \e[38;5;15m0x%016x \e[38;5;7m%3s: \e[38;5;15m0x%016x \e[38;5;7m%3s: \e[38;5;15m0x%016x \e[38;5;7m%7s: \e[38;5;15m0x%016x\n", "RIP", cpu->rip, "CS",  cpu->cs,  "SS",  cpu->ss,  "RFLAGS", cpu->rflags); \
     fbconsole_write("<-- cut here [CPU DUMP END] ---->\n"); \
 
 #endif

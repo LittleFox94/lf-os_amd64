@@ -1,6 +1,7 @@
 #include "slab.h"
 #include "bitmap.h"
 #include "string.h"
+#include "bluescreen.h"
 
 void init_slab(ptr_t mem_start, ptr_t mem_end, size_t allocation_size) {
     size_t mem_total   = mem_end   - mem_start;
@@ -29,8 +30,7 @@ ptr_t slab_alloc(SlabHeader* slab) {
         return slab_mem(slab, idx);
     }
 
-    // XXX: crash, slab allocator out of free entries
-    while(1);
+    panic_message("Out of entries in slab allocator");
 }
 
 void slab_free(SlabHeader* slab, ptr_t mem) {

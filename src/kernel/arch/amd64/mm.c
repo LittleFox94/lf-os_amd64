@@ -2,6 +2,7 @@
 #include "mm.h"
 #include "vm.h"
 #include "fbconsole.h"
+#include "bluescreen.h"
 
 #define PRESENT_BIT 1
 
@@ -41,7 +42,7 @@ void* mm_alloc_pages(uint64_t count) {
         current = current->next;
     }
 
-    return 0; // TODO: again, this should crash as we ran out of memory.
+    panic_message("Out of memory in mm_alloc_pages");
 }
 
 mm_page_list_entry_t* mm_get_page_list_entry(mm_page_list_entry_t* start) {
@@ -99,7 +100,7 @@ void mm_mark_physical_pages(ptr_t start, uint64_t count, mm_page_status_t status
         return;
     }
     else if(!mm_physical_page_list && status != MM_FREE) {
-        while(1); // this should crash, but there is no crash handling yet, so just halt
+        panic_message("mm not bootstrapped with free page first!");
     }
 
     mm_page_list_entry_t* current = mm_physical_page_list;

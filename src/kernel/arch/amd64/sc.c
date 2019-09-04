@@ -6,7 +6,7 @@
 #include "cpu.h"
 #include "scheduler.h"
 #include "pic.h"
-#include "config.h"
+#include "bluescreen.h"
 
 #define GDT_ACCESSED   0x01
 #define GDT_RW         0x02
@@ -17,8 +17,6 @@
 #define GDT_RING2      0x40
 #define GDT_RING3      0x60
 #define GDT_PRESENT    0x80
-
-extern const char* LAST_INIT_STEP;
 
 typedef struct {
     uint16_t baseLow;
@@ -206,70 +204,26 @@ void init_gdt() {
 
 cpu_state* interrupt_handler(cpu_state* cpu) {
     if(cpu->interrupt < 32) {
-        const char* exceptions[] = {
-            "Division by zero",
-            "Debug",
-            "NMI",
-            "Breakpoint",
-            "Overflow",
-            "Bound range exceeded",
-            "Invalid Opcode",
-            "Device not available",
-            "Double fault",
-            "Coprocessor segment overrun",
-            "Invalid TSS",
-            "Segment not present",
-            "Stack-segment fault",
-            "General protection fault",
-            "Page fault",
-            "reserved",
-            "x87 floating point exception",
-            "Alignment check",
-            "Machine check",
-            "SIMD floating point exception",
-            "Virtualization exception",
-            "reserved",
-            "reserved",
-            "reserved",
-            "reserved",
-            "reserved",
-            "reserved",
-            "reserved",
-            "reserved",
-            "Security exception",
-            "reserved"
-        };
-
-        fbconsole_clear(0, 0, 127);
-        fbconsole_write("\e[38;5;15m\e[48;5;4m");
-        fbconsole_write("An error occured and LF OS has to be halted.\n"
-                        "Below you can find more information:\n\n");
-
-        fbconsole_write("LF OS build:    %s\n",   BUILD_ID);
-        fbconsole_write("Last init step: %s\n\n", LAST_INIT_STEP);
-        fbconsole_write("Interrupt: 0x%02x (%s), error: 0x%04x\n\n", cpu->interrupt, exceptions[cpu->interrupt], cpu->error_code);
-
-        DUMP_CPU(cpu);
-
-        while(1);
+        panic_cpu(cpu);
     }
     else if(cpu->interrupt >= 32 && cpu->interrupt < 48) {
         pic_set_handled(cpu->interrupt);
     }
 
-    cpu_state*  new_cpu = cpu;
-    vm_table_t* new_context;
-    schedule_next(&new_cpu, &new_context);
+//    cpu_state*  new_cpu = cpu;
+//    vm_table_t* new_context;
+//    schedule_next(&new_cpu, &new_context);
+//
+//    if(new_cpu->rip < 4096) {
+//        DUMP_CPU(new_cpu);
+//        while(1);
+//    }
+//
+//    vm_context_activate(new_context);
+//
+//    return new_cpu;
 
-    if(new_cpu->rip < 4096) {
-        DUMP_CPU(new_cpu);
-        while(1);
-    }
-
-    vm_context_activate(new_context);
-
-    return new_cpu;
-//      return cpu;
+    return cpu;
 }
 
 cpu_state* syscall_handler(cpu_state* cpu) {

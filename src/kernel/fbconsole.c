@@ -13,18 +13,6 @@ static struct fbconsole_data fbconsole;
 struct fbconsole_data* fbconsole_instance() {
     return &fbconsole;
 }
-
-void __set_mtrr_wc(uint64_t fb, uint64_t len) {
-    fb = vm_context_get_physical_for_virtual(VM_KERNEL_CONTEXT, fb);
-
-    uint64_t fb_lo = fb  & 0x0FFFFF000;
-    uint64_t fb_hi = (fb & 0x700000000) >> 32;
-
-    asm volatile("wrmsr" :: "a"(fb_lo | 1),    "c"(0x202), "d"(fb_hi));
-    asm volatile("wrmsr" :: "a"(0xF8000800),   "c"(0x203), "d"(0x7));
-    asm volatile("wrmsr" :: "a"(0x800 | 0x01), "c"(0x2FF), "d"(0));
-}
-
 void fbconsole_init(int width, int height, uint8_t* fb) {
     fbconsole.width      = width;
     fbconsole.height     = height;
@@ -62,8 +50,6 @@ void fbconsole_init(int width, int height, uint8_t* fb) {
             { 255, 255, 255 },
         }, sizeof(int) * 16 * 3);
 
-    __set_mtrr_wc((uint64_t)fb, width * height * 4);
-
     fbconsole_clear(fbconsole.background_r, fbconsole.background_g, fbconsole.background_b);
 }
 
@@ -99,7 +85,7 @@ void fbconsole_blt(uint8_t* image, uint16_t width, uint16_t height, uint16_t tx,
     }
 }
 
-void fbconsole_setpixel(const int x, const int y, const int r, const int g, const int b) {
+static inline void fbconsole_setpixel(const int x, const int y, const int r, const int g, const int b) {
     int index = ((y * fbconsole.width) + x) * 4;
     fbconsole.fb[index + 2] = fbconsole.backbuffer[index + 2] = r;
     fbconsole.fb[index + 1] = fbconsole.backbuffer[index + 1] = g;

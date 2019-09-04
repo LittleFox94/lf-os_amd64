@@ -2,6 +2,7 @@
 
 #include "../../../loader/loader.h"
 
+#include "bluescreen.h"
 #include "mm.h"
 #include "vm.h"
 #include "fbconsole.h"
@@ -79,12 +80,12 @@ void main(void* loaderData) {
 
     INIT_STEP(
         "Preparing and starting userspace",
-        asm("int $0");
-
-        nyi(1);
-        vm_table_t* init_context = vm_context_new();
-        memcpy(init_context, VM_KERNEL_CONTEXT, 4096);
-
+        asm volatile("syscall"::"a"('A'), "d"(42));
+//
+//        nyi(1);
+//        vm_table_t* init_context = vm_context_new();
+//        memcpy(init_context, VM_KERNEL_CONTEXT, 4096);
+//
 //        ptr_t entry = load_elf((ptr_t)initrd_buffer, init_context);
 //        start_task(init_context, entry);
     )
@@ -149,10 +150,12 @@ void print_memory_regions() {
     fbconsole_write("\n");
 }
 
+/* noinline to have a default stop point for profiling */
 __attribute__((noinline)) void nyi(int loop) {
-    fbconsole_write("\n\e[38;5;9mNot yet implemented.%s", loop ? " while(1);" : " Continuing");
-
-    while(loop) {
-        // do_nothing_loop();
+    if(loop) {
+        panic_message("Not yet implemented");
+    }
+    else {
+        fbconsole_write("\n\e[38;5;9mNot yet implemented. Continuing");
     }
 }
