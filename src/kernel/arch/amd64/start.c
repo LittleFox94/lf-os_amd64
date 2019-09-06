@@ -8,4 +8,5 @@ void _start(LoaderStruct* loaderStruct) {
     asm("mov $0, %rbp");
 
     main(loaderStruct);
+    ((void(*)())1)();
 }

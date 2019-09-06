@@ -8,11 +8,21 @@
 #include "config.h"
 #include "font_acorn_8x8.c"
 
+struct fbconsole_data {
+    int      width;
+    int      height;
+    uint8_t* fb;
+    uint8_t* backbuffer;
+
+    int cols, rows, current_col, current_row;
+    int foreground_r, foreground_g, foreground_b;
+    int background_r, background_g, background_b;
+
+    int palette[16][3];
+};
+
 static struct fbconsole_data fbconsole;
 
-struct fbconsole_data* fbconsole_instance() {
-    return &fbconsole;
-}
 void fbconsole_init(int width, int height, uint8_t* fb) {
     fbconsole.width      = width;
     fbconsole.height     = height;
@@ -69,7 +79,10 @@ void fbconsole_clear(int r, int g, int b) {
     fbconsole.current_col = 0;
 }
 
-void fbconsole_blt(uint8_t* image, uint16_t width, uint16_t height, uint16_t tx, uint16_t ty) {
+void fbconsole_blt(uint8_t* image, uint16_t width, uint16_t height, int16_t tx, int16_t ty) {
+    if(tx < 0) tx = fbconsole.width + tx;
+    if(ty < 0) ty = fbconsole.height + ty;
+
     for(uint16_t y = 0; y < height; ++y) {
         size_t imgRow =  y       *           width * 3;
         size_t fbRow  = (ty + y) * fbconsole.width * 4;
@@ -77,20 +90,29 @@ void fbconsole_blt(uint8_t* image, uint16_t width, uint16_t height, uint16_t tx,
             size_t imgCol = imgRow + (x * 3);
             size_t fbCol  = fbRow  + ((tx + x) * 4);
 
-            fbconsole.fb[fbCol + 2] = fbconsole.backbuffer[fbCol + 2] = image[imgCol + 0];
-            fbconsole.fb[fbCol + 1] = fbconsole.backbuffer[fbCol + 1] = image[imgCol + 1];
-            fbconsole.fb[fbCol + 0] = fbconsole.backbuffer[fbCol + 0] = image[imgCol + 2];
-            fbconsole.fb[fbCol + 3] = fbconsole.backbuffer[fbCol + 3] = 0;
+            fbconsole.backbuffer[fbCol + 2] = image[imgCol + 0];
+            fbconsole.backbuffer[fbCol + 1] = image[imgCol + 1];
+            fbconsole.backbuffer[fbCol + 0] = image[imgCol + 2];
+            fbconsole.backbuffer[fbCol + 3] = 0;
+        }
+
+        if(fbconsole.fb != fbconsole.backbuffer) {
+            memcpy(fbconsole.fb + fbRow + (tx * 4), fbconsole.backbuffer + fbRow + (tx * 4), width * 4);
         }
     }
 }
 
-static inline void fbconsole_setpixel(const int x, const int y, const int r, const int g, const int b) {
+void fbconsole_setpixel(const int x, const int y, const int r, const int g, const int b) {
     int index = ((y * fbconsole.width) + x) * 4;
-    fbconsole.fb[index + 2] = fbconsole.backbuffer[index + 2] = r;
-    fbconsole.fb[index + 1] = fbconsole.backbuffer[index + 1] = g;
-    fbconsole.fb[index + 0] = fbconsole.backbuffer[index + 0] = b;
-    fbconsole.fb[index + 3] = fbconsole.backbuffer[index + 3] = 0;
+    fbconsole.backbuffer[index + 2] = r;
+    fbconsole.backbuffer[index + 1] = g;
+    fbconsole.backbuffer[index + 0] = b;
+    fbconsole.backbuffer[index + 3] = 0;
+
+    if(fbconsole.fb != fbconsole.backbuffer) {
+        index /= 4;
+        ((uint32_t*)fbconsole.fb)[index] = ((uint32_t*)fbconsole.backbuffer)[index];
+    }
 }
 
 void fbconsole_draw_char(int start_x, int start_y, char c) {
@@ -119,7 +141,9 @@ void fbconsole_scroll(unsigned int scroll_amount) {
         row_start * fbconsole.width
     );
 
-    memcpy(fbconsole.fb, fbconsole.backbuffer, fbconsole.width * fbconsole.height * 4);
+    if(fbconsole.fb != fbconsole.backbuffer) {
+        memcpy(fbconsole.fb, fbconsole.backbuffer, fbconsole.width * fbconsole.height * 4);
+    }
 }
 
 void fbconsole_next_line() {

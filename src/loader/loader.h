@@ -34,19 +34,11 @@ typedef struct {
     //! reserved location
     uint16_t fb_reserved2;
 
-    //! Where the kernel was loaded. Just to make things future proof, but most
-    //  likely 0xFFFF80000000 (i.e. the start of the higher half).
-    uint64_t kernel_location;
-
-    //! Size of the loaded kernel image. kernel_location + kernel_size gives
-    //  the end of the kernel image, pad to a full page and you get the start
-    //  of the scratchpad memory.
-    uint64_t kernel_size;
+    //! Number of memory descriptors
+    uint64_t num_mem_desc;
 
     //! Number of loaded files
     uint64_t num_files;
-
-    uint64_t num_mem_desc;
 }__attribute__((packed)) LoaderStruct;
 
 //! Describes a single memory region
@@ -62,6 +54,14 @@ typedef struct {
 }__attribute__((packed)) MemoryRegion;
 
 typedef struct {
+    //! Zero terminated string with the name of the file
+    char name[256];
+
+    //! Size of the loaded file
+    uint64_t size;
+
+    //! Offset where the file contents are located after LoaderStruct
+    uint64_t offset;
 }__attribute__((packed)) FileDescriptor;
 
 #endif

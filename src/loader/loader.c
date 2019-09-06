@@ -13,6 +13,12 @@ static const size_t KB        = UNIT_CONV;
 static const size_t MB        = UNIT_CONV * UNIT_CONV;
 static const size_t PAGE_SIZE =  4 * KB;
 
+struct LoaderFileDescriptor {
+    uint8_t  name[256];
+    uint64_t size;
+    uint8_t* data;
+};
+
 struct LoaderState {
     LoaderStruct* loaderStruct;
 
@@ -27,7 +33,7 @@ struct LoaderState {
     ptr_t    memoryMapLocation;
     size_t   memoryMapEntryCount;
 
-    size_t   fileDescriptorCount;
+    struct LoaderFileDescriptor* fileDescriptors;
 
     ptr_t    scratchpad;
 
@@ -127,7 +133,15 @@ EFI_STATUS load_files(EFI_HANDLE handle, uint16_t* path, struct LoaderState* sta
             }
         }
         else if(read > 0 && (buffer->Attribute & EFI_FILE_DIRECTORY) == 0) {
-            char* fileBuffer = AllocatePool(buffer->FileSize);
+            uint8_t* fileBuffer;
+            status = uefi_call_wrapper(BS->AllocatePages, 4, AllocateAnyPages, EfiLoaderCode, (buffer->FileSize + PAGE_SIZE - 1) / PAGE_SIZE, &fileBuffer);
+            if(EFI_ERROR(status)) {
+                Print(L" cannot get pages for loaded file: %d (%x bytes required)\n", status, buffer->FileSize);
+                FreePool(fileBuffer);
+                FreePool(buffer);
+                return status;
+            }
+
             Print(L"  %s ...", buffer->FileName);
 
             status = load_file(dirHandle, buffer->FileName, buffer->FileSize, fileBuffer);
@@ -184,10 +198,25 @@ EFI_STATUS load_files(EFI_HANDLE handle, uint16_t* path, struct LoaderState* sta
                 state->kernelSize             = kernelSize;
                 state->kernelEntry            = (uint64_t)elf_header->entrypoint - 0xFFFF800001000000;
 
-                Print(L" @ 0x%x (0x%x bytes, entry 0x%x)", physicalKernelLocation, kernelSize, state->kernelEntry);
+                Print(L" @ 0x%x (0x%x bytes, entry 0x%llx)", physicalKernelLocation, kernelSize, elf_header->entrypoint);
             }
 
-            FreePool(fileBuffer);
+            state->fileDescriptors = state->fileDescriptors ? ReallocatePool(state->fileDescriptors, state->loaderStruct->num_files * sizeof(struct LoaderFileDescriptor), (state->loaderStruct->num_files + 1) * sizeof(struct LoaderFileDescriptor))
+                                                            : AllocatePool((state->loaderStruct->num_files + 1) * sizeof(struct LoaderFileDescriptor));
+
+            struct LoaderFileDescriptor* desc = state->fileDescriptors + state->loaderStruct->num_files;
+            __builtin_memset(desc->name, 0, 256);
+            desc->size = buffer->FileSize;
+            desc->data = fileBuffer;
+
+            // XXX: ASCII only
+            size_t nameLen = StrLen(buffer->FileName);
+            for(size_t i = 0; i < nameLen && i < 255; ++i) {
+                desc->name[i] = buffer->FileName[i] & 0xFF;
+            }
+
+            ++state->loaderStruct->num_files;
+
             Print(L" ok\n");
         }
 
@@ -412,7 +441,7 @@ EFI_STATUS initialize_virtual_memory(struct LoaderState* state) {
     ptr_t loaderStructsArea = allocate_from_loader_scratchpad(state,
         state->loaderStruct->size                           +
         state->memoryMapEntryCount * sizeof(MemoryRegion)   +
-        state->fileDescriptorCount * sizeof(FileDescriptor),
+        state->loaderStruct->num_files * sizeof(FileDescriptor),
         4096
     );
 
@@ -426,7 +455,19 @@ EFI_STATUS initialize_virtual_memory(struct LoaderState* state) {
         filesStart += PAGE_SIZE;
     }
 
-    // TODO: map loaded files
+    FileDescriptor* fileDescriptors = (FileDescriptor*)(loaderStructsArea + state->loaderStruct->size +
+                                                        state->memoryMapEntryCount * sizeof(MemoryRegion));
+
+    for(size_t i = 0; i < state->loaderStruct->num_files; ++i) {
+        __builtin_memcpy((fileDescriptors + i)->name, (state->fileDescriptors + i)->name, 256);
+        (fileDescriptors + i)->size                 = (state->fileDescriptors + i)->size;
+        (fileDescriptors + i)->offset               = (filesStart - (ptr_t)loaderStructFinal);
+
+        for(size_t j = 0; j < (fileDescriptors + i)->size; j += PAGE_SIZE) {
+            map_page(state, pml4, filesStart, (state->fileDescriptors + i)->data + j);
+            filesStart += PAGE_SIZE;
+        }
+    }
 
     // map the tiny bit of stack we still need
     uint64_t rsp, rbp;
@@ -450,6 +491,7 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE* system_tab
     InitializeLib(image_handle, system_table);
 
     struct LoaderState state;
+    __builtin_memset(&state, 0, sizeof(state));
 
     EFI_LOADED_IMAGE* li;
     EFI_STATUS status = uefi_call_wrapper(BS->HandleProtocol, 3, image_handle, &LoadedImageProtocol, (void**)&li);
@@ -458,7 +500,7 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE* system_tab
 
     state.scratchpad  = AllocatePool(16 * MB);
 
-    state.loaderScratchpadSize = 1 * MB;
+    state.loaderScratchpadSize = 2 * MB;
     state.loaderScratchpadFree = state.loaderScratchpad
                                = AllocatePool(state.loaderScratchpadSize);
 

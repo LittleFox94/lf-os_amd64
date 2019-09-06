@@ -28,12 +28,12 @@ void nyi();
 void bootstrap_globals();
 void init_console(LoaderStruct* loaderStruct);
 void init_console_backbuffer();
-void init_mm(LoaderStruct* loaderStruct, MemoryRegion* memoryRegions);
+void init_mm(LoaderStruct* loaderStruct);
+void init_files(LoaderStruct* loaderStruct);
 void print_memory_regions();
 
 void main(void* loaderData) {
-    LoaderStruct* loaderStruct  = (LoaderStruct*)loaderData;
-    MemoryRegion* memoryRegions = (MemoryRegion*)(loaderData + loaderStruct->size);
+    LoaderStruct* loaderStruct = (LoaderStruct*)loaderData;
 
     bootstrap_globals();
     init_console(loaderStruct);
@@ -43,7 +43,7 @@ void main(void* loaderData) {
 
     INIT_STEP(
         "Initializing physical memory management",
-        init_mm(loaderStruct, memoryRegions);
+        init_mm(loaderStruct);
     )
 
     INIT_STEP(
@@ -79,8 +79,12 @@ void main(void* loaderData) {
     )
 
     INIT_STEP(
+        "Inspecting files",
+        init_files(loaderStruct);
+    )
+
+    INIT_STEP(
         "Preparing and starting userspace",
-        asm volatile("syscall"::"a"('A'), "d"(42));
 //
 //        nyi(1);
 //        vm_table_t* init_context = vm_context_new();
@@ -97,10 +101,8 @@ void main(void* loaderData) {
 void init_console(LoaderStruct* loaderStruct) {
     fbconsole_init(loaderStruct->fb_width, loaderStruct->fb_height, (uint8_t*)loaderStruct->fb_location);
 
-#include "../../bootlogo.c"
-
-    uint16_t fbconsole_width = fbconsole_instance()->width;
-    fbconsole_blt(lf_os_bootlogo.pixel_data, lf_os_bootlogo.width, lf_os_bootlogo.height, fbconsole_width - lf_os_bootlogo.width - 5, 5);
+    #include "../../bootlogo.c"
+    fbconsole_blt(lf_os_bootlogo.pixel_data, lf_os_bootlogo.width, lf_os_bootlogo.height, -(lf_os_bootlogo.width + 5), 5);
 
     fbconsole_write("LF OS for amd64. Build: %s\n", build_id);
     fbconsole_write("  framebuffer console @ 0x%x (0x%x)\n\n", (uint64_t)loaderStruct->fb_location, (uint64_t)vm_context_get_physical_for_virtual(VM_KERNEL_CONTEXT, loaderStruct->fb_location));
@@ -114,7 +116,9 @@ void init_console_backbuffer(LoaderStruct* loaderStruct) {
     fbconsole_init_backbuffer(backbuffer);
 }
 
-void init_mm(LoaderStruct* loaderStruct, MemoryRegion* memoryRegions) {
+void init_mm(LoaderStruct* loaderStruct) {
+    MemoryRegion* memoryRegions = (MemoryRegion*)((ptr_t)loaderStruct + loaderStruct->size);
+
     SlabHeader* scratchpad_allocator = (SlabHeader*)ALLOCATOR_REGION_SCRATCHPAD.start;
     init_slab(ALLOCATOR_REGION_SCRATCHPAD.start, ALLOCATOR_REGION_SCRATCHPAD.end, 4096);
 
@@ -132,6 +136,17 @@ void init_mm(LoaderStruct* loaderStruct, MemoryRegion* memoryRegions) {
     }
 
     fbconsole_write(" %u pages (%B) free", pages_free, pages_free * 4096);
+}
+
+void init_files(LoaderStruct* loaderStruct) {
+    FileDescriptor* fileDescriptors = (FileDescriptor*)((ptr_t)loaderStruct + loaderStruct->size + (loaderStruct->num_mem_desc * sizeof(MemoryRegion)));
+
+    for(size_t i = 0; i < loaderStruct->num_files; ++i) {
+        FileDescriptor* desc = (fileDescriptors + i);
+        uint8_t*        data = (uint8_t*)((ptr_t)loaderStruct + desc->offset);
+
+        fbconsole_write("\n     %s -> %c%c%c", desc->name, data[1], data[2], data[3]);
+    }
 }
 
 void bootstrap_globals() {
