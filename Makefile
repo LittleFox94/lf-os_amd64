@@ -69,6 +69,9 @@ util/gsp/gsp-trace:
 util/gsp/gsp-syms:
 	+ make -C util/gsp gsp-syms
 
+util/embed:
+	+ make -C util embed
+
 install: src/loader/loader.efi src/kernel/arch/amd64/kernel src/init/init
 	cp src/loader/loader.efi /boot/efi/EFI/LFOS/bootx64.efi
 	cp src/kernel/arch/amd64/kernel /boot/efi/LFOS/kernel
@@ -79,6 +82,7 @@ clean:
 	+ make -C src/loader clean
 	+ make -C src/init clean
 	+ make -C util/gsp clean
+	+ make -C util clean
 	rm -f bootfs.img hd.img hd.img.gz lf-os.iso lf-os.iso.gz
 
-.PHONY: clean all test test-kvm src/kernel/arch/amd64/kernel src/init/init src/loader/loader.efi util/gsp/gsp-trace util/gsp/gsp-syms
+.PHONY: clean all test test-kvm src/kernel/arch/amd64/kernel src/init/init src/loader/loader.efi util/gsp/gsp-trace util/gsp/gsp-syms util/embed
