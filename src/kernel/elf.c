@@ -40,3 +40,20 @@ ptr_t load_elf(ptr_t start, vm_table_t* context) {
 
     return header->entrypoint;
 }
+
+elf_section_header_t* elf_section_by_name(const char* name, const void* elf) {
+    elf_file_header_t* eh = (elf_file_header_t*)elf;
+
+    elf_section_header_t* shSectionNames = (elf_section_header_t*)(elf + eh->sectionHeaderOffset + (eh->sectionHeaderEntrySize * eh->sectionHeaderSectionNameIndex));
+    char* sectionNames                   = (char*)(elf + shSectionNames->offset);
+
+    for(size_t i = 0; i < eh->sectionHeaderCount; ++i) {
+        elf_section_header_t* sh = (elf_section_header_t*)(elf + eh->sectionHeaderOffset + (eh->sectionHeaderEntrySize * i));
+
+        if(__builtin_strcmp(sectionNames + sh->name, name) == 0) {
+            return sh;
+        }
+    }
+
+    return 0;
+}

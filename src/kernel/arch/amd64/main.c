@@ -29,7 +29,7 @@ void bootstrap_globals();
 void init_console(LoaderStruct* loaderStruct);
 void init_console_backbuffer();
 void init_mm(LoaderStruct* loaderStruct);
-void init_files(LoaderStruct* loaderStruct);
+void init_symbols(LoaderStruct* loaderStruct);
 void print_memory_regions();
 
 void main(void* loaderData) {
@@ -79,12 +79,20 @@ void main(void* loaderData) {
     )
 
     INIT_STEP(
-        "Inspecting files",
-        init_files(loaderStruct);
+        "Reading kernel symbols",
+        init_symbols(loaderStruct);
     )
 
     INIT_STEP(
         "Preparing and starting userspace",
+
+        // Tastaturpuffer leeren
+        while (inb(0x64) & 0x1) {
+            inb(0x60);
+        }
+
+        while ((inb(0x64) & 0x2)) {}
+        outb(0x60, 0xF4);
 //
 //        nyi(1);
 //        vm_table_t* init_context = vm_context_new();
@@ -138,14 +146,21 @@ void init_mm(LoaderStruct* loaderStruct) {
     fbconsole_write(" %u pages (%B) free", pages_free, pages_free * 4096);
 }
 
-void init_files(LoaderStruct* loaderStruct) {
+void init_symbols(LoaderStruct* loaderStruct) {
     FileDescriptor* fileDescriptors = (FileDescriptor*)((ptr_t)loaderStruct + loaderStruct->size + (loaderStruct->num_mem_desc * sizeof(MemoryRegion)));
 
     for(size_t i = 0; i < loaderStruct->num_files; ++i) {
         FileDescriptor* desc = (fileDescriptors + i);
-        uint8_t*        data = (uint8_t*)((ptr_t)loaderStruct + desc->offset);
+        void*           data = (uint8_t*)((ptr_t)loaderStruct + desc->offset);
 
-        fbconsole_write("\n     %s -> %c%c%c", desc->name, data[1], data[2], data[3]);
+        if(strcmp(desc->name, "kernel") == 0) {
+            elf_section_header_t* symtab = elf_section_by_name(".symtab", data);
+            elf_section_header_t* strtab = elf_section_by_name(".strtab", data);
+
+            if(symtab != 0 && strtab != 0) {
+                bluescreen_load_symbols(data, symtab, strtab);
+            }
+        }
     }
 }
 

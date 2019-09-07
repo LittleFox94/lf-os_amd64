@@ -29,6 +29,16 @@ typedef struct {
     uint64_t ss;
 } cpu_state;
 
+static inline void outb(uint16_t port, uint8_t data) {
+    asm volatile ("outb %0, %1" : : "a" (data), "Nd" (port));
+}
+
+static inline uint8_t inb(uint16_t port) {
+    uint8_t data;
+    asm volatile ("inb %1, %0" : "=a" (data) : "Nd" (port));
+    return data;
+}
+
 #define DUMP_CPU(cpu)  \
     fbconsole_write("<-- cut here [CPU DUMP START] ---->\n"); \
     fbconsole_write("\e[38;5;7m%3s: \e[38;5;15m0x%016x \e[38;5;7m%3s: \e[38;5;15m0x%016x \e[38;5;7m%3s: \e[38;5;15m0x%016x \e[38;5;7m%7s: \e[38;5;15m0x%016x\n", "RAX", cpu->rax, "RBX", cpu->rbx, "RCX", cpu->rcx, "RDX",    cpu->rdx); \

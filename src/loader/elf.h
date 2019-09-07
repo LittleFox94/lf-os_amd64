@@ -7,23 +7,50 @@
 
 #include <stdint.h>
 
-static const uint8_t* ELF_EXPECED_IDENT = {0x7F, 'E', 'L', 'F', 2, 1, 1, 0xFF, 0, 0, 0, 0, 0, 0, 0, 16};
+#define ELF_MAGIC 0x464c457f
 
 typedef struct {
-    uint8_t     e_ident[16];
-    uint16_t    e_type;
-    uint16_t    e_machine;
-    uint32_t    e_version;
-    ptr_t       e_entry;
-    uint64_t    e_phoff;
-    uint64_t    e_shoff;
-    uint32_t    e_flags;
-    uint16_t    e_ehsize;
-    uint16_t    e_phentsize;
-    uint16_t    e_phnum;
-    uint16_t    e_shentsize;
-    uint16_t    e_shnum;
-    uint16_t    e_shstrndx;
-} elf_header_t;
+    uint32_t ident_magic;
+    uint8_t  ident_arch;
+    uint8_t  ident_byteOrder;
+    uint8_t  ident_version;
+
+    uint8_t  ident_abi;
+    uint8_t  ident_abi_version;
+
+    uint8_t  _ident_padding[7];
+
+    uint16_t type;
+    uint16_t machine;
+
+    uint32_t version;
+
+    ptr_t    entrypoint;
+    ptr_t    programHeaderOffset;
+    ptr_t    sectionHeaderOffset;
+
+    uint32_t flags;
+    uint16_t headerSize;
+
+    uint16_t programHeaderEntrySize;
+    uint16_t programHeaderCount;
+
+    uint16_t sectionHeaderEntrySize;
+    uint16_t sectionHeaderCount;
+    uint16_t sectionHeaderSectionNameIndex;
+}__attribute__((packed)) elf_file_header_t;
+
+typedef struct {
+    uint32_t type;
+    uint32_t flags;
+
+    uint64_t offset;
+    uint64_t vaddr;
+    uint64_t paddr;
+    uint64_t fileLength;
+    uint64_t memLength;
+
+    uint64_t align;
+}__attribute__((packed)) elf_program_header_t;
 
 #endif

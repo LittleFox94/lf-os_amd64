@@ -6,7 +6,7 @@
 
 #include "loader.h"
 #include "vm.h"
-#include "../kernel/elf.h"
+#include "elf.h"
 
 static const size_t UNIT_CONV = 1024;
 static const size_t KB        = UNIT_CONV;

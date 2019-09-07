@@ -2,6 +2,12 @@
 #include "stdbool.h"
 #include "stdint.h"
 
+int strcmp(const char* a, const char* b) {
+    while(*a && *b && *a == *b) { a++; b++; }
+
+    return *a - *b;
+}
+
 size_t strlen(const char* str) {
     size_t i = 0;
 

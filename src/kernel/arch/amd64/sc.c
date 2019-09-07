@@ -210,6 +210,14 @@ cpu_state* interrupt_handler(cpu_state* cpu) {
         pic_set_handled(cpu->interrupt);
     }
 
+    if(cpu->interrupt == 33) {
+        char data = inb(0x60);
+
+        if(data == 0x01) {
+            panic_message("Escape was pressed");
+        }
+    }
+
 //    cpu_state*  new_cpu = cpu;
 //    vm_table_t* new_context;
 //    schedule_next(&new_cpu, &new_context);

@@ -2,6 +2,7 @@
 #define _ELF_H_INCLUDED
 
 #include "stdint.h"
+#include "vm.h"
 
 #define ELF_MAGIC 0x464c457f
 
@@ -48,5 +49,31 @@ typedef struct {
 
     uint64_t align;
 }__attribute__((packed)) elf_program_header_t;
+
+typedef struct {
+    uint32_t name;
+    uint32_t type;
+    uint64_t flags;
+    ptr_t    addr;
+    uint64_t offset;
+    uint64_t size;
+    uint32_t link;
+    uint32_t info;
+    uint64_t addralign;
+    uint64_t entrySize;
+}__attribute__((packed)) elf_section_header_t;
+
+typedef struct {
+    uint32_t name;
+    uint8_t  info;
+    uint8_t  other;
+    uint16_t sectionHeader;
+    uint64_t addr;
+    uint64_t size;
+}__attribute__((packed)) elf_symbol_t;
+
+ptr_t load_elf(ptr_t start, vm_table_t* context);
+
+elf_section_header_t* elf_section_by_name(const char* name, const void* elf);
 
 #endif
