@@ -17,8 +17,8 @@ are for very low level, process level things (like memory, basic IPC, scheduling
 
 ## Table of syscalls
 
-| # | Name | Description            | Arguments           | Return values                               |
-|---|------|------------------------|---------------------|---------------------------------------------|
-| 0 | exit | Just exit the program  | `RAX`: exit code    | does not return                             |
-| 1 | fork | Clone the process      | none                | 0 if new process, pid of new if old process |
-| 2 | sbrk | Set break, adjust heap | `RAX`: new heap end | `RAX`: new heap end                         |
+| # | Name | Description            | Arguments           | Return values                                         |
+|---|------|------------------------|---------------------|-------------------------------------------------------|
+| 0 | exit | Just exit the program  | `RAX`: exit code    | does not return                                       |
+| 1 | fork | Clone the process      | none                | `RAX`: 0 if new process, pid of new process otherwise |
+| 2 | sbrk | Set break, adjust heap | `RAX`: new heap end | `RAX`: new heap end                                   |
