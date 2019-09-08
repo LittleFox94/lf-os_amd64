@@ -30,6 +30,7 @@ void init_console(LoaderStruct* loaderStruct);
 void init_console_backbuffer();
 void init_mm(LoaderStruct* loaderStruct);
 void init_symbols(LoaderStruct* loaderStruct);
+void init_init(LoaderStruct* loaderStruct);
 void print_memory_regions();
 
 void main(void* loaderData) {
@@ -85,21 +86,7 @@ void main(void* loaderData) {
 
     INIT_STEP(
         "Preparing and starting userspace",
-
-        // Tastaturpuffer leeren
-        while (inb(0x64) & 0x1) {
-            inb(0x60);
-        }
-
-        while ((inb(0x64) & 0x2)) {}
-        outb(0x60, 0xF4);
-//
-//        nyi(1);
-//        vm_table_t* init_context = vm_context_new();
-//        memcpy(init_context, VM_KERNEL_CONTEXT, 4096);
-//
-//        ptr_t entry = load_elf((ptr_t)initrd_buffer, init_context);
-//        start_task(init_context, entry);
+        init_init(loaderStruct);
     )
 
     asm("sti");
@@ -160,6 +147,21 @@ void init_symbols(LoaderStruct* loaderStruct) {
             if(symtab != 0 && strtab != 0) {
                 bluescreen_load_symbols(data, symtab, strtab);
             }
+        }
+    }
+}
+
+void init_init(LoaderStruct* loaderStruct) {
+    FileDescriptor* fileDescriptors = (FileDescriptor*)((ptr_t)loaderStruct + loaderStruct->size + (loaderStruct->num_mem_desc * sizeof(MemoryRegion)));
+
+    for(size_t i = 0; i < loaderStruct->num_files; ++i) {
+        FileDescriptor* desc = (fileDescriptors + i);
+        void*           data = (uint8_t*)((ptr_t)loaderStruct + desc->offset);
+
+        if(strcmp(desc->name, "init") == 0) {
+            vm_table_t* context = vm_context_new();
+            ptr_t entrypoint    = load_elf((ptr_t)data, context);
+            start_task(context, entrypoint);
         }
     }
 }

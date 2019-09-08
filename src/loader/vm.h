@@ -9,7 +9,7 @@
 #define PAGING_ENTRY_DEFAULT_SETTINGS   \
     .present        = 1,                \
     .writeable      = 1,                \
-    .userspace      = 0,                \
+    .userspace      = 1,                \
     .writethrough   = 0,                \
     .cachedisable   = 0,                \
     .accessed       = 0,                \

@@ -133,9 +133,7 @@ void vm_setup_direct_mapping(vm_table_t* context) {
 
 vm_table_t* vm_context_new() {
     vm_table_t* context = (vm_table_t*)vm_context_alloc_pages(VM_KERNEL_CONTEXT, ALLOCATOR_REGION_KERNEL_HEAP, 1);
-    memset((void*)context, 0, 4096);
-
-    vm_setup_direct_mapping(context);
+    memcpy((void*)context, VM_KERNEL_CONTEXT, 4096);
 
     return context;
 }

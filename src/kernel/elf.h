@@ -72,7 +72,7 @@ typedef struct {
     uint64_t size;
 }__attribute__((packed)) elf_symbol_t;
 
-ptr_t load_elf(ptr_t start, vm_table_t* context);
+ptr_t load_elf(ptr_t elf, vm_table_t* context);
 
 elf_section_header_t* elf_section_by_name(const char* name, const void* elf);
 

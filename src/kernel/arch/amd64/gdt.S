@@ -44,17 +44,7 @@
 idt_entry_\e: 
     cli
     push $\e
-    __pusha
-
-    movq %rsp,%rdi
-    call interrupt_handler
-    movq %rax,%rsp
-
-	__popa
-    addq $16,%rsp
-
-    sti
-    iretq
+	jmp _interrupt_handler_common
 .endm
 
 .macro __idt_handler e
@@ -63,6 +53,10 @@ idt_entry_\e:
     cli
     push $0
     push $\e
+	jmp _interrupt_handler_common
+.endm
+
+_interrupt_handler_common:
     __pusha
 
     movq %rsp,%rdi
@@ -74,7 +68,6 @@ idt_entry_\e:
 
     sti
     iretq
-.endm
 
 __idt_handler             0
 __idt_handler             1
@@ -161,5 +154,5 @@ _syscall_handler:
         addq $32,%rsp # ignore cs, flags, rsp, ss
 
         sti
-        rex64 sysret
+        sysretq
 

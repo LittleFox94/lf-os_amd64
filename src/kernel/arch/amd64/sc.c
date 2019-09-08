@@ -43,7 +43,7 @@ typedef struct {
 }__attribute__((packed)) table_pointer;
 
 idt_entry_t _idt[256];
-gdt_entry_t _gdt[5];
+gdt_entry_t _gdt[6];
 
 void _setup_idt();
 void _setup_gdt();
@@ -107,7 +107,7 @@ void init_sc() {
         "or $1, %rax\n"
         "wrmsr");
 
-    write_msr(0xC0000081, 0x0018000800000000);
+    write_msr(0xC0000081, 0x001B000800000000);
     write_msr(0xC0000082, (ptr_t)_syscall_handler);
 }
 
@@ -181,17 +181,26 @@ void _setup_idt() {
 void init_gdt() {
     memset((uint8_t*)_gdt, 0, sizeof(_gdt));
 
+    // kernel CS
     _gdt[1].type = GDT_SYSTEM | GDT_PRESENT | GDT_RW | GDT_EXECUTE;
     _gdt[1].size = 0xa0;
 
+    // kernel SS
     _gdt[2].type = GDT_SYSTEM | GDT_PRESENT | GDT_RW;
     _gdt[2].size = 0xa0;
 
+    // user CS (compatibility mode)
+    // XXX: make 32bit descriptor
     _gdt[3].type = GDT_SYSTEM | GDT_PRESENT | GDT_RW | GDT_EXECUTE | GDT_RING3;
     _gdt[3].size = 0xa0;
 
-    _gdt[4].type = GDT_SYSTEM | GDT_PRESENT | GDT_RW | GDT_EXECUTE | GDT_RING3;
+    // user SS
+    _gdt[4].type = GDT_SYSTEM | GDT_PRESENT | GDT_RW | GDT_RING3;
     _gdt[4].size = 0xa0;
+
+    // user CS (long mode)
+    _gdt[5].type = GDT_SYSTEM | GDT_PRESENT | GDT_RW | GDT_EXECUTE | GDT_RING3;
+    _gdt[5].size = 0xa0;
 
     table_pointer gdtp = {
         .limit = sizeof(_gdt) -1,
@@ -218,20 +227,13 @@ cpu_state* interrupt_handler(cpu_state* cpu) {
         }
     }
 
-//    cpu_state*  new_cpu = cpu;
-//    vm_table_t* new_context;
-//    schedule_next(&new_cpu, &new_context);
-//
-//    if(new_cpu->rip < 4096) {
-//        DUMP_CPU(new_cpu);
-//        while(1);
-//    }
-//
-//    vm_context_activate(new_context);
-//
-//    return new_cpu;
+    cpu_state*  new_cpu = cpu;
+    vm_table_t* new_context;
+    schedule_next(&new_cpu, &new_context);
 
-    return cpu;
+    vm_context_activate(new_context);
+
+    return new_cpu;
 }
 
 cpu_state* syscall_handler(cpu_state* cpu) {
