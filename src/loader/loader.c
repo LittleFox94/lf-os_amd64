@@ -190,6 +190,7 @@ EFI_STATUS load_files(EFI_HANDLE handle, uint16_t* path, struct LoaderState* sta
                         uint64_t src  = (uint64_t)fileBuffer + ph->offset;
                         uint64_t dest = (uint64_t)(physicalKernelLocation + ph->vaddr) - 0xFFFF800001000000;
 
+                        ZeroMem((ptr_t)dest, ph->memLength);
                         CopyMem((ptr_t)dest, (ptr_t)src, size);
                     }
                 }
