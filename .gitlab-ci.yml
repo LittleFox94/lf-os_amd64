@@ -1,4 +1,4 @@
-image: registry.lf-net.org/littlefox/lf-os_amd64/ci:2019091701
+image: registry.lf-net.org/littlefox/lf-os_amd64/ci:2019091702
 stages:
 - test
 - build
@@ -8,7 +8,7 @@ test:
   stage: test
   script:
     - make test
-      
+
 pages:
   stage: pages
   script:

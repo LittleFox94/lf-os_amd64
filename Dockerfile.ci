@@ -1,5 +1,5 @@
 FROM debian:buster
 
 RUN apt-get -qq update && \
-    apt-get -y -qq install gnu-efi mtools gdisk clang lld make dosfstools gcc genisoimage doxygen && \
+    apt-get -y -qq install gnu-efi mtools gdisk clang lld make dosfstools gcc genisoimage doxygen libyaml-perl && \
     rm -rf /var/cache/apt
