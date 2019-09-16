@@ -9,6 +9,9 @@ export OPTIMIZATION := -O3
 
 all: run-kvm
 
+doc: runnable-image # to generate some sources
+	doxygen Doxyfile
+
 test:
 	+ make -C t/kernel
 

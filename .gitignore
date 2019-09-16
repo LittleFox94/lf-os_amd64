@@ -9,6 +9,7 @@
 *.elf
 .*.s??
 *.gen.c
+doc/doxygen
 src/init/init
 src/kernel/arch/amd64/kernel
 src/kernel/liblfos-kernel.a
