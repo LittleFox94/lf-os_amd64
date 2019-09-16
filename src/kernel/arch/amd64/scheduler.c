@@ -37,9 +37,9 @@ void start_task(vm_table_t* context, ptr_t entry) {
     processes[i].cpu.rip     = entry;
     processes[i].cpu.cs      = 0x2B;
     processes[i].cpu.ss      = 0x23;
-    processes[i].cpu.rsp     = (ptr_t)1024 * 1024;
+    processes[i].cpu.rsp     = entry - 0x1000;
 
-    for(ptr_t map_for_stack = processes[i].cpu.rsp; map_for_stack >= 0x1000; map_for_stack -= 0x1000) {
+    for(ptr_t map_for_stack = processes[i].cpu.rsp; map_for_stack >= processes[i].cpu.rsp - (1*MiB); map_for_stack -= 0x1000) {
         vm_context_map(context, map_for_stack, (ptr_t)mm_alloc_pages(1));
     }
 
@@ -55,4 +55,12 @@ void schedule_next(cpu_state** cpu, vm_table_t** context) {
 
     *cpu     = &processes[scheduler_current_process].cpu;
     *context =  processes[scheduler_current_process].context;
+}
+
+void sc_handle_scheduler_exit(uint64_t pid) {
+    nyi(1);
+}
+
+void sc_handle_scheduler_clone(bool share_memory, uint64_t* newPid) {
+    nyi(1);
 }

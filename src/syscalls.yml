@@ -1,0 +1,28 @@
+groups:
+- number: 0
+  name:  scheduler
+  desc:  Syscalls changing the scheduling of the calling process.
+  syscalls:
+
+  - number: 0
+    name:  exit
+    desc:  Exit the process, free all memory and deliver exit code to parent process. This syscall will never return.
+    parameters:
+    - name: exit_code
+      desc: Code returned from the calling process to the parent process
+      type: uint8_t
+      reg:  rax
+
+  - number: 1
+    name:   clone
+    desc:   Clone the process into a new process while optionally sharing all memory (which is commonly called a thread then).
+    parameters:
+    - name: share_memory
+      desc: Share memory with original process
+      type: bool
+      reg:  rax
+    returns:
+    - name: pid
+      desc: PID of the new process in the old process, 0 in the new process
+      type: uint64_t
+      reg:  rax

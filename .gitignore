@@ -8,6 +8,7 @@
 *.so
 *.elf
 .*.s??
+*.gen.c
 src/init/init
 src/kernel/arch/amd64/kernel
 src/kernel/liblfos-kernel.a

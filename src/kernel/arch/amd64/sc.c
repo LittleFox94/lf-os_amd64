@@ -45,8 +45,10 @@ typedef struct {
 idt_entry_t _idt[256];
 gdt_entry_t _gdt[6];
 
-void _setup_idt();
-void _setup_gdt();
+extern void _setup_idt();
+extern void _setup_gdt();
+extern void sc_handle(cpu_state* cpu);
+
 extern void _syscall_handler();
 extern void reload_cs();
 
@@ -237,14 +239,6 @@ cpu_state* interrupt_handler(cpu_state* cpu) {
 }
 
 cpu_state* syscall_handler(cpu_state* cpu) {
-    switch(cpu->rdx) {
-        case 42:
-            fbconsole_write("%c", (int)cpu->rax);
-            break;
-        default:
-            DUMP_CPU(cpu);
-            break;
-    }
-
+    sc_handle(cpu);
     return cpu;
 }
