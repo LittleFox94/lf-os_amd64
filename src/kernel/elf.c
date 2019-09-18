@@ -4,7 +4,8 @@
 #include "mm.h"
 #include "vm.h"
 
-ptr_t load_elf(ptr_t start, vm_table_t* context) {
+ptr_t load_elf(ptr_t start, vm_table_t* context, ptr_t* stack) {
+    *stack = 0xFFFFFFFFFFFF;
     elf_file_header_t* header = (elf_file_header_t*)start;
 
     if(header->ident_magic != ELF_MAGIC) {
@@ -30,23 +31,30 @@ ptr_t load_elf(ptr_t start, vm_table_t* context) {
             continue;
         }
 
-        size_t i = 0;
+        if(programHeader->vaddr - 4096 < *stack) {
+            *stack = programHeader->vaddr - 4096;
+        }
 
-        for(;i < programHeader->fileLength; i += 4096) {
+        size_t j = 0;
+
+        for(;j < programHeader->fileLength; j += 4096) {
             ptr_t physical = (ptr_t)mm_alloc_pages(1);
-            size_t toCopy  = programHeader->fileLength - i;
+            memset((void*)(ALLOCATOR_REGION_DIRECT_MAPPING.start + physical), 0, 4096);
+
+            size_t toCopy  = programHeader->fileLength - j;
 
             if(toCopy > 4096) {
                 toCopy = 4096;
             }
 
-            memcpy((void*)(ALLOCATOR_REGION_DIRECT_MAPPING.start + physical), (void*)(start + programHeader->offset + i), toCopy);
-            vm_context_map(context, (ptr_t)programHeader->vaddr + i, physical);
+            memcpy((void*)(ALLOCATOR_REGION_DIRECT_MAPPING.start + physical), (void*)(start + programHeader->offset + j), toCopy);
+            vm_context_map(context, (ptr_t)programHeader->vaddr + j, physical);
         }
 
-        for(;i < programHeader->memLength; i += 4096) {
+        for(;j < programHeader->memLength; j += 4096) {
             ptr_t physical = (ptr_t)mm_alloc_pages(1);
-            vm_context_map(context, (ptr_t)programHeader->vaddr + i, physical);
+            memset((void*)(ALLOCATOR_REGION_DIRECT_MAPPING.start + physical), 0, 4096);
+            vm_context_map(context, (ptr_t)programHeader->vaddr + j, physical);
         }
     }
 

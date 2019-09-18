@@ -160,8 +160,14 @@ void init_init(LoaderStruct* loaderStruct) {
 
         if(strcmp(desc->name, "init") == 0) {
             vm_table_t* context = vm_context_new();
-            ptr_t entrypoint    = load_elf((ptr_t)data, context);
-            start_task(context, entrypoint);
+
+            ptr_t stack;
+            ptr_t entrypoint = load_elf((ptr_t)data, context, &stack);
+
+            stack -= 4096;
+            stack += (stack % 4096);
+
+            start_task(context, entrypoint, stack);
         }
     }
 }

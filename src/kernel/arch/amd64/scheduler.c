@@ -19,7 +19,7 @@ void init_scheduler() {
     memset((uint8_t*)processes, 0, sizeof(process_t) * MAX_PROCS);
 }
 
-void start_task(vm_table_t* context, ptr_t entry) {
+void start_task(vm_table_t* context, ptr_t entry, ptr_t stack) {
     if(!entry) {
         panic_message("Tried to start process without entry");
     }
@@ -37,7 +37,7 @@ void start_task(vm_table_t* context, ptr_t entry) {
     processes[i].cpu.rip     = entry;
     processes[i].cpu.cs      = 0x2B;
     processes[i].cpu.ss      = 0x23;
-    processes[i].cpu.rsp     = entry - 0x1000;
+    processes[i].cpu.rsp     = stack;
 
     for(ptr_t map_for_stack = processes[i].cpu.rsp; map_for_stack >= processes[i].cpu.rsp - (1*MiB); map_for_stack -= 0x1000) {
         vm_context_map(context, map_for_stack, (ptr_t)mm_alloc_pages(1));
