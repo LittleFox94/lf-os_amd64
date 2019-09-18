@@ -254,3 +254,7 @@ int fbconsole_write(char* string, ...) {
 
     return i;
 }
+
+void sc_handle_debug_print(ptr_t message) {
+    fbconsole_write("debug: %s\n", message);
+}

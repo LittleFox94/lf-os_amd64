@@ -3,7 +3,6 @@ groups:
   name:  scheduler
   desc:  Syscalls changing the scheduling of the calling process.
   syscalls:
-
   - number: 0
     name:  exit
     desc:  Exit the process, free all memory and deliver exit code to parent process. This syscall will never return.
@@ -25,4 +24,17 @@ groups:
     - name: pid
       desc: PID of the new process in the old process, 0 in the new process
       type: uint64_t
+      reg:  rax
+
+- number: 0xFF
+  name:   debug
+  desc:   Debugging syscalls (simple text output, logging, ...)
+  syscalls:
+  - number: 0
+    name:   print
+    desc:   Print a message to the screen at a location defined by the kernel
+    parameters:
+    - name: str
+      desc: Message to print
+      type: ptr_t
       reg:  rax
