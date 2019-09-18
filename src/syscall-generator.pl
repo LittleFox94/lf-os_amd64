@@ -17,6 +17,11 @@ use List::Util 'sum';
 use YAML 'LoadFile';
 
 my %TYPES = (
+    'ptr_t' => {
+        length => 64,
+        signed => 0,
+    },
+
     uint8_t => {
         length => 8,
         signed => 0,
@@ -361,10 +366,12 @@ EOF
             print $outfh "            case $syscall->{number}: {\n";
             render_syscall_decode($group, $syscall);
             print $outfh "            }\n";
+            print $outfh "            break;\n";
         }
 
         print $outfh "            default: panic_message(\"Invalid syscall\");\n";
         print $outfh "        }\n";
+        print $outfh "        break;\n";
     }
 
     print $outfh <<EOF;
