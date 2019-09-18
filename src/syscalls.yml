@@ -26,7 +26,7 @@ groups:
       type: uint64_t
       reg:  rax
 
-- number: 0xFF
+- number: 255
   name:   debug
   desc:   Debugging syscalls (simple text output, logging, ...)
   syscalls:
