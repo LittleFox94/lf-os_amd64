@@ -7,7 +7,7 @@
 #define ELF_MAGIC 0x464c457f
 
 //! Header of ELF images
-typedef struct {
+struct elf_file_header {
     uint32_t ident_magic;
     uint8_t  ident_arch;
     uint8_t  ident_byteOrder;
@@ -36,10 +36,11 @@ typedef struct {
     uint16_t sectionHeaderEntrySize;
     uint16_t sectionHeaderCount;
     uint16_t sectionHeaderSectionNameIndex;
-}__attribute__((packed)) elf_file_header_t;
+}__attribute__((packed));
+typedef struct elf_file_header elf_file_header_t;
 
 //! Program headers in ELF images, required for preparing a program for execution
-typedef struct {
+struct elf_program_header {
     uint32_t type;
     uint32_t flags;
 
@@ -50,10 +51,11 @@ typedef struct {
     uint64_t memLength;
 
     uint64_t align;
-}__attribute__((packed)) elf_program_header_t;
+}__attribute__((packed));
+typedef struct elf_program_header elf_program_header_t;
 
 //! Section headers in ELF images, required to read additional information from file
-typedef struct {
+struct elf_section_header {
     uint32_t name;
     uint32_t type;
     uint64_t flags;
@@ -64,17 +66,19 @@ typedef struct {
     uint32_t info;
     uint64_t addralign;
     uint64_t entrySize;
-}__attribute__((packed)) elf_section_header_t;
+}__attribute__((packed));
+typedef struct elf_section_header elf_section_header_t;
 
 //! Symbols in ELF images, there may be many
-typedef struct {
+struct elf_symbol {
     uint32_t name;
     uint8_t  info;
     uint8_t  other;
     uint16_t sectionHeader;
     uint64_t addr;
     uint64_t size;
-}__attribute__((packed)) elf_symbol_t;
+}__attribute__((packed));
+typedef struct elf_symbol elf_symbol_t;
 
 /**
  * Parse ELF file, map program segments to context and return proper location for stack.
