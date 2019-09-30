@@ -129,7 +129,7 @@ void fbconsole_draw_char(int start_x, int start_y, char c) {
 }
 
 void fbconsole_scroll(unsigned int scroll_amount) {
-    size_t row_start = scroll_amount * FONT_HEIGHT;
+    size_t row_start = scroll_amount * (FONT_HEIGHT + FONT_ROW_SPACING);
     size_t begin     = row_start * fbconsole.width * 4;
     size_t end       = fbconsole.width * fbconsole.height * 4;
 

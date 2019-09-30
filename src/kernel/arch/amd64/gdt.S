@@ -11,14 +11,14 @@
     pushq %rbp
     pushq %rdi
     pushq %rsi
-	pushq %r8
-	pushq %r9
-	pushq %r10
-	pushq %r11
-	pushq %r12
-	pushq %r13
-	pushq %r14
-	pushq %r15
+    pushq %r8
+    pushq %r9
+    pushq %r10
+    pushq %r11
+    pushq %r12
+    pushq %r13
+    pushq %r14
+    pushq %r15
 .endm
 
 .macro __popa
@@ -39,21 +39,21 @@
     popq %rax
 .endm
 
-.macro __idt_handler_error_code e 
+.macro __idt_handler_error_code e
 .global idt_entry_\e
-idt_entry_\e: 
+idt_entry_\e:
     cli
     push $\e
-	jmp _interrupt_handler_common
+    jmp _interrupt_handler_common
 .endm
 
 .macro __idt_handler e
 .global idt_entry_\e
 idt_entry_\e:
     cli
-    push $0
+    pushq $0
     push $\e
-	jmp _interrupt_handler_common
+    jmp _interrupt_handler_common
 .endm
 
 _interrupt_handler_common:
@@ -63,10 +63,9 @@ _interrupt_handler_common:
     call interrupt_handler
     movq %rax,%rsp
 
-	__popa
+    __popa
     addq $16,%rsp /* remove error code from stack */
 
-    sti
     iretq
 
 __idt_handler             0
@@ -119,40 +118,40 @@ __idt_handler            45
 __idt_handler            46
 __idt_handler            47
 
-reload_cs: 
-	sub $16, %rsp
-	movq $8, 8(%rsp)
-	movabsq $_reload_cs, %rax
-	mov %rax, (%rsp)
-	lretq
-	_reload_cs:
-			mov $0x10,%cx
-			mov %cx,%ds
-			mov %cx,%es
-			mov %cx,%fs
-			mov %cx,%gs
-			mov %cx,%ss
-			ret
+reload_cs:
+    sub $16, %rsp
+    movq $8, 8(%rsp)
+    movabsq $_reload_cs, %rax
+    mov %rax, (%rsp)
+    lretq
+    _reload_cs:
+        mov $0x10,%cx
+        mov %cx,%ds
+        mov %cx,%es
+        mov %cx,%fs
+        mov %cx,%gs
+        mov %cx,%ss
+        ret
 
-_syscall_handler: 
-    pushq $0            # ss, doesn't matter here
-        pushq %rsp
-        pushf
-        pushq $0        # cs, doesn't matter here
-        pushq %rcx      # user rip
-        pushq $0        # bogus interrupt
-        pushq $0        # bogus errorcode
+_syscall_handler:
+    cli
+    pushq $0        # ss, doesn't matter here
+    pushq %rsp
+    pushf
+    pushq $0        # cs, doesn't matter here
+    pushq %rcx      # user rip
+    pushq $0        # bogus interrupt
+    pushq $0        # bogus errorcode
 
-        __pusha
-        movq %rsp,%rdi
-        call syscall_handler
-        movq %rax,%rsp
-        __popa
+    __pusha
+    movq %rsp,%rdi
+    call syscall_handler
+    movq %rax,%rsp
+    __popa
 
-        addq $16,%rsp # ignore bogus error and interrupt
-        popq %rcx       # user rip
-        addq $32,%rsp # ignore cs, flags, rsp, ss
+    addq $16,%rsp # ignore bogus error and interrupt
+    popq %rcx       # user rip
+    addq $32,%rsp # ignore cs, flags, rsp, ss
 
-        sti
-        sysretq
-
+    sti
+    sysretq

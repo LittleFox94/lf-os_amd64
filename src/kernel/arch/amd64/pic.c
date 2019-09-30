@@ -5,11 +5,6 @@
 #define PIC2 0xA0
 
 void init_pic() {
-    unsigned char a1, a2;
- 
-	a1 = 0; //inb(PIC1 + 1);    // save masks
-	a2 = 0; //inb(PIC2 + 1);
-
 	outb(PIC1,     0x11);  // starts the initialization sequence (in cascade mode)
 	outb(PIC2,     0x11);
 	outb(PIC1 + 1, 0x20);  // ICW2: Master PIC vector offset
@@ -19,9 +14,6 @@ void init_pic() {
  
 	outb(PIC1 + 1, 1);
 	outb(PIC2 + 1, 1);
- 
-	outb(PIC1 + 1, a1);    // restore saved masks.
-	outb(PIC2 + 1, a2);
 }
 
 void pic_set_handled(int interrupt) {

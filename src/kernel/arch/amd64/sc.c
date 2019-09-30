@@ -42,8 +42,39 @@ typedef struct {
     uint64_t base;
 }__attribute__((packed)) table_pointer;
 
+typedef struct {
+    uint32_t _reserved0;
+
+    uint64_t rsp0;
+    uint64_t rsp1;
+    uint64_t rsp2;
+
+    uint64_t _reserved1;
+
+    uint64_t ist1;
+    uint64_t ist2;
+    uint64_t ist3;
+    uint64_t ist4;
+    uint64_t ist5;
+    uint64_t ist6;
+    uint64_t ist7;
+
+    uint64_t _reserved2;
+    uint16_t _reserved3;
+    uint16_t iopb_offset;
+}__attribute__((packed)) tss_t;
+
 idt_entry_t _idt[256];
-gdt_entry_t _gdt[6];
+gdt_entry_t _gdt[8];
+tss_t       _tss = {
+    ._reserved1 = 0,
+    ._reserved2 = 0,
+    ._reserved3 = 0,
+
+    .rsp0 = ALLOCATOR_REGION_SCRATCHPAD.end - 15,
+    .rsp1 = ALLOCATOR_REGION_SCRATCHPAD.end - 15,
+    .rsp2 = ALLOCATOR_REGION_SCRATCHPAD.end - 15,
+};
 
 extern void _setup_idt();
 extern void _setup_gdt();
@@ -118,7 +149,7 @@ void _set_idt_entry(int index, ptr_t base) {
     _idt[index].baseMid  = (base >> 16) & 0xFFFF;
     _idt[index].baseHigh = base  >> 32;
     _idt[index].selector = 0x08;
-    _idt[index].flags    = 0xEF;
+    _idt[index].flags    = 0xEE;
 }
 
 void _setup_idt() {
@@ -181,7 +212,7 @@ void _setup_idt() {
 }
 
 void init_gdt() {
-    memset((uint8_t*)_gdt, 0, sizeof(_gdt));
+    memset((uint8_t*)_gdt,  0, sizeof(_gdt));
 
     // kernel CS
     _gdt[1].type = GDT_SYSTEM | GDT_PRESENT | GDT_RW | GDT_EXECUTE;
@@ -204,6 +235,16 @@ void init_gdt() {
     _gdt[5].type = GDT_SYSTEM | GDT_PRESENT | GDT_RW | GDT_EXECUTE | GDT_RING3;
     _gdt[5].size = 0xa0;
 
+    // TSS
+    _gdt[6].type     = GDT_PRESENT | GDT_ACCESSED | GDT_EXECUTE;
+    _gdt[6].limitLow = sizeof(_tss);
+    _gdt[6].baseLow  = ((ptr_t)&_tss & 0xFFFF);
+    _gdt[6].baseMid  = ((ptr_t)&_tss >> 16) & 0xFF;
+    _gdt[6].baseHigh = ((ptr_t)&_tss >> 24) & 0xFF;
+    _gdt[7].type     = 0;
+    _gdt[7].limitLow = ((ptr_t)&_tss >> 32) & 0xFFFF;
+    _gdt[7].baseLow  = ((ptr_t)&_tss >> 48) & 0xFFFF;
+
     table_pointer gdtp = {
         .limit = sizeof(_gdt) -1,
         .base  = (ptr_t)_gdt,
@@ -211,6 +252,7 @@ void init_gdt() {
 
     asm("lgdt %0"::"m"(gdtp));
     reload_cs();
+    asm("ltr %%ax"::"a"(6 << 3));
 }
 
 cpu_state* interrupt_handler(cpu_state* cpu) {
