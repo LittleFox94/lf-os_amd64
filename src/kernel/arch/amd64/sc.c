@@ -71,9 +71,11 @@ tss_t       _tss = {
     ._reserved2 = 0,
     ._reserved3 = 0,
 
-    .rsp0 = ALLOCATOR_REGION_SCRATCHPAD.end - 15,
-    .rsp1 = ALLOCATOR_REGION_SCRATCHPAD.end - 15,
-    .rsp2 = ALLOCATOR_REGION_SCRATCHPAD.end - 15,
+    .rsp0 = ALLOCATOR_REGION_SCRATCHPAD.end & 0xFFFFFFFFFFFFFFF0,
+    .rsp1 = ALLOCATOR_REGION_SCRATCHPAD.end & 0xFFFFFFFFFFFFFFF0,
+    .rsp2 = ALLOCATOR_REGION_SCRATCHPAD.end & 0xFFFFFFFFFFFFFFF0,
+
+    .ist1 = ALLOCATOR_REGION_SCRATCHPAD.end & 0xFFFFFFFFFFFFFFF0,
 };
 
 extern void _setup_idt();
@@ -150,6 +152,7 @@ void _set_idt_entry(int index, ptr_t base) {
     _idt[index].baseHigh = base  >> 32;
     _idt[index].selector = 0x08;
     _idt[index].flags    = 0xEE;
+    _idt[index].ist      = 1;
 }
 
 void _setup_idt() {
@@ -255,7 +258,7 @@ void init_gdt() {
     asm("ltr %%ax"::"a"(6 << 3));
 }
 
-cpu_state* interrupt_handler(cpu_state* cpu) {
+__attribute__((force_align_arg_pointer)) cpu_state* interrupt_handler(cpu_state* cpu) {
     if(cpu->interrupt < 32) {
         panic_cpu(cpu);
     }
@@ -280,7 +283,7 @@ cpu_state* interrupt_handler(cpu_state* cpu) {
     return new_cpu;
 }
 
-cpu_state* syscall_handler(cpu_state* cpu) {
+__attribute__((force_align_arg_pointer)) cpu_state* syscall_handler(cpu_state* cpu) {
     sc_handle(cpu);
     return cpu;
 }
