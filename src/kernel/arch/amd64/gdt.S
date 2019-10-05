@@ -151,9 +151,9 @@ _syscall_handler:
 
     addq $16,%rsp  # ignore bogus error and interrupt
     popq %rcx      # user rip
-	addq $8, %rsp  # ignore cs
-	pop  %r11	   # restore flags
-	popq %rsp
+    addq $8, %rsp  # ignore cs
+    pop  %r11	   # restore flags
+    popq %rsp
     addq $8, %rsp # ignore sp, ss
     sti
 
