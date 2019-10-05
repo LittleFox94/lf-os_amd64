@@ -19,7 +19,6 @@ __attribute__((noinline)) volatile unsigned long long clone(unsigned char share,
 __attribute__((noinline)) int main() {
     for(int i = 0; i < NUM_FORKS; ++i) {
         unsigned long long pid = clone(1, 0);
-        print((char[]){'0' + i, 'A' + pid, 0});
 
         if(pid) {
             print("Forked!");
@@ -35,6 +34,5 @@ __attribute__((noinline)) int main() {
 
 void _start() {
     int exit_code = main();
-    while(1);
     exit(exit_code);
 }
