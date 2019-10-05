@@ -260,15 +260,14 @@ void init_gdt() {
 
 __attribute__((force_align_arg_pointer)) cpu_state* interrupt_handler(cpu_state* cpu) {
     if(cpu->interrupt < 32) {
-        if(cpu->interrupt == 0x0e) {
-            ptr_t fault_address;
-            asm("mov %%cr2, %0":"=r"(fault_address));
-            if(scheduler_handle_pf(fault_address)) {
-                return cpu;
-            }
-        }
-
         if((cpu->rip & 0x0000800000000000) == 0) {
+            if(cpu->interrupt == 0x0e) {
+                ptr_t fault_address;
+                asm("mov %%cr2, %0":"=r"(fault_address));
+                if(scheduler_handle_pf(fault_address)) {
+                    return cpu;
+                }
+            }
             // exception in user space
             scheduler_kill_current(kill_reason_abort);
 
