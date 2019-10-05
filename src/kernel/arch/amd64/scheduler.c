@@ -181,7 +181,7 @@ void sc_handle_scheduler_clone(bool share_memory, ptr_t entry, uint64_t* newPid)
 }
 
 bool scheduler_handle_pf(ptr_t fault_address) {
-    if(fault_address >= ALLOCATOR_REGION_USER_STACK.start || fault_address < ALLOCATOR_REGION_USER_STACK.end) {
+    if(fault_address >= ALLOCATOR_REGION_USER_STACK.start && fault_address < ALLOCATOR_REGION_USER_STACK.end) {
         ptr_t page_v = fault_address & 0xFFFFFFFFFFFFF000;
         ptr_t page_p = (ptr_t)mm_alloc_pages(1);
         vm_context_map(processes[scheduler_current_process].context, page_v, page_p);
