@@ -195,3 +195,20 @@ bool scheduler_handle_pf(ptr_t fault_address) {
 
     return false;
 }
+
+void sc_handle_memory_sbrk(uint64_t inc, ptr_t* data_end) {
+    if(inc) {
+        inc += 0x1000 - (inc % 0x1000);
+
+        ptr_t old_end = (processes[scheduler_current_process].heap.end + 1) & 0xFFFFFFFFFFFFF000;
+        ptr_t new_end = old_end + inc;
+
+        for(ptr_t i = old_end; i < new_end; i+=0x1000) {
+            vm_context_map(processes[scheduler_current_process].context, i, (ptr_t)mm_alloc_pages(1));
+        }
+
+        processes[scheduler_current_process].heap.end = new_end;
+    }
+
+    *data_end = processes[scheduler_current_process].heap.end;
+}

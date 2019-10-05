@@ -33,6 +33,24 @@ groups:
       type: uint64_t
       reg:  rax
 
+- number: 1
+  name:   memory
+  desc:   Syscalls affecting memory mappings for this or other processes
+  syscalls:
+  - number: 0
+    name:   sbrk
+    desc:   Increment the data segment by inc bytes and return the new end of the data segment.
+    parameters:
+    - name: inc
+      desc: Minimum number of bytes to add the data segment
+      type: uint64_t
+      reg:  rax
+    returns:
+    - name: data_end
+      type: ptr_t
+      reg:  rax
+      desc: Pointer to the last byte in the data segment
+
 - number: 255
   name:   debug
   desc:   Debugging syscalls (simple text output, logging, ...)
