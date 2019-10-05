@@ -20,17 +20,13 @@ groups:
       desc: Share memory with original process
       type: bool
       reg:  rax
-    - name: child_stack
-      desc: Where to put the stack for the child process
-      type: ptr_t
-      reg:  rsi
     - name: entry
       desc: |
         Entrypoint of the child.
-      
+
         Special case: NULL, will continue at the same code location (only valid if share_memory == 1)
       type: ptr_t
-      reg:  rdi
+      reg:  rbx
     returns:
     - name: pid
       desc: PID of the new process in the old process, 0 in the new process

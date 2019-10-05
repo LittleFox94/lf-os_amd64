@@ -257,13 +257,13 @@ sub render_syscall_decode {
                 $ret = "cpu->$param->{reg}";
             }
 
-            print $outfh "($ret$mask);";
+            print $outfh "($ret$mask);\n";
 
             $bits_before += $TYPES{$param->{type}}->{length};
         }
     }
 
-    print $outfh "\n\n                // variables for return values\n";
+    print $outfh "\n                // variables for return values\n";
     for my $ret ($syscall->{returns}->@*) {
         print $outfh "                $ret->{type} $ret->{name};\n";
     }

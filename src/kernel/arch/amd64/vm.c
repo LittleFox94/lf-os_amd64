@@ -190,7 +190,7 @@ void vm_context_map(vm_table_t* context, ptr_t virtual, ptr_t physical) {
     pt_entry->userspace = 1;
 }
 
-ptr_t vm_context_get_free_address(vm_table_t *table, bool kernel) {
+/*ptr_t vm_context_get_free_address(vm_table_t *table, bool kernel) {
     int indices[4] = {kernel ? 256 : 0, 0, 0, 0};
 
     while(1) {
@@ -236,7 +236,7 @@ ptr_t vm_context_get_free_address(vm_table_t *table, bool kernel) {
     address      |= ((uint64_t)indices[3] << 12);
 
     return address;
-}
+}*/
 
 
 bool vm_table_check_present(vm_table_t* table, int index) {
@@ -327,7 +327,7 @@ bool vm_context_page_present(vm_table_t* context, uint16_t pml4_index, uint16_t 
     return false;
 }
 
-ptr_t vm_context_alloc_pages(vm_table_t* context, AllocatorRegion region, size_t num) {
+ptr_t vm_context_alloc_pages(vm_table_t* context, region_t region, size_t num) {
     ptr_t current = region.start;
     ptr_t found   = 0;
 
@@ -361,4 +361,23 @@ ptr_t vm_context_alloc_pages(vm_table_t* context, AllocatorRegion region, size_t
     }
 
     return found;
+}
+
+void vm_copy_page(vm_table_t* dst_ctx, ptr_t dst, vm_table_t* src_ctx, ptr_t src) {
+    // XXX: make some copy-on-write here
+    // XXX: incompatible with non-4k pages!
+
+    if(vm_context_page_present(src_ctx, PML4_INDEX(src), PDP_INDEX(src), PD_INDEX(src), PT_INDEX(src))) {
+        ptr_t src_phys = vm_context_get_physical_for_virtual(src_ctx, src);
+        ptr_t dst_phys;
+
+        if(!vm_context_page_present(dst_ctx, PML4_INDEX(dst), PDP_INDEX(dst), PD_INDEX(dst), PT_INDEX(dst))) {
+            dst_phys = (ptr_t)mm_alloc_pages(1);
+            vm_context_map(dst_ctx, dst, dst_phys);
+        } else {
+            dst_phys = vm_context_get_physical_for_virtual(dst_ctx, dst);
+        }
+
+        memcpy((void*)(dst_phys + ALLOCATOR_REGION_DIRECT_MAPPING.start), (void*)(src_phys + ALLOCATOR_REGION_DIRECT_MAPPING.start), 0x1000);
+    }
 }

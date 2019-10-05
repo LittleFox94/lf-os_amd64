@@ -5,7 +5,7 @@ QEMU_MEMORY        := 512M
 QEMUFLAGS 		   := -bios /usr/share/ovmf/OVMF.fd -drive format=raw,file=hd.img,if=none,id=boot_drive -device nvme,drive=boot_drive,serial=1234 -m $(QEMU_MEMORY) -d int,guest_errors --serial file:log.txt
 QEMUFLAGS_NO_DEBUG := -monitor stdio
 
-export OPTIMIZATION := 
+export OPTIMIZATION := -O3
 
 all: run-kvm
 
@@ -22,7 +22,7 @@ run-kvm: runnable-image
 	kvm $(QEMUFLAGS) $(QEMUFLAGS_NO_DEBUG)
 
 profile: runnable-image util/gsp/gsp-trace util/gsp/gsp-syms
-	./util/gsp/gsp-trace -i src/kernel/arch/amd64/kernel -c -o lf-os.trace -g "stdio:qemu-system-x86_64 $(QEMUFLAGS) -gdb stdio -S -display none" -S nyi
+	./util/gsp/gsp-trace -i src/kernel/arch/amd64/kernel -c -o lf-os.trace -g "stdio:qemu-system-x86_64 $(QEMUFLAGS) -gdb stdio -S -display vnc=:0" -S _panic
 
 debug: runnable-image src/kernel/arch/amd64/kernel
 	gdb -ex "target remote | qemu-system-x86_64 $(QEMUFLAGS) -gdb stdio -S"

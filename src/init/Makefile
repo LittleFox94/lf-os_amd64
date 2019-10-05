@@ -1,4 +1,4 @@
-CFLAGS := -ffreestanding -nostdinc $(OPTIMIZATION) -g
+CFLAGS := -ffreestanding -nostdinc -g $(OPTIMIZATION)
 OBJECTS = main.o
 
 all: init

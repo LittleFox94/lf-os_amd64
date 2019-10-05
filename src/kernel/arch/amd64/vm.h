@@ -20,22 +20,25 @@ typedef struct {
     char* name;
     ptr_t start;
     ptr_t end;
-} AllocatorRegion;
+} region_t;
 
-#define ALLOCATOR_REGION_NULL           (AllocatorRegion){ .name = "NULL", .start = 0, .end = 0 }
+#define ALLOCATOR_REGION_NULL           (region_t){ .name = "NULL", .start = 0, .end = 0 }
 
-#define ALLOCATOR_REGION_USER_HEAP      (AllocatorRegion){ .name = "User heap",  .start = 0x0000100000000000, .end = 0x00007F0000000000 }
-#define ALLOCATOR_REGION_USER_EVENT     (AllocatorRegion){ .name = "User event", .start = 0x00007F0000001000, .end = 0x00007FFFFFFFF000 }
+#define ALLOCATOR_REGION_USER_HEAP      (region_t){ .name = "User heap",  .start = 0x0000100000000000, .end = 0x00007F0000000000 }
+// Stack has to be 16-bytes aligned
+#define ALLOCATOR_REGION_USER_STACK     (region_t){ .name = "User stack", .start = 0x00007F0000001000, .end = 0x00007FFFFFFFFFF0 }
 
-#define ALLOCATOR_REGION_SCRATCHPAD     (AllocatorRegion){ .name = "Kernel scratchpad", .start = 0xFFFF800000000000, .end = 0xFFFF800000FFFFFF }
-#define ALLOCATOR_REGION_KERNEL_BINARY  (AllocatorRegion){ .name = "Kernel binary",     .start = 0xFFFF800001000000, .end = 0xFFFF800008FFFFFF }
-#define ALLOCATOR_REGION_SLAB_4K        (AllocatorRegion){ .name = "4k slab allocator", .start = 0xFFFF800009000000, .end = 0xFFFF80000FFFFFFF }
-#define ALLOCATOR_REGION_KERNEL_HEAP    (AllocatorRegion){ .name = "Kernel heap",       .start = 0xFFFF800040000000, .end = 0xFFFF8007FFFFFFFF }
+#define ALLOCATOR_REGION_SCRATCHPAD     (region_t){ .name = "Kernel scratchpad", .start = 0xFFFF800000000000, .end = 0xFFFF800000FFFFFF }
+#define ALLOCATOR_REGION_KERNEL_BINARY  (region_t){ .name = "Kernel binary",     .start = 0xFFFF800001000000, .end = 0xFFFF800008FFFFFF }
+#define ALLOCATOR_REGION_SLAB_4K        (region_t){ .name = "4k slab allocator", .start = 0xFFFF800009000000, .end = 0xFFFF80000FFFFFFF }
+#define ALLOCATOR_REGION_KERNEL_HEAP    (region_t){ .name = "Kernel heap",       .start = 0xFFFF800040000000, .end = 0xFFFF8007FFFFFFFF }
 
 // this one must be PML4 aligned! (PDP, PD and PT indexes must be zero for the start and 511 for the end)
-#define ALLOCATOR_REGION_DIRECT_MAPPING (AllocatorRegion){ .name = "Physical mapping",  .start = 0xFFFF840000000000, .end = 0xFFFF87FFFFFFFFFF }
+#define ALLOCATOR_REGION_DIRECT_MAPPING (region_t){ .name = "Physical mapping",  .start = 0xFFFF840000000000, .end = 0xFFFF87FFFFFFFFFF }
 
-#define ALLOCATOR_REGIONS_KERNEL (AllocatorRegion[]){ \
+#define ALLOCATOR_REGIONS (region_t[]){ \
+    ALLOCATOR_REGION_USER_HEAP,      \
+    ALLOCATOR_REGION_USER_STACK,     \
     ALLOCATOR_REGION_SCRATCHPAD,     \
     ALLOCATOR_REGION_KERNEL_BINARY,  \
     ALLOCATOR_REGION_SLAB_4K,        \
@@ -83,6 +86,8 @@ int   vm_table_get_free_index3(vm_table_t* table, int start, int end);
 
 ptr_t vm_context_get_physical_for_virtual(vm_table_t* context, ptr_t virtual);
 
-ptr_t vm_context_alloc_pages(vm_table_t* context, AllocatorRegion region, size_t num);
+ptr_t vm_context_alloc_pages(vm_table_t* context, region_t region, size_t num);
+
+void vm_copy_page(vm_table_t* dst_ctx, ptr_t dst, vm_table_t* src_ctx, ptr_t src); 
 
 #endif

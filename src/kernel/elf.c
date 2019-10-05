@@ -4,8 +4,7 @@
 #include "mm.h"
 #include "vm.h"
 
-ptr_t load_elf(ptr_t start, vm_table_t* context, ptr_t* stack) {
-    *stack = 0xFFFFFFFFFFFF;
+ptr_t load_elf(ptr_t start, vm_table_t* context, ptr_t* data_start, ptr_t* data_end) {
     elf_file_header_t* header = (elf_file_header_t*)start;
 
     if(header->ident_magic != ELF_MAGIC) {
@@ -31,10 +30,6 @@ ptr_t load_elf(ptr_t start, vm_table_t* context, ptr_t* stack) {
             continue;
         }
 
-        if(programHeader->vaddr - 4096 < *stack) {
-            *stack = programHeader->vaddr - 4096;
-        }
-
         size_t j = 0;
 
         for(;j < programHeader->fileLength; j += 4096) {
@@ -55,6 +50,15 @@ ptr_t load_elf(ptr_t start, vm_table_t* context, ptr_t* stack) {
             ptr_t physical = (ptr_t)mm_alloc_pages(1);
             memset((void*)(ALLOCATOR_REGION_DIRECT_MAPPING.start + physical), 0, 4096);
             vm_context_map(context, (ptr_t)programHeader->vaddr + j, physical);
+        }
+
+        ptr_t end = programHeader->vaddr + programHeader->memLength;
+        if(*data_end <= end) {
+            *data_end = end + 1;
+        }
+
+        if(programHeader->vaddr > *data_start) {
+            *data_start = programHeader->vaddr;
         }
     }
 

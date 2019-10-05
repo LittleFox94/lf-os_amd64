@@ -260,6 +260,26 @@ void init_gdt() {
 
 __attribute__((force_align_arg_pointer)) cpu_state* interrupt_handler(cpu_state* cpu) {
     if(cpu->interrupt < 32) {
+        if(cpu->interrupt == 0x0e) {
+            ptr_t fault_address;
+            asm("mov %%cr2, %0":"=r"(fault_address));
+            if(scheduler_handle_pf(fault_address)) {
+                return cpu;
+            }
+        }
+
+        if((cpu->rip & 0x0000800000000000) == 0) {
+            // exception in user space
+            scheduler_kill_current(kill_reason_abort);
+
+            cpu_state*  new_cpu = cpu;
+            vm_table_t* new_context;
+            schedule_next(&new_cpu, &new_context);
+
+            vm_context_activate(new_context);
+            return new_cpu;
+        }
+
         panic_cpu(cpu);
     }
     else if(cpu->interrupt >= 32 && cpu->interrupt < 48) {
@@ -284,6 +304,14 @@ __attribute__((force_align_arg_pointer)) cpu_state* interrupt_handler(cpu_state*
 }
 
 __attribute__((force_align_arg_pointer)) cpu_state* syscall_handler(cpu_state* cpu) {
+    scheduler_process_save(cpu);
+
     sc_handle(cpu);
-    return cpu;
+
+    cpu_state*  new_cpu = cpu;
+    vm_table_t* new_context;
+    schedule_available(&new_cpu, &new_context); // if process is exited now, we need a new process
+    vm_context_activate(new_context);
+
+    return new_cpu;
 }

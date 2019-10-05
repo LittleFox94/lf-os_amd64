@@ -255,6 +255,7 @@ int fbconsole_write(char* string, ...) {
     return i;
 }
 
+int scheduler_current_process;
 void sc_handle_debug_print(ptr_t message) {
-    fbconsole_write("debug: %s\n", message);
+    fbconsole_write("[PID %04d] debug: %s\n", scheduler_current_process, message);
 }

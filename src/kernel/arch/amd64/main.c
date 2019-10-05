@@ -89,6 +89,7 @@ void main(void* loaderData) {
         init_init(loaderStruct);
     )
 
+    LAST_INIT_STEP = "Kernel initialization complete";
     asm("sti");
     while(1);
 }
@@ -161,13 +162,10 @@ void init_init(LoaderStruct* loaderStruct) {
         if(strcmp(desc->name, "init") == 0) {
             vm_table_t* context = vm_context_new();
 
-            ptr_t stack;
-            ptr_t entrypoint = load_elf((ptr_t)data, context, &stack);
-
-            stack -= 4096;
-            stack += (stack % 4096);
-
-            start_task(context, entrypoint, stack);
+            ptr_t data_start = 0;
+            ptr_t data_end   = 0;
+            ptr_t entrypoint = load_elf((ptr_t)data, context, &data_start, &data_end);
+            start_task(context, entrypoint, data_start, data_end);
         }
     }
 }
@@ -178,10 +176,10 @@ void bootstrap_globals() {
 
 void print_memory_regions() {
     fbconsole_write("Memory regions\n");
-    AllocatorRegion* region = ALLOCATOR_REGIONS_KERNEL;
+    region_t* region = ALLOCATOR_REGIONS;
 
     while(region->start != 0 && region->end != 0) {
-        fbconsole_write("  \e[38;5;15m%20s \e[38;5;7m(0x%x - 0x%x, \e[38;5;15m% 8B\e[38;5;7m)\n", region->name, region->start, region->end, region->end - region->start + 1);
+        fbconsole_write("  \e[38;5;15m%20s \e[38;5;7m(0x%016x - 0x%016x, \e[38;5;15m% 8B\e[38;5;7m)\n", region->name, region->start, region->end, region->end - region->start + 1);
         ++region;
     }
 

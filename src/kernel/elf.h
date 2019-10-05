@@ -83,12 +83,13 @@ typedef struct elf_symbol elf_symbol_t;
 /**
  * Parse ELF file, map program segments to context and return proper location for stack.
  *
- * \param[in]  elf     Memory chunk where the ELF file is loaded.
- * \param[in]  context VM context for mapping of program segments.
- * \param[out] stack   Writes proper location for stack in the variable pointed to by this pointer.
- * \returns            Entrypoint of the image
+ * \param[in]  elf          Memory chunk where the ELF file is loaded.
+ * \param[in]  context      VM context for mapping of program segments.
+ * \param[out] data_start   Start of the data section
+ * \param[out] data_end     End of the data section
+ * \returns                 Entrypoint of the image
  */
-ptr_t load_elf(ptr_t elf, vm_table_t* context, ptr_t* stack);
+ptr_t load_elf(ptr_t elf, vm_table_t* context, ptr_t* data_start, ptr_t* data_end);
 
 /**
  * Return section header of ELF file by name

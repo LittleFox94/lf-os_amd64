@@ -135,10 +135,10 @@ reload_cs:
 
 _syscall_handler:
     cli
-    pushq $0        # ss, doesn't matter here
+    pushq $0x23     # ss
     pushq %rsp
-    pushf
-    pushq $0        # cs, doesn't matter here
+    pushq %r11
+    pushq $0x2B     # cs
     pushq %rcx      # user rip
     pushq $0        # bogus interrupt
     pushq $0        # bogus errorcode
@@ -149,9 +149,12 @@ _syscall_handler:
     movq %rax,%rsp
     __popa
 
-    addq $16,%rsp # ignore bogus error and interrupt
-    popq %rcx       # user rip
-    addq $32,%rsp # ignore cs, flags, rsp, ss
-
+    addq $16,%rsp  # ignore bogus error and interrupt
+    popq %rcx      # user rip
+	addq $8, %rsp  # ignore cs
+	pop  %r11	   # restore flags
+	popq %rsp
+    addq $8, %rsp # ignore sp, ss
     sti
+
     sysretq
