@@ -68,7 +68,12 @@ void _panic_message(const char* message, uint64_t rbp) {
 
             fbconsole_write("\n");
 
-            frame = frame->prev;
+            if(frame->prev != frame) {
+                frame = frame->prev;
+            }
+            else {
+                frame = 0;
+            }
         }
     }
 
@@ -121,8 +126,41 @@ void panic_cpu(const cpu_state* cpu) {
         "reserved"
     };
 
+    char cr2_msg[256] = { 0 };
+
+    if(cpu->interrupt == 0x0E) {
+        uint64_t cr2;
+        asm("mov %%cr2, %0":"=r"(cr2));
+
+
+        if(bluescreen_symbols != 0) {
+            int64_t difference = 0x7FFFFFFFFFFFFFFF;
+            struct Symbol* best = 0;
+
+            for(size_t i = 0; i < bluescreen_symbols->numSymbols; ++i) {
+                struct Symbol* current = (struct Symbol*)((ptr_t)bluescreen_symbols->symbols + (sizeof(struct Symbol) * i));
+
+                if(cr2 - current->address > 0) {
+                    if(difference > cr2 - current->address) {
+                        best = current;
+                    }
+                }
+            }
+
+            if(best) {
+                fbconsole_write("\e[38;5;15m %s(+0x%x)", bluescreen_symbols->symbolNames + best->name, cr2 - best->address);
+            }
+
+            ksnprintf(cr2_msg, 256, " @ %016x, %s(+0x%x)", cr2, bluescreen_symbols->symbolNames + best->name, cr2 - best->address);
+        }
+        else {
+            ksnprintf(cr2_msg, 256, " @ %016x");
+        }
+
+    }
+
     char message[256];
-    ksnprintf(message, 256, "Interrupt: 0x%02x (%s), error: 0x%04x", cpu->interrupt, exceptions[cpu->interrupt], cpu->error_code);
+    ksnprintf(message, 256, "Interrupt: 0x%02x (%s), error: 0x%04x%s", cpu->interrupt, exceptions[cpu->interrupt], cpu->error_code, cr2_msg);
     _panic_message(message, cpu->rbp);
 
     DUMP_CPU(cpu);
