@@ -22,9 +22,7 @@ groups:
       reg:  rax
     - name: entry
       desc: |
-        Entrypoint of the child.
-
-        Special case: NULL, will continue at the same code location (only valid if share_memory == 1)
+        Entrypoint of the child. Special case: NULL, will continue at the same code location (only valid if share_memory == 1)
       type: ptr_t
       reg:  rbx
     returns:
