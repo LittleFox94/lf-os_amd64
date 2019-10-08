@@ -17,6 +17,8 @@ To produce disk images, you'll also need `dosfstools`, `mtools`, `genisoimage` a
 
 For QEMU you also need `OVMF` firmware for qemu in `/usr/share/ovmf/OVMF.fd`.
 
+A nice list of packages to install on debian is the `Dockerfile.ci` which generates images used by the CI system.
+
 
 ## Noteworthy make targets
 
