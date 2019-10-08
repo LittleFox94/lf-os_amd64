@@ -51,7 +51,7 @@ hd.img:
 runnable-image: hd.img bootable-filesystem
 	dd if=bootfs.img of=hd.img seek=2048 obs=512 ibs=512 count=131072 conv=notrunc
 
-%.gz: %
+%.gz: % runnable-image
 	gzip -fk $<
 
 lf-os.iso: bootable-filesystem
