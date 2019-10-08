@@ -160,7 +160,7 @@ _syscall_handler:
     addq $8, %rsp  # ignore cs
     pop  %r11	   # restore flags
     popq %rsp
-    addq $8, %rsp # ignore sp, ss
+    addq $8, %rsp # ignore ss
 
     mov %rbp, %rsp
     pop %rbp
