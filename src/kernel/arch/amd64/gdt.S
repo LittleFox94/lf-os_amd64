@@ -118,6 +118,8 @@ __idt_handler            45
 __idt_handler            46
 __idt_handler            47
 
+__idt_handler            80
+
 reload_cs:
     sub $16, %rsp
     movq $8, 8(%rsp)
@@ -135,6 +137,10 @@ reload_cs:
 
 _syscall_handler:
     cli
+    push %rbp
+    mov %rsp, %rbp
+    mov $0xFFFF800000FFFFF0, %rsp
+
     pushq $0x23     # ss
     pushq %rsp
     pushq %r11
@@ -155,6 +161,9 @@ _syscall_handler:
     pop  %r11	   # restore flags
     popq %rsp
     addq $8, %rsp # ignore sp, ss
-    sti
 
+    mov %rbp, %rsp
+    pop %rbp
+
+    sti
     sysretq
