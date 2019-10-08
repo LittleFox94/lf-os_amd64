@@ -193,6 +193,8 @@ bool scheduler_handle_pf(ptr_t fault_address) {
         return true;
     }
 
+    fbconsole_write("[PID %04d] Not handling page fault at 0x%x\n", scheduler_current_process, fault_address);
+
     return false;
 }
 
