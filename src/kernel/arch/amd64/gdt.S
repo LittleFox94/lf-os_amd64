@@ -1,7 +1,8 @@
-.global reload_cs
-.global _syscall_handler
 .extern syscall_handler
+.type   syscall_handler, @function
+
 .extern interrupt_handler
+.type   interrupt_handler, @function
 
 .macro __pusha
     pushq %rax
@@ -41,6 +42,7 @@
 
 .macro __idt_handler_error_code e
 .global idt_entry_\e
+.type   idt_entry_\e, @function
 idt_entry_\e:
     cli
     push $\e
@@ -49,6 +51,7 @@ idt_entry_\e:
 
 .macro __idt_handler e
 .global idt_entry_\e
+.type   idt_entry_\e, @function
 idt_entry_\e:
     cli
     pushq $0
@@ -56,6 +59,7 @@ idt_entry_\e:
     jmp _interrupt_handler_common
 .endm
 
+.type   _interrupt_handler_common, @function
 _interrupt_handler_common:
     __pusha
 
@@ -120,12 +124,16 @@ __idt_handler            47
 
 __idt_handler            80
 
+.global  reload_cs
+.type    reload_cs, @function
 reload_cs:
     sub $16, %rsp
     movq $8, 8(%rsp)
     movabsq $_reload_cs, %rax
     mov %rax, (%rsp)
     lretq
+
+	.type   _reload_cs, @function
     _reload_cs:
         mov $0x10,%cx
         mov %cx,%ds
@@ -135,6 +143,8 @@ reload_cs:
         mov %cx,%ss
         ret
 
+.global _syscall_handler
+.type   _syscall_handler, @function
 _syscall_handler:
     cli
     push %rbp
