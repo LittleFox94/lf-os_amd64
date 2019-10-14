@@ -1,0 +1,14 @@
+# vim: ft=make
+
+all: kernel/syscalls.yml
+
+kernel:
+	mkdir -p $@
+
+kernel/syscalls.yml: kernel ../../src/syscalls.yml
+	cp ../../src/syscalls.yml $@
+
+clean:
+	rm -rf kernel/syscalls.yml kernel
+
+.PHONY: clean

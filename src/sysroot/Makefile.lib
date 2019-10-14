@@ -1,0 +1,33 @@
+# vim: ft=make
+
+src_dir := $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
+
+all: libc.a
+
+libc.a: $(src_dir)../newlib/build/Makefile
+	+ make -C $(src_dir)../newlib/build
+	+ make -C $(src_dir)../newlib/build install
+	cp -r $(src_dir)../../sysroot/x86_64-lf_os-elf/* $(src_dir)../../sysroot
+	rm -rf $(src_dir)../../sysroot/x86_64-lf_os-elf
+
+$(src_dir)../newlib/build:
+	mkdir -p $@
+
+$(src_dir)../newlib/build/Makefile: $(src_dir)../newlib/build
+	cd $(src_dir)../newlib/build && \
+	CC_FOR_TARGET=gcc \
+	LD_FOR_TARGET=ld  \
+	CXX_FOR_TARGET=g++ \
+	AR_FOR_TARGET=ar \
+	AS_FOR_TARGET=gcc \
+	RANLIB_FOR_TARGET=ranlib \
+	READELF_FOR_TARGET=readelf \
+	OBJCOPY_FOR_TARGET=objcopy \
+	OBJDUMP_FOR_TARGET=objdump \
+	STRIP_FOR_TARGET=strip \
+	../configure --target x86_64-lf_os-elf --disable-multilib --prefix $(src_dir)../../sysroot
+
+clean:
+	rm -rf $(src_dir)../newlib/build
+
+.PHONY: clean

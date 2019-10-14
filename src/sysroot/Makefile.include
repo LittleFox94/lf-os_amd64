@@ -1,0 +1,19 @@
+# vim: ft=make
+
+HEADERS = kernel/syscalls.h stdint.h stdbool.h
+
+all: $(HEADERS)
+
+kernel:
+	mkdir -p $@
+
+kernel/syscalls.h: kernel ../../src/syscalls.yml ../../src/syscall-generator.pl
+	../../src/syscall-generator.pl ../../src/syscalls.yml $@ user
+
+% :: ../../src/sysroot/include/%
+	cp $< $@
+
+clean:
+	rm -rf $(HEADERS) kernel
+
+.PHOMY: clean
