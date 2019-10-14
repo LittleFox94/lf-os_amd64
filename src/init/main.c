@@ -1,38 +1,20 @@
-#define NUM_FORKS 8
+#include <stdio.h>
 
-typedef unsigned long long uint64_t;
+int main() {
+    printf("Hello world! Forking ...");
 
-__attribute__((noinline)) void print(char* msg) {
-    asm volatile("syscall"::"a"(msg), "d"(0xFF << 24):"rcx","r11");
-}
-
-__attribute__((noinline)) void exit(unsigned char exit_code) {
-    asm volatile("syscall"::"a"(exit_code), "d"(0):"rcx","r11");
-}
-
-__attribute__((noinline)) volatile unsigned long long clone(unsigned char share, unsigned long long entry) {
-    unsigned long long pid;
-    asm volatile("syscall":"=a"(pid):"a"(share),"d"(1),"b"(entry):"rcx","r11");
-    return pid;
-}
-
-__attribute__((noinline)) int main() {
-    for(int i = 0; i < NUM_FORKS; ++i) {
-        unsigned long long pid = clone(1, 0);
+    for(int i = 0; i < 4; ++i) {
+        int pid = fork();
 
         if(pid) {
-            print("Forked!");
-        }
-        else {
-            print("I'm a fork :o");
+            printf("Forked to process %d", pid);
+        } else {
+            printf("I'm a fork (%d)", i);
             return 0;
         }
     }
 
-    return 0;
-}
+    while(1);
 
-void _start() {
-    int exit_code = main();
-    exit(exit_code);
+    return 2;
 }

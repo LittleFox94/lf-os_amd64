@@ -2,6 +2,6 @@
 	cc -o $@ $<
 
 clean:
-	rm embed
+	rm -f embed
 
 .PHONY: clean

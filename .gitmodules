@@ -1,0 +1,4 @@
+[submodule "src/newlib"]
+	path = src/newlib
+	url = ../newlib-lf_os.git
+	branch = lf-os

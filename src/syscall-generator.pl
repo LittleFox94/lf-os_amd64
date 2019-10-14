@@ -88,9 +88,8 @@ if($mode eq 'kernel') {
 }
 else {
     print $outfh <<EOF
-
 #include <stdint.h>
-#
+
 EOF
 }
 
@@ -107,7 +106,7 @@ sub render_syscall_func {
                . "\n" . join("\n", map { " *  \\param[out] $_->{name} $_->{desc}" } $syscall->{returns}->@*)
                . "\n */\n";
 
-    print $outfh ($mode eq 'user' ? 'inline ' : '') . "void $name(";
+    print $outfh ($mode eq 'user' ? 'static inline ' : '') . "void $name(";
 
     print $outfh join(', ', map { "$_->{type} $_->{name}" } (
             $syscall->{parameters}->@*,

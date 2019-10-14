@@ -1,12 +1,12 @@
-CFLAGS := -ffreestanding -nostdinc -g $(OPTIMIZATION)
+CFLAGS := -nostdlib -I ../../sysroot/include -ffreestanding $(OPTIMIZATION)
 OBJECTS = main.o
 
 all: init
 
-init: $(OBJECTS)
-	ld.lld $(OBJECTS) -o $@
+init: $(OBJECTS) ../../sysroot/lib/libc.a ../../sysroot/lib/crt0.o
+	ld.lld $(OBJECTS) ../../sysroot/lib/crt0.o ../../sysroot/lib/libc.a -o $@
 
-%.o: %.c
+%.o: %.c ../../sysroot/include
 	clang $< -c $(CFLAGS) -o $@
 
 clean:

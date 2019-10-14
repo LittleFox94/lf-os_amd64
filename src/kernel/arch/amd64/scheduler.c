@@ -198,19 +198,36 @@ bool scheduler_handle_pf(ptr_t fault_address) {
     return false;
 }
 
-void sc_handle_memory_sbrk(uint64_t inc, ptr_t* data_end) {
-    if(inc) {
+void sc_handle_memory_sbrk(int64_t inc, ptr_t* data_end) {
+    fbconsole_write("[PID %04d] Moving heap break by %d bytes");
+
+    if(inc > 0) {
         inc += 0x1000 - (inc % 0x1000);
 
-        ptr_t old_end = (processes[scheduler_current_process].heap.end + 1) & 0xFFFFFFFFFFFFF000;
+        ptr_t old_end = (processes[scheduler_current_process].heap.end) & 0xFFFFFFFFFFFFF000;
         ptr_t new_end = old_end + inc;
 
-        for(ptr_t i = old_end; i < new_end; i+=0x1000) {
+        for(ptr_t i = old_end; i <= new_end; i+=0x1000) {
             vm_context_map(processes[scheduler_current_process].context, i, (ptr_t)mm_alloc_pages(1));
+        }
+
+        processes[scheduler_current_process].heap.end = new_end;
+    }
+    if(inc < 0x1000) {
+        inc += (inc % 0x1000);
+
+        ptr_t old_end = (processes[scheduler_current_process].heap.end) & 0xFFFFFFFFFFFFF000;
+        ptr_t new_end = old_end + inc;
+
+        for(ptr_t i = old_end; i > new_end; i -= 0x1000) {
+            mm_mark_physical_pages(vm_context_get_physical_for_virtual(processes[scheduler_current_process].context, i), 1, MM_FREE);
+            // TODO: unmap
         }
 
         processes[scheduler_current_process].heap.end = new_end;
     }
 
     *data_end = processes[scheduler_current_process].heap.end;
+
+    fbconsole_write(", new end at %x\n", *data_end);
 }

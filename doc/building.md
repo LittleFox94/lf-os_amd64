@@ -7,6 +7,8 @@ mostly with correct dependencies\*. You'll need some tools for building, though.
 
 (\*: *known missing: dependencies on header files*)
 
+Do not forget to also checkout the submodules!
+
 
 ## Required tools
 

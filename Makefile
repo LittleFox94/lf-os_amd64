@@ -5,7 +5,7 @@ QEMU_MEMORY        := 512M
 QEMUFLAGS 		   := -bios /usr/share/ovmf/OVMF.fd -drive format=raw,file=hd.img,if=none,id=boot_drive -device nvme,drive=boot_drive,serial=1234 -m $(QEMU_MEMORY) -d int,guest_errors --serial file:log.txt
 QEMUFLAGS_NO_DEBUG := -monitor stdio
 
-export OPTIMIZATION := -O3
+export OPTIMIZATION := 
 
 all: run-kvm
 
@@ -63,7 +63,7 @@ src/kernel/arch/amd64/kernel:
 src/loader/loader.efi:
 	+ make -C src/loader
 
-src/init/init:
+src/init/init: sysroot
 	+ make -C src/init
 
 util/gsp/gsp-trace:
@@ -80,12 +80,17 @@ install: src/loader/loader.efi src/kernel/arch/amd64/kernel src/init/init
 	cp src/kernel/arch/amd64/kernel /boot/efi/LFOS/kernel
 	cp src/init/init /boot/efi/LFOS/init
 
+sysroot:
+	mkdir -p sysroot
+	+ make -C sysroot -f ../src/sysroot/Makefile
+
 clean:
 	+ make -C src/kernel clean
 	+ make -C src/loader clean
 	+ make -C src/init clean
+	+ make -C src/sysroot clean
 	+ make -C util/gsp clean
 	+ make -C util clean
 	rm -f bootfs.img hd.img hd.img.gz lf-os.iso lf-os.iso.gz
 
-.PHONY: clean all test test-kvm src/kernel/arch/amd64/kernel src/init/init src/loader/loader.efi util/gsp/gsp-trace util/gsp/gsp-syms util/embed
+.PHONY: clean all test test-kvm src/kernel/arch/amd64/kernel src/init/init src/loader/loader.efi util/gsp/gsp-trace util/gsp/gsp-syms util/embed sysroot

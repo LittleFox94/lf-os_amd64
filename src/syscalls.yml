@@ -41,7 +41,7 @@ groups:
     parameters:
     - name: inc
       desc: Minimum number of bytes to add the data segment
-      type: uint64_t
+      type: int64_t
       reg:  rax
     returns:
     - name: data_end
