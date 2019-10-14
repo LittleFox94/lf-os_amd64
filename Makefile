@@ -84,6 +84,9 @@ sysroot:
 	mkdir -p sysroot
 	+ make -C sysroot -f ../src/sysroot/Makefile
 
+sysroot.tar.xz: sysroot
+	tar cJf sysroot.tar.xz sysroot --transform s~sysroot~x86_64-lf_os-elf~
+
 clean:
 	+ make -C src/kernel clean
 	+ make -C src/loader clean

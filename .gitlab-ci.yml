@@ -23,8 +23,9 @@ pages:
 build:
   stage: build
   script:
-    - make hd.img.gz lf-os.iso.gz
+    - make hd.img.gz lf-os.iso.gz sysroot.tar.xz
   artifacts:
     paths:
       - hd.img.gz
       - lf-os.iso.gz
+      - sysroot.tar.xz
