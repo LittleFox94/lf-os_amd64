@@ -23,7 +23,7 @@ pages:
 build:
   stage: build
   variables:
-    GIT_SUBMODULE_SETUP: recursive
+    GIT_SUBMODULE_STRATEGY: recursive
   script:
     - make hd.img.gz lf-os.iso.gz sysroot.tar.xz
   artifacts:
