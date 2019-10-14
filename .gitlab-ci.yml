@@ -4,6 +4,10 @@ stages:
 - build
 - pages
 
+variables:
+  GIT_SUBMODULE_STRATEGY: recursive
+  GIT_STRATEGY:           clone
+
 test:
   stage: test
   script:
@@ -22,9 +26,6 @@ pages:
 
 build:
   stage: build
-  variables:
-    GIT_SUBMODULE_STRATEGY: recursive
-    GIT_STRATEGY:           clone
   script:
     - make hd.img.gz lf-os.iso.gz sysroot.tar.xz
   artifacts:
