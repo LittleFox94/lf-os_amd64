@@ -79,15 +79,15 @@ void fbconsole_clear(int r, int g, int b) {
     fbconsole.current_col = 0;
 }
 
-void fbconsole_blt(uint8_t* image, uint16_t width, uint16_t height, int16_t tx, int16_t ty) {
+void fbconsole_blt(const uint8_t* image, uint16_t width, uint16_t height, int16_t tx, int16_t ty) {
     if(tx < 0) tx = fbconsole.width + tx;
     if(ty < 0) ty = fbconsole.height + ty;
 
     for(uint16_t y = 0; y < height; ++y) {
-        size_t imgRow =  y       *           width * 3;
+        size_t imgRow =  y       *           width * 4;
         size_t fbRow  = (ty + y) * fbconsole.width * 4;
         for(uint16_t x = 0; x < width; ++x) {
-            size_t imgCol = imgRow + (x * 3);
+            size_t imgCol = imgRow + (x * 4);
             size_t fbCol  = fbRow  + ((tx + x) * 4);
 
             fbconsole.backbuffer[fbCol + 2] = image[imgCol + 0];
