@@ -1,4 +1,4 @@
-CFLAGS := -nostdlib -I ../../sysroot/include -ffreestanding $(OPTIMIZATION)
+CFLAGS := -g -nostdlib -I ../../sysroot/include -ffreestanding $(OPTIMIZATION)
 OBJECTS = main.o
 
 all: init
