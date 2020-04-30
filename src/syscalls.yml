@@ -24,7 +24,7 @@ groups:
       desc: |
         Entrypoint of the child. Special case: NULL, will continue at the same code location (only valid if share_memory == 1)
       type: ptr_t
-      reg:  rbx
+      reg:  rdi
     returns:
     - name: pid
       desc: PID of the new process in the old process, 0 in the new process

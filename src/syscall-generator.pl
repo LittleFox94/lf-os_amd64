@@ -62,6 +62,15 @@ my %TYPES = (
     },
 );
 
+my %reg_to_inline_asm = (
+    rax => 'a',
+    rbx => 'b',
+    rcx => 'c',
+    rdx => 'd',
+    rsi => 'S',
+    rdi => 'D',
+);
+
 sub help {
     print STDERR "Usage: $0 syscalls.yml syscall.gen.c kernel|user\n";
     exit -1;
@@ -168,9 +177,11 @@ sub render_syscall_func {
         print $outfh "    uint64_t rdx = (($group->{number} & 0xFF) << 24) | ($syscall->{number} & 0xFFFFFF);\n";
 
         print $outfh "\n    asm volatile(\"syscall\":";
-        print $outfh join(', ', map { '"=' . substr($_->{reg}, 1, 1) . "\"($_->{reg})" } $syscall->{returns}->@*);
+        print $outfh join(', ', map { '"=' . $reg_to_inline_asm{$_->{reg}} . "\"($_->{reg})" } $syscall->{returns}->@*);
         print $outfh ':';
-        print $outfh join(', ', map { '"' . substr($_, 1, 1) . "\"($_)" } (keys %pregs, 'rdx'));
+        print $outfh join(', ', map { '"' . $reg_to_inline_asm{$_} . "\"($_)" } (keys %pregs, 'rdx'));
+        print $outfh ':';
+        print $outfh '"rbx", "rcx", "r11"';
         print $outfh ");\n\n";
 
         my %rregs;
@@ -281,7 +292,7 @@ sub render_syscall_decode {
 
 
     print $outfh "\n\n                // encode return values\n";
-    
+
     my %rregs;
     for my $arg ($syscall->{returns}->@*) {
         push($rregs{$arg->{reg}}->@*, $arg);

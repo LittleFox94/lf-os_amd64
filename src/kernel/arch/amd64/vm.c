@@ -3,10 +3,11 @@
 #include "string.h"
 #include "fbconsole.h"
 #include "slab.h"
+#include "bluescreen.h"
 
 static bool vm_direct_mapping_initialized = false;
 
-#define BASE_TO_TABLE(x) ((vm_table_t*)((uint64_t)(vm_direct_mapping_initialized ? ALLOCATOR_REGION_DIRECT_MAPPING.start : 0) | ((uint64_t)x << 12)))
+#define BASE_TO_TABLE(x) ((vm_table_t*)((uint64_t)(vm_direct_mapping_initialized ? ALLOCATOR_REGION_DIRECT_MAPPING.start : 0) + ((uint64_t)x << 12)))
 
 #define PML4_INDEX(x) (((x) >> 39) & 0x1FF)
 #define PDP_INDEX(x)  (((x) >> 30) & 0x1FF)
@@ -19,7 +20,7 @@ void vm_setup_direct_mapping_init(vm_table_t* context) {
     // we have to implement a lot code from below in a simpler way since we cannot assume a lot of things assumed below:
     //  - we do not have the direct mapping of all physical memory yet, so we have to carefully work with virtual and physical addresses
     //  - we do not have malloc() yet
-    //  - we do not have any exception handlers in place. Creating a page fault _noW_ will reboot the system
+    //  - we do not have any exception handlers in place. Creating a page fault _now_ will reboot the system
 
     // to make things simple, we just don't call any other function here that relies on the virtual memory management
     // things allowed here:
@@ -120,6 +121,58 @@ void vm_setup_direct_mapping_init(vm_table_t* context) {
 
 void init_vm() {
     vm_setup_direct_mapping_init(VM_KERNEL_CONTEXT);
+
+    vm_table_t* new_kernel_context = (vm_table_t*)vm_context_alloc_pages(VM_KERNEL_CONTEXT, ALLOCATOR_REGION_KERNEL_HEAP, 1);
+    memcpy(new_kernel_context, VM_KERNEL_CONTEXT, 4*KiB);
+
+    VM_KERNEL_CONTEXT = new_kernel_context;
+}
+
+void cleanup_boot_vm() {
+    size_t ret = 0;
+
+    // XXX: check higher half mappings if this page is mapped elsewhere
+    //      mark physical page as free if not
+    //      -> search for ret += foo lines
+
+    for(uint16_t pml4_idx = 0; pml4_idx < 256; ++pml4_idx) {
+        if(VM_KERNEL_CONTEXT->entries[pml4_idx].present) {
+            vm_table_t* pdp = BASE_TO_TABLE(VM_KERNEL_CONTEXT->entries[pml4_idx].next_base);
+
+            for(uint16_t pdp_idx = 0; pdp_idx < 512; ++pdp_idx) {
+                if(pdp->entries[pdp_idx].huge) {
+                    ret += 1*GiB;
+                }
+                else if(pdp->entries[pdp_idx].present) {
+                    vm_table_t* pd = BASE_TO_TABLE(pdp->entries[pdp_idx].next_base);
+
+                    for(uint16_t pd_idx = 0; pd_idx < 512; ++pd_idx) {
+                        if(pd->entries[pd_idx].huge) {
+                            ret += 2*MiB;
+                        }
+                        else if(pd->entries[pd_idx].present) {
+                            vm_table_t* pt = BASE_TO_TABLE(pd->entries[pd_idx].next_base);
+
+                            for(uint16_t pt_idx = 0; pt_idx < 512; ++pt_idx) {
+                                if(pt->entries[pt_idx].present) {
+                                    pt->entries[pt_idx].present = 0;
+                                    ret += 4*KiB;
+                                }
+                            }
+                        }
+
+                        pd->entries[pd_idx].present = 0;
+                    }
+                }
+
+                pdp->entries[pdp_idx].present = 0;
+            }
+        }
+
+        VM_KERNEL_CONTEXT->entries[pml4_idx].present = 0;
+    }
+
+    fbconsole_write(" -> %B freed", ret);
 }
 
 void vm_setup_direct_mapping(vm_table_t* context) {
@@ -188,59 +241,6 @@ void vm_context_map(vm_table_t* context, ptr_t virtual, ptr_t physical) {
     pt_entry->present   = 1;
     pt_entry->writeable = 1;
     pt_entry->userspace = 1;
-}
-
-/*ptr_t vm_context_get_free_address(vm_table_t *table, bool kernel) {
-    int indices[4] = {kernel ? 256 : 0, 0, 0, 0};
-
-    while(1) {
-        vm_table_t* pdp = BASE_TO_TABLE(table->entries[indices[0]].next_base);
-        vm_table_t* pd  = BASE_TO_TABLE(pdp  ->entries[indices[1]].next_base);
-        vm_table_t* pt  = BASE_TO_TABLE(pd   ->entries[indices[2]].next_base);
-
-        if(!vm_table_check_present(table, indices[0]) ||
-           !vm_table_check_present(pdp,   indices[1]) ||
-           !vm_table_check_present(pd,    indices[2]) ||
-           !vm_table_check_present(pt,    indices[3])
-        ) {
-            break;
-        }
-        else {
-            ++indices[3];
-
-            if(indices[3] == 512) {
-                indices[3] = 0;
-                ++indices[2];
-
-                if(indices[2] == 512) {
-                    indices[2] = 0;
-                    ++indices[1];
-
-                    if(indices[1] == 512) {
-                        indices[1] = 0;
-                        ++indices[0];
-
-                        if(indices[0] == (kernel ? 512 : 256)) {
-                            return 0;
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    ptr_t address = indices[0] > 255 ? 0xFFFF000000000000 : 0;
-    address      |= ((uint64_t)indices[0] << 39);
-    address      |= ((uint64_t)indices[1] << 30);
-    address      |= ((uint64_t)indices[2] << 21);
-    address      |= ((uint64_t)indices[3] << 12);
-
-    return address;
-}*/
-
-
-bool vm_table_check_present(vm_table_t* table, int index) {
-    return table->entries[index].present;
 }
 
 int vm_table_get_free_index1(vm_table_t *table) {
@@ -378,6 +378,10 @@ void vm_copy_page(vm_table_t* dst_ctx, ptr_t dst, vm_table_t* src_ctx, ptr_t src
             dst_phys = vm_context_get_physical_for_virtual(dst_ctx, dst);
         }
 
-        memcpy((void*)(dst_phys + ALLOCATOR_REGION_DIRECT_MAPPING.start), (void*)(src_phys + ALLOCATOR_REGION_DIRECT_MAPPING.start), 0x1000);
+        if(src_phys != dst_phys) {
+            memcpy((void*)(dst_phys + ALLOCATOR_REGION_DIRECT_MAPPING.start), (void*)(src_phys + ALLOCATOR_REGION_DIRECT_MAPPING.start), 0x1000);
+        } else {
+            panic_message("vm_copy_page with same src and dest physical mapping!");
+        }
     }
 }

@@ -7,6 +7,7 @@
 #include "scheduler.h"
 #include "pic.h"
 #include "bluescreen.h"
+#include "vm.h"
 
 #define GDT_ACCESSED   0x01
 #define GDT_RW         0x02
@@ -29,12 +30,12 @@ typedef struct {
 }__attribute__((packed)) idt_entry_t;
 
 typedef struct {
-    uint16_t   limitLow;
-    uint16_t   baseLow;
-    uint8_t    baseMid;
-    uint8_t    type;
-    uint8_t    size;
-    uint8_t    baseHigh;
+    uint16_t limitLow;
+    uint16_t baseLow;
+    uint8_t  baseMid;
+    uint8_t  type;
+    uint8_t  size;
+    uint8_t  baseHigh;
 }__attribute__((packed)) gdt_entry_t;
 
 typedef struct {
@@ -134,16 +135,20 @@ extern void idt_entry_45();
 extern void idt_entry_46();
 extern void idt_entry_47();
 
+cpu_local_data cpu0;
+
 void init_sc() {
     _setup_idt();
+    cpu0.kernel_stack = vm_context_alloc_pages(VM_KERNEL_CONTEXT, ALLOCATOR_REGION_KERNEL_HEAP, 1) + 4096;
 
-    asm("mov $0xC0000080, %rcx\n"
+    asm("mov $0xC0000080, %%rcx\n"
         "rdmsr\n"
-        "or $1, %rax\n"
-        "wrmsr");
+        "or $1, %%rax\n"
+        "wrmsr":::"rcx","rax");
 
     write_msr(0xC0000081, 0x001B000800000000);
     write_msr(0xC0000082, (ptr_t)_syscall_handler);
+    write_msr(0xC0000102, (ptr_t)(&cpu0));
 }
 
 void _set_idt_entry(int index, ptr_t base) {
@@ -259,15 +264,19 @@ void init_gdt() {
 }
 
 __attribute__((force_align_arg_pointer)) cpu_state* interrupt_handler(cpu_state* cpu) {
+    scheduler_process_save(cpu);
+
     if(cpu->interrupt < 32) {
         if((cpu->rip & 0x0000800000000000) == 0) {
             if(cpu->interrupt == 0x0e) {
                 ptr_t fault_address;
                 asm("mov %%cr2, %0":"=r"(fault_address));
+
                 if(scheduler_handle_pf(fault_address)) {
                     return cpu;
                 }
             }
+
             // exception in user space
             scheduler_kill_current(kill_reason_abort);
 
@@ -283,14 +292,6 @@ __attribute__((force_align_arg_pointer)) cpu_state* interrupt_handler(cpu_state*
     }
     else if(cpu->interrupt >= 32 && cpu->interrupt < 48) {
         pic_set_handled(cpu->interrupt);
-    }
-
-    if(cpu->interrupt == 33) {
-        char data = inb(0x60);
-
-        if(data == 0x01) {
-            panic_message("Escape was pressed");
-        }
     }
 
     cpu_state*  new_cpu = cpu;
@@ -309,8 +310,12 @@ __attribute__((force_align_arg_pointer)) cpu_state* syscall_handler(cpu_state* c
 
     cpu_state*  new_cpu = cpu;
     vm_table_t* new_context;
-    schedule_available(&new_cpu, &new_context); // if process is exited now, we need a new process
-    vm_context_activate(new_context);
+    if(schedule_available(&new_cpu, &new_context)) { // if process is exited now, we need a new process
+        vm_context_activate(new_context);
+        return new_cpu;
+    }
 
-    return new_cpu;
+    return cpu;
 }
+
+cpu_state _sc_cpu_buffer;

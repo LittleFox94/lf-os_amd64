@@ -56,15 +56,6 @@ int sputui(char* buffer, int buffer_size, uint64_t number, int base) {
 
     int count = 0;
 
-    if(number < 0) {
-        buffer[0] = '-';
-        buffer++;
-
-        buffer_size--;
-        count++;
-        number *= -1;
-    }
-
     const int size = 64;
     int i          = size - 1;
     char num_buffer[size];

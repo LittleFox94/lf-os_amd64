@@ -22,7 +22,7 @@ struct SymbolData {
 
 struct SymbolData* bluescreen_symbols = 0;
 
-void _panic_message(const char* message, uint64_t rbp) {
+void _panic_message(const char* message, uint64_t rbp, bool rbp_given) {
     //fbconsole_clear(0, 0, 127);
     fbconsole_write("\n\e[38;5;9m\e[48;5;0m");
     fbconsole_write("An error occured and LF OS has to be halted.\n"
@@ -34,7 +34,7 @@ void _panic_message(const char* message, uint64_t rbp) {
 
     struct StackFrame* frame;
 
-    if(!rbp) {
+    if(!rbp_given) {
         asm("mov %%rbp,%0":"=r"(frame));
     }
     else {
@@ -77,7 +77,7 @@ void _panic_message(const char* message, uint64_t rbp) {
         }
     }
 
-    fbconsole_write("\n\n");
+    fbconsole_write("\n");
 }
 
 void panic() {
@@ -85,7 +85,7 @@ void panic() {
 }
 
 void panic_message(const char* message) {
-    _panic_message(message, 0);
+    _panic_message(message, 0, false);
     while(1) {
         asm("hlt");
     }
@@ -132,8 +132,7 @@ void panic_cpu(const cpu_state* cpu) {
         uint64_t cr2;
         asm("mov %%cr2, %0":"=r"(cr2));
 
-
-        if(bluescreen_symbols != 0) {
+        if(bluescreen_symbols != 0 && cr2 != 0) {
             int64_t difference = 0x7FFFFFFFFFFFFFFF;
             struct Symbol* best = 0;
 
@@ -147,21 +146,36 @@ void panic_cpu(const cpu_state* cpu) {
                 }
             }
 
-            if(best) {
-                fbconsole_write("\e[38;5;15m %s(+0x%x)", bluescreen_symbols->symbolNames + best->name, cr2 - best->address);
-            }
-
-            ksnprintf(cr2_msg, 256, " @ %016x, %s(+0x%x)", cr2, bluescreen_symbols->symbolNames + best->name, cr2 - best->address);
+            ksnprintf(cr2_msg, 256, " @ 0x%016x, %s(+0x%x)", cr2, bluescreen_symbols->symbolNames + best->name, cr2 - best->address);
         }
         else {
-            ksnprintf(cr2_msg, 256, " @ %016x");
+            ksnprintf(cr2_msg, 256, " @ 0x%016x", cr2);
         }
 
     }
 
     char message[256];
     ksnprintf(message, 256, "Interrupt: 0x%02x (%s), error: 0x%04x%s", cpu->interrupt, exceptions[cpu->interrupt], cpu->error_code, cr2_msg);
-    _panic_message(message, cpu->rbp);
+    _panic_message(message, cpu->rbp, true);
+
+    if(bluescreen_symbols != 0) {
+        int64_t difference = 0x7FFFFFFFFFFFFFFF;
+        struct Symbol* best = 0;
+
+        for(size_t i = 0; i < bluescreen_symbols->numSymbols; ++i) {
+            struct Symbol* current = (struct Symbol*)((ptr_t)bluescreen_symbols->symbols + (sizeof(struct Symbol) * i));
+
+            if(cpu->rip - current->address > 0) {
+                if(difference > cpu->rip - current->address) {
+                    best = current;
+                }
+            }
+        }
+
+        if(best) {
+            fbconsole_write("\e[38;7;7mRIP: \e[38;5;15m %s(+0x%x)\n\n", bluescreen_symbols->symbolNames + best->name, cpu->rip - best->address);
+        }
+    }
 
     DUMP_CPU(cpu);
 

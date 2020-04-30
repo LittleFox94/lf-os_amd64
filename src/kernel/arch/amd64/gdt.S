@@ -40,12 +40,83 @@
     popq %rax
 .endm
 
+.global reload_cs
+.type   reload_cs, @function
+reload_cs:
+    sub $16,   %rsp
+    movq $8, 8(%rsp)
+    movabsq $_reload_cs, %rax
+    mov %rax, (%rsp)
+    lretq
+
+    .type _reload_cs, @function
+    _reload_cs:
+        mov $0x10, %cx
+        mov %cx,   %ds
+        mov %cx,   %es
+        mov %cx,   %ss
+        mov %cx,   %fs
+        mov %cx,   %gs
+
+        ret
+
+.type _interrupt_handler_common, @function
+_interrupt_handler_common:
+    cli
+    __pusha
+    mov  %rsp, %rdi
+    call interrupt_handler
+    mov  %rax, %rsp
+    __popa
+
+    add $16, %rsp /* remove error code and interrupt from stack */
+    sti
+    iretq
+
+.global _syscall_handler
+.type   _syscall_handler, @function
+_syscall_handler:
+    cli
+    mov %rsp, %rbx
+    swapgs
+    mov %gs:0, %rsp
+
+    pushq $0x23    # fake ss
+    push %rbx      # push original stack pointer
+    push %r11      # store flags
+    pushq $0x2B    # fake cs
+    push %rcx      # user rip
+
+    pushq $0       # bogus error
+    pushq $0       # bogus interrupt
+
+    __pusha
+    mov  %rsp, %rdi
+    call syscall_handler
+    mov  %rax, %rsp
+    __popa
+
+    add $16, %rsp  # ignore bogus error and interrupt
+
+    pop %rcx       # user rip
+    add $8, %rsp   # ignore cs
+    pop %r11       # restore flags
+    pop %rbx       # restore original stack pointer
+    add $8, %rsp   # ignore ss
+
+    swapgs
+    mov %rbx, %rsp
+    sti
+    sysretq
+
+# interrupt vectors
+
 .macro __idt_handler_error_code e
 .global idt_entry_\e
 .type   idt_entry_\e, @function
 idt_entry_\e:
     cli
-    push $\e
+    pushq $\e
     jmp _interrupt_handler_common
 .endm
 
@@ -55,22 +126,9 @@ idt_entry_\e:
 idt_entry_\e:
     cli
     pushq $0
-    push $\e
+    pushq $\e
     jmp _interrupt_handler_common
 .endm
-
-.type   _interrupt_handler_common, @function
-_interrupt_handler_common:
-    __pusha
-
-    movq %rsp,%rdi
-    call interrupt_handler
-    movq %rax,%rsp
-
-    __popa
-    addq $16,%rsp /* remove error code from stack */
-
-    iretq
 
 __idt_handler             0
 __idt_handler             1
@@ -121,59 +179,3 @@ __idt_handler            44
 __idt_handler            45
 __idt_handler            46
 __idt_handler            47
-
-__idt_handler            80
-
-.global  reload_cs
-.type    reload_cs, @function
-reload_cs:
-    sub $16, %rsp
-    movq $8, 8(%rsp)
-    movabsq $_reload_cs, %rax
-    mov %rax, (%rsp)
-    lretq
-
-	.type   _reload_cs, @function
-    _reload_cs:
-        mov $0x10,%cx
-        mov %cx,%ds
-        mov %cx,%es
-        mov %cx,%fs
-        mov %cx,%gs
-        mov %cx,%ss
-        ret
-
-.global _syscall_handler
-.type   _syscall_handler, @function
-_syscall_handler:
-    cli
-    push %rbp
-    mov %rsp, %rbp
-    mov $0xFFFF800000FFFFF0, %rsp
-
-    pushq $0x23     # ss
-    pushq %rsp
-    pushq %r11
-    pushq $0x2B     # cs
-    pushq %rcx      # user rip
-    pushq $0        # bogus interrupt
-    pushq $0        # bogus errorcode
-
-    __pusha
-    movq %rsp,%rdi
-    call syscall_handler
-    movq %rax,%rsp
-    __popa
-
-    addq $16,%rsp  # ignore bogus error and interrupt
-    popq %rcx      # user rip
-    addq $8, %rsp  # ignore cs
-    pop  %r11	   # restore flags
-    popq %rsp
-    addq $8, %rsp # ignore ss
-
-    mov %rbp, %rsp
-    pop %rbp
-
-    sti
-    sysretq

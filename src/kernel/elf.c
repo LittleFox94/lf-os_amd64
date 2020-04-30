@@ -52,12 +52,12 @@ ptr_t load_elf(ptr_t start, vm_table_t* context, ptr_t* data_start, ptr_t* data_
             vm_context_map(context, (ptr_t)programHeader->vaddr + j, physical);
         }
 
-        ptr_t end = programHeader->vaddr + programHeader->memLength;
+        ptr_t end = programHeader->vaddr + programHeader->memLength + 1;
         if(*data_end <= end) {
-            *data_end = end + 1;
+            *data_end = end;
         }
 
-        if(programHeader->vaddr > *data_start) {
+        if(programHeader->vaddr < *data_start) {
             *data_start = programHeader->vaddr;
         }
     }

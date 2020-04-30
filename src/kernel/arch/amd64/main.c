@@ -85,6 +85,11 @@ void main(void* loaderData) {
     )
 
     INIT_STEP(
+        "Cleaning bootup memory structures",
+        cleanup_boot_vm();
+    )
+
+    INIT_STEP(
         "Preparing and starting userspace",
         init_init(loaderStruct);
     )

@@ -22,12 +22,16 @@ typedef struct {
 
     uint64_t interrupt, error_code;
 
-	uint64_t rip;
+    uint64_t rip;
     uint64_t cs;
     uint64_t rflags;
     uint64_t rsp;
     uint64_t ss;
 } cpu_state;
+
+typedef struct {
+    ptr_t kernel_stack;
+} cpu_local_data;
 
 static inline void outb(uint16_t port, uint8_t data) {
     asm volatile ("outb %0, %1" : : "a" (data), "Nd" (port));
@@ -40,7 +44,7 @@ static inline uint8_t inb(uint16_t port) {
 }
 
 #define DUMP_CPU(cpu)  \
-    fbconsole_write("<-- cut here [CPU DUMP START] ---->\n"); \
+    fbconsole_write("\e[38;5;15m<-- cut here [CPU DUMP START] ---->\n"); \
     fbconsole_write("\e[38;5;7m%3s: \e[38;5;15m0x%016x \e[38;5;7m%3s: \e[38;5;15m0x%016x \e[38;5;7m%3s: \e[38;5;15m0x%016x \e[38;5;7m%7s: \e[38;5;15m0x%016x\n", "RAX", cpu->rax, "RBX", cpu->rbx, "RCX", cpu->rcx, "RDX",    cpu->rdx); \
     fbconsole_write("\e[38;5;7m%3s: \e[38;5;15m0x%016x \e[38;5;7m%3s: \e[38;5;15m0x%016x \e[38;5;7m%3s: \e[38;5;15m0x%016x \e[38;5;7m%7s: \e[38;5;15m0x%016x\n", "RSI", cpu->rsi, "RDI", cpu->rdi, "RBP", cpu->rbp, "RSP",    cpu->rsp); \
     fbconsole_write("\e[38;5;7m%3s: \e[38;5;15m0x%016x \e[38;5;7m%3s: \e[38;5;15m0x%016x \e[38;5;7m%3s: \e[38;5;15m0x%016x \e[38;5;7m%7s: \e[38;5;15m0x%016x\n", "R8",  cpu->r8,  "R9",  cpu->r9,  "R10", cpu->r10, "R11",    cpu->r11); \
