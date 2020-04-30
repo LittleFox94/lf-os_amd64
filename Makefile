@@ -5,7 +5,7 @@ QEMU_MEMORY        := 512M
 QEMUFLAGS 		   := -bios /usr/share/ovmf/OVMF.fd -drive format=raw,file=hd.img,if=none,id=boot_drive -device nvme,drive=boot_drive,serial=1234 -m $(QEMU_MEMORY) -d int,guest_errors --serial file:log.txt
 QEMUFLAGS_NO_DEBUG := -monitor stdio
 
-export OPTIMIZATION := 
+export OPTIMIZATION := -O3
 
 all: run-kvm
 
