@@ -30,25 +30,16 @@ ptr_t load_elf(ptr_t start, vm_table_t* context, ptr_t* data_start, ptr_t* data_
             continue;
         }
 
-        size_t j = 0;
-
-        for(;j < programHeader->fileLength; j += 4096) {
+        for(size_t j = 0; j < programHeader->memLength; j += 0x1000) {
             ptr_t physical = (ptr_t)mm_alloc_pages(1);
-            memset((void*)(ALLOCATOR_REGION_DIRECT_MAPPING.start + physical), 0, 4096);
+            memset((void*)(physical + ALLOCATOR_REGION_DIRECT_MAPPING.start), 0, 0x1000);
 
-            size_t toCopy  = programHeader->fileLength - j;
-
-            if(toCopy > 4096) {
-                toCopy = 4096;
+            if(j < programHeader->fileLength) {
+                size_t toCopy = programHeader->fileLength - j;
+                if(toCopy > 0x1000) toCopy = 0x1000;
+                memcpy((void*)(physical + ALLOCATOR_REGION_DIRECT_MAPPING.start), (void*)(start + programHeader->offset + j), toCopy);
             }
 
-            memcpy((void*)(ALLOCATOR_REGION_DIRECT_MAPPING.start + physical), (void*)(start + programHeader->offset + j), toCopy);
-            vm_context_map(context, (ptr_t)programHeader->vaddr + j, physical);
-        }
-
-        for(;j < programHeader->memLength; j += 4096) {
-            ptr_t physical = (ptr_t)mm_alloc_pages(1);
-            memset((void*)(ALLOCATOR_REGION_DIRECT_MAPPING.start + physical), 0, 4096);
             vm_context_map(context, (ptr_t)programHeader->vaddr + j, physical);
         }
 
