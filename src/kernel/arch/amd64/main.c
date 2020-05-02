@@ -170,6 +170,11 @@ void init_init(LoaderStruct* loaderStruct) {
             ptr_t data_start = 0;
             ptr_t data_end   = 0;
             ptr_t entrypoint = load_elf((ptr_t)data, context, &data_start, &data_end);
+
+            if(!entrypoint) {
+                panic_message("Failed to load init");
+            }
+
             start_task(context, entrypoint, data_start, data_end);
         }
     }
