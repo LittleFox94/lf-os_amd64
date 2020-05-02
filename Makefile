@@ -9,7 +9,7 @@ export OPTIMIZATION := -O3
 
 all: run-kvm
 
-doc: runnable-image # to generate some sources
+doc: src/kernel/arch/amd64/kernel # to get some generated sources
 	doxygen Doxyfile
 
 test:
