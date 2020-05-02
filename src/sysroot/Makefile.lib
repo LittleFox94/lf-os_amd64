@@ -11,13 +11,13 @@ libc.a: $(src_dir)../newlib/build/Makefile
 	rm -rf $(src_dir)../../sysroot/x86_64-lf_os-elf
 
 crti.o: $(src_dir)lib/crti.S
-	clang -g -c $< -o $@
+	clang -g -flto -c $< -o $@
 
 crtn.o: $(src_dir)lib/crtn.S
-	clang -g -c $< -o $@
+	clang -g -flto -c $< -o $@
 
 crt1.o: $(src_dir)lib/crt1.S
-	clang -g -c $< -o $@
+	clang -g -flto -c $< -o $@
 
 $(src_dir)../newlib/build:
 	mkdir -p $@
@@ -27,14 +27,14 @@ $(src_dir)../newlib/build/Makefile: $(src_dir)../newlib/build crti.o crtn.o
 	CC_FOR_TARGET=clang \
 	LD_FOR_TARGET=ld.lld  \
 	CXX_FOR_TARGET=clang++ \
-	AR_FOR_TARGET=ar \
+	AR_FOR_TARGET=llvm-ar-9 \
 	AS_FOR_TARGET=clang \
-	RANLIB_FOR_TARGET=ranlib \
-	READELF_FOR_TARGET=readelf \
-	OBJCOPY_FOR_TARGET=objcopy \
-	OBJDUMP_FOR_TARGET=objdump \
-	STRIP_FOR_TARGET=strip \
-	CFLAGS_FOR_TARGET="$(CFLAGS) -D__GLIBC_USE\(...\)=0 $(OPTIMIZATION) -fuse-init-array" \
+	RANLIB_FOR_TARGET=llvm-ranlib-9 \
+	READELF_FOR_TARGET=llvm-readelf-9 \
+	OBJCOPY_FOR_TARGET=llvm-objcopy-9 \
+	OBJDUMP_FOR_TARGET=llvm-objdump-9 \
+	STRIP_FOR_TARGET=llvm-strip-9 \
+	CFLAGS_FOR_TARGET="$(CFLAGS) -flto -DHAVE_INITFINI_ARRAY -D__GLIBC_USE\(...\)=0 $(OPTIMIZATION) -fuse-init-array" \
 	../configure --target x86_64-lf_os-elf --disable-multilib --prefix $(src_dir)../../sysroot
 
 clean:
