@@ -8,18 +8,18 @@ ptr_t load_elf(ptr_t start, vm_table_t* context, ptr_t* data_start, ptr_t* data_
     elf_file_header_t* header = (elf_file_header_t*)start;
 
     if(header->ident_magic != ELF_MAGIC) {
-        fbconsole_write("[ELF] not an ELF file, invalid magic (%x != %x)!\n", header->ident_magic, ELF_MAGIC);
+        fbconsole_write("\n[ELF] not an ELF file, invalid magic (%x != %x)!", header->ident_magic, ELF_MAGIC);
         return 0;
     }
 
     if(header->machine != 0x3E || header->version != 1) {
-        fbconsole_write("[ELF] incompatible ELF file, invalid machine or version\n");
+        fbconsole_write("\n[ELF] incompatible ELF file, invalid machine or version");
         return 0;
     }
 
     // check if file is an executable
     if(header->type != 0x02) {
-        fbconsole_write("[ELF] file not executable (%u != %u)\n", header->type, 2);
+        fbconsole_write("\n[ELF] file not executable (%u != %u)", header->type, 2);
         return 0;
     }
 
@@ -28,6 +28,11 @@ ptr_t load_elf(ptr_t start, vm_table_t* context, ptr_t* data_start, ptr_t* data_
 
         if(programHeader->type != 1) {
             continue;
+        }
+
+        if(programHeader->vaddr & ~0xFFF) {
+            fbconsole_write("\n[ELF] segment not page aligned!");
+            return 0;
         }
 
         for(size_t j = 0; j < programHeader->memLength; j += 0x1000) {
@@ -52,6 +57,9 @@ ptr_t load_elf(ptr_t start, vm_table_t* context, ptr_t* data_start, ptr_t* data_
             *data_start = programHeader->vaddr;
         }
     }
+
+    *data_end += 4096;
+    *data_end &= ~0xFFF;
 
     return header->entrypoint;
 }
