@@ -1,4 +1,4 @@
-image: registry.lf-net.org/littlefox/lf-os_amd64/ci:2019091702
+image: registry.lf-net.org/littlefox/lf-os_amd64/ci:2020050201
 stages:
 - test
 - build
