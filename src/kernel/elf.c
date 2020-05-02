@@ -30,7 +30,7 @@ ptr_t load_elf(ptr_t start, vm_table_t* context, ptr_t* data_start, ptr_t* data_
             continue;
         }
 
-        if(programHeader->vaddr & ~0xFFF) {
+        if(programHeader->vaddr & 0xFFF) {
             fbconsole_write("\n[ELF] segment not page aligned!");
             return 0;
         }
