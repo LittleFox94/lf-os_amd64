@@ -13,10 +13,9 @@ void init_scheduler();
 void start_task(vm_table_t* context, ptr_t entry, ptr_t data_start, ptr_t data_end);
 
 void schedule_next(cpu_state** cpu, vm_table_t** context);
-bool schedule_available(cpu_state** cpu, vm_table_t** context);
 void scheduler_process_save(cpu_state* cpu);
 
-bool scheduler_handle_pf(ptr_t fault_address);
+bool scheduler_handle_pf(ptr_t fault_address, uint64_t error_code);
 void scheduler_kill_current(enum kill_reason_t kill_reason);
 
 #endif

@@ -81,15 +81,14 @@ void start_task(vm_table_t* context, ptr_t entry, ptr_t data_start, ptr_t data_e
 }
 
 void scheduler_process_save(cpu_state* cpu) {
-    if(scheduler_current_process >= 0) {
+    if(scheduler_current_process >= 0 && processes[scheduler_current_process].state == process_state_running) {
         memcpy(&processes[scheduler_current_process].cpu, cpu, sizeof(cpu_state));
     }
 }
 
 void schedule_next(cpu_state** cpu, vm_table_t** context) {
-    if(scheduler_current_process > -1 && processes[scheduler_current_process].state == process_state_running) {
+    if(scheduler_current_process >= 0 && processes[scheduler_current_process].state == process_state_running) {
         processes[scheduler_current_process].state = process_state_runnable;
-        scheduler_process_save(*cpu);
     }
 
     int processBefore = scheduler_current_process;
@@ -116,15 +115,6 @@ void schedule_next(cpu_state** cpu, vm_table_t** context) {
     processes[scheduler_current_process].state = process_state_running;
     *cpu     = &processes[scheduler_current_process].cpu;
     *context =  processes[scheduler_current_process].context;
-}
-
-bool schedule_available(cpu_state** cpu, vm_table_t** context) {
-    if(scheduler_current_process < 0 || processes[scheduler_current_process].state != process_state_running) {
-        schedule_next(cpu, context);
-        return true;
-    }
-
-    return false;
 }
 
 void scheduler_kill_current(enum kill_reason_t reason) {
@@ -177,13 +167,12 @@ void sc_handle_scheduler_clone(bool share_memory, ptr_t entry, uint64_t* newPid)
 
     // copy cpu state
     memcpy(&process->cpu, &processes[scheduler_current_process].cpu, sizeof(cpu_state));
-
     process->cpu.rax = 0;
 }
 
-bool scheduler_handle_pf(ptr_t fault_address) {
+bool scheduler_handle_pf(ptr_t fault_address, uint64_t error_code) {
     if(fault_address >= ALLOCATOR_REGION_USER_STACK.start && fault_address < ALLOCATOR_REGION_USER_STACK.end) {
-        ptr_t page_v = fault_address & 0xFFFFFFFFFFFFF000;
+        ptr_t page_v = fault_address & ~0xFFF;
         ptr_t page_p = (ptr_t)mm_alloc_pages(1);
         memset((void*)(page_p + ALLOCATOR_REGION_DIRECT_MAPPING.start), 0, 0x1000);
         vm_context_map(processes[scheduler_current_process].context, page_v, page_p);
@@ -195,7 +184,7 @@ bool scheduler_handle_pf(ptr_t fault_address) {
         return true;
     }
 
-    fbconsole_write("[PID %04d] Not handling page fault at 0x%x (RIP: 0x%x)\n", scheduler_current_process, fault_address, processes[scheduler_current_process].cpu.rip);
+    fbconsole_write("[PID %04d] Not handling page fault at 0x%x (RIP: 0x%x, error 0x%x)\n", scheduler_current_process, fault_address, processes[scheduler_current_process].cpu.rip, error_code);
 
     return false;
 }
@@ -203,34 +192,28 @@ bool scheduler_handle_pf(ptr_t fault_address) {
 void sc_handle_memory_sbrk(int64_t inc, ptr_t* data_end) {
     fbconsole_write("[PID %04d] Moving heap break by %d bytes, old end at 0x%x", scheduler_current_process, inc, processes[scheduler_current_process].heap.end);
 
+    ptr_t old_end = processes[scheduler_current_process].heap.end;
+    ptr_t new_end = old_end + inc;
+
     if(inc > 0) {
-        inc += 0x1000 - (inc % 0x1000);
-
-        ptr_t old_end = (processes[scheduler_current_process].heap.end) & 0xFFFFFFFFFFFFF000;
-        ptr_t new_end = old_end + inc;
-
-        for(ptr_t i = old_end; i <= new_end; i+=0x1000) {
-            ptr_t phys = (ptr_t)mm_alloc_pages(1);
-            memset((void*)(phys + ALLOCATOR_REGION_DIRECT_MAPPING.start), 0, 0x1000);
-            vm_context_map(processes[scheduler_current_process].context, i, phys);
+        for(ptr_t i = old_end & ~0xFFF; i < new_end; i+=0x1000) {
+            if(!vm_context_get_physical_for_virtual(processes[scheduler_current_process].context, i)) {
+                ptr_t phys = (ptr_t)mm_alloc_pages(1);
+                memset((void*)(phys + ALLOCATOR_REGION_DIRECT_MAPPING.start), 0, 0x1000);
+                vm_context_map(processes[scheduler_current_process].context, i, phys);
+            }
         }
-
-        processes[scheduler_current_process].heap.end = new_end;
     }
-    if(inc < 0x1000) {
-        inc += (inc % 0x1000);
-
-        ptr_t old_end = (processes[scheduler_current_process].heap.end) & 0xFFFFFFFFFFFFF000;
-        ptr_t new_end = old_end + inc;
-
+    if(inc < 0) {
         for(ptr_t i = old_end; i > new_end; i -= 0x1000) {
-            mm_mark_physical_pages(vm_context_get_physical_for_virtual(processes[scheduler_current_process].context, i), 1, MM_FREE);
-            // TODO: unmap
+            if(!(i & ~0xFFF)) {
+                mm_mark_physical_pages(vm_context_get_physical_for_virtual(processes[scheduler_current_process].context, i), 1, MM_FREE);
+                // TODO: unmap
+            }
         }
-
-        processes[scheduler_current_process].heap.end = new_end;
     }
 
-    *data_end = processes[scheduler_current_process].heap.end;
+    processes[scheduler_current_process].heap.end = new_end;
+    *data_end = new_end;
     fbconsole_write(" new at 0x%x\n", *data_end);
 }

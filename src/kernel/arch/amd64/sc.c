@@ -71,12 +71,6 @@ tss_t       _tss = {
     ._reserved1 = 0,
     ._reserved2 = 0,
     ._reserved3 = 0,
-
-    .rsp0 = ALLOCATOR_REGION_SCRATCHPAD.end & 0xFFFFFFFFFFFFFFF0,
-    .rsp1 = ALLOCATOR_REGION_SCRATCHPAD.end & 0xFFFFFFFFFFFFFFF0,
-    .rsp2 = ALLOCATOR_REGION_SCRATCHPAD.end & 0xFFFFFFFFFFFFFFF0,
-
-    .ist1 = ALLOCATOR_REGION_SCRATCHPAD.end & 0xFFFFFFFFFFFFFFF0,
 };
 
 extern void _setup_idt();
@@ -139,7 +133,7 @@ cpu_local_data cpu0;
 
 void init_sc() {
     _setup_idt();
-    cpu0.kernel_stack = vm_context_alloc_pages(VM_KERNEL_CONTEXT, ALLOCATOR_REGION_KERNEL_HEAP, 1) + 4096;
+    cpu0.kernel_stack = _tss.ist1;
 
     asm("mov $0xC0000080, %%rcx\n"
         "rdmsr\n"
@@ -220,6 +214,12 @@ void _setup_idt() {
 }
 
 void init_gdt() {
+    ptr_t kernel_stack = vm_context_alloc_pages(VM_KERNEL_CONTEXT, ALLOCATOR_REGION_KERNEL_HEAP, 1) + 4096;
+    _tss.ist1 = kernel_stack;
+    _tss.rsp0 = kernel_stack;
+    _tss.rsp1 = kernel_stack;
+    _tss.rsp2 = kernel_stack;
+
     memset((uint8_t*)_gdt,  0, sizeof(_gdt));
 
     // kernel CS
@@ -263,7 +263,7 @@ void init_gdt() {
     asm("ltr %%ax"::"a"(6 << 3));
 }
 
-__attribute__((force_align_arg_pointer)) cpu_state* interrupt_handler(cpu_state* cpu) {
+cpu_state* interrupt_handler(cpu_state* cpu) {
     scheduler_process_save(cpu);
 
     if(cpu->interrupt < 32) {
@@ -272,7 +272,7 @@ __attribute__((force_align_arg_pointer)) cpu_state* interrupt_handler(cpu_state*
                 ptr_t fault_address;
                 asm("mov %%cr2, %0":"=r"(fault_address));
 
-                if(scheduler_handle_pf(fault_address)) {
+                if(scheduler_handle_pf(fault_address, cpu->error_code)) {
                     return cpu;
                 }
             }
@@ -294,28 +294,25 @@ __attribute__((force_align_arg_pointer)) cpu_state* interrupt_handler(cpu_state*
         pic_set_handled(cpu->interrupt);
     }
 
-    cpu_state*  new_cpu = cpu;
+    cpu_state*  new_cpu;
     vm_table_t* new_context;
     schedule_next(&new_cpu, &new_context);
-
     vm_context_activate(new_context);
 
     return new_cpu;
 }
 
-__attribute__((force_align_arg_pointer)) cpu_state* syscall_handler(cpu_state* cpu) {
+cpu_state* syscall_handler(cpu_state* cpu) {
+    scheduler_process_save(cpu);
+    sc_handle(cpu);
     scheduler_process_save(cpu);
 
-    sc_handle(cpu);
-
-    cpu_state*  new_cpu = cpu;
+    cpu_state*  new_cpu;
     vm_table_t* new_context;
-    if(schedule_available(&new_cpu, &new_context)) { // if process is exited now, we need a new process
-        vm_context_activate(new_context);
-        return new_cpu;
-    }
+    schedule_next(&new_cpu, &new_context);
+    vm_context_activate(new_context);
 
-    return cpu;
+    return new_cpu;
 }
 
 cpu_state _sc_cpu_buffer;
