@@ -7,7 +7,7 @@ export CFLAGS
 OBJECTS = start.o main.o mm.o sc.o msr.o gdt.o init.o vm.o scheduler.o pic.o pit.o bluescreen.o syscalls.gen.o
 
 kernel: $(OBJECTS) ../../liblfos-kernel.a
-	ld.lld -o $@ $(OBJECTS) -L ../../ -llfos-kernel --image-base 0xFFFF800001000000
+	clang -flto -fuse-ld=lld -nostdlib -o $@ $(OBJECTS) -L ../../ -llfos-kernel -Wl,--image-base,0xFFFF800001000000
 
 ../../liblfos-kernel.a:
 	+ make -C ../../

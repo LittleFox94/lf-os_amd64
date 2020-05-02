@@ -1,6 +1,10 @@
 DIRS = bin include lib src
 
-all:     $(DIRS)
+src_dir := $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
+
+all: $(DIRS) $(shell find $(src_dir)static -type f -and -not -name '.*' -printf "%p")
+	rsync -ar $(src_dir)static/ .
+
 include: src
 lib:     include
 

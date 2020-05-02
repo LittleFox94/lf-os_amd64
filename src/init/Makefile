@@ -1,13 +1,9 @@
-CFLAGS := -g --sysroot ../../sysroot $(OPTIMIZATION)
 OBJECTS = main.o
 
 all: init
 
-init: $(OBJECTS) ../../sysroot/lib/libc.a ../../sysroot/lib/crt0.o
-	clang -flto -fuse-ld=lld -rtlib=compiler-rt $(CFLAGS) $(OBJECTS) -o $@
-
-%.o: %.c ../../sysroot/include
-	clang -flto $< -c $(CFLAGS) -o $@
+init: $(OBJECTS)
+	$(CC) $(CFLAGS) $(OBJECTS) -o $@
 
 clean:
 	rm -f $(OBJECTS)

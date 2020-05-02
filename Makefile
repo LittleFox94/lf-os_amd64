@@ -64,7 +64,7 @@ src/loader/loader.efi:
 	+ make -C src/loader
 
 src/init/init: sysroot
-	+ make -C src/init
+	+ ./sysroot/etc/compile-env make -C src/init
 
 util/gsp/gsp-trace:
 	+ make -C util/gsp gsp-trace

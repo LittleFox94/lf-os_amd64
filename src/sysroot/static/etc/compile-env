@@ -1,0 +1,13 @@
+#!/bin/sh
+
+export CC="clang"
+export CFLAGS="--sysroot $(realpath $(dirname "$0")/..) -fuse-ld=lld -rtlib=compiler-rt -flto -O3 -g"
+
+if [ -z "$1" ]; then
+cat <<EOF
+export CC="$CC"
+export CFLAGS="$CFLAGS"
+EOF
+else
+    exec $@
+fi
