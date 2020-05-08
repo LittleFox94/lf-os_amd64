@@ -60,7 +60,8 @@ reload_cs:
 
         ret
 
-.type _interrupt_handler_common, @function
+.global _interrupt_handler_common
+.type   _interrupt_handler_common, @function
 _interrupt_handler_common:
     cli
     __pusha
