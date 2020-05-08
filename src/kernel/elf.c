@@ -30,22 +30,27 @@ ptr_t load_elf(ptr_t start, vm_table_t* context, ptr_t* data_start, ptr_t* data_
             continue;
         }
 
-        if(programHeader->vaddr & 0xFFF) {
-            fbconsole_write("\n[ELF] segment not page aligned!");
-            return 0;
-        }
-
         for(size_t j = 0; j < programHeader->memLength; j += 0x1000) {
             ptr_t physical = (ptr_t)mm_alloc_pages(1);
             memset((void*)(physical + ALLOCATOR_REGION_DIRECT_MAPPING.start), 0, 0x1000);
+            vm_context_map(context, (ptr_t)programHeader->vaddr + j, physical);
 
             if(j < programHeader->fileLength) {
+                size_t offset = 0;
                 size_t toCopy = programHeader->fileLength - j;
                 if(toCopy > 0x1000) toCopy = 0x1000;
-                memcpy((void*)(physical + ALLOCATOR_REGION_DIRECT_MAPPING.start), (void*)(start + programHeader->offset + j), toCopy);
-            }
 
-            vm_context_map(context, (ptr_t)programHeader->vaddr + j, physical);
+                if((programHeader->vaddr + j) & 0xFFF) {
+                    toCopy -= (programHeader->vaddr + j) & 0xFFF;
+                    offset  = (programHeader->vaddr + j) & 0xFFF;
+                }
+
+                memcpy((void*)(offset + physical + ALLOCATOR_REGION_DIRECT_MAPPING.start), (void*)(start + programHeader->offset + j), toCopy);
+
+                if((programHeader->vaddr + j) & 0xFFF) {
+                    j -= (programHeader->vaddr + j) & 0xFFF;
+                }
+            }
         }
 
         ptr_t end = programHeader->vaddr + programHeader->memLength + 1;
