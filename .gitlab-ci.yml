@@ -1,12 +1,8 @@
-image: registry.lf-net.org/littlefox/lf-os_amd64/ci:2020050202
+image: registry.lf-net.org/littlefox/lf-os_amd64/ci:2020050801
 stages:
 - test
 - build
 - pages
-
-variables:
-  GIT_SUBMODULE_STRATEGY: recursive
-  GIT_STRATEGY:           clone
 
 test:
   stage: test
@@ -28,6 +24,14 @@ build:
   stage: build
   script:
     - make hd.img.gz lf-os.iso.gz sysroot.tar.xz
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
+    GIT_STRATEGY:           clone
+  cache:
+    paths:
+    # this one is very heavy to build, so we keep it
+    # don't do that for the runtime libs, we might change in ugly ways
+    - sysroot/tmp/clang-build
   artifacts:
     paths:
       - hd.img.gz
