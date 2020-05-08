@@ -1,5 +1,31 @@
 # vim: ft=make
 
-all:
+src_dir := $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
+
+all: clang lld ld
+
+../tmp/clang-build:
+	mkdir -p $@
+
+../tmp/clang-build/Makefile: ../tmp/clang-build
+	cd ../tmp/clang-build && \
+	cmake -DLLVM_ENABLE_PROJECTS="clang;lld" \
+		  -DLLVM_DEFAULT_TARGET_TRIPLE=x86_64-pc-lf_os \
+		  -DLLVM_TARGETS_TO_BUILD=X86 \
+		  -DCMAKE_INSTALL_PREFIX=$(LFOS_SYSROOT) \
+		  -DCMAKE_BUILD_TYPE=Release \
+		  -DLLVM_ENABLE_LLD=On \
+		  -DLLVM_CCACHE_BUILD=On \
+		  -DCMAKE_C_COMPILER=clang \
+		  -DCMAKE_CXX_COMPILER=clang++ \
+		  -DLLVM_BUILD_TOOLS=On \
+		  -DLLVM_BUILD_RUNTIMES=On \
+		  $(src_dir)../llvm/llvm
+
+clang lld: ../tmp/clang-build/Makefile
+	+ make -C ../tmp/clang-build install
+
+ld: lld
+	ln -s ld.lld ld
 
 clean:

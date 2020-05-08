@@ -4,7 +4,7 @@ CFLAGS := $(OPTIMIZATION) -flto -g -std=gnu11 -mno-omit-leaf-frame-pointer -fno-
 export CC
 export CFLAGS
 
-OBJECTS = start.o main.o mm.o sc.o msr.o gdt.o init.o vm.o scheduler.o pic.o pit.o bluescreen.o syscalls.gen.o
+OBJECTS = main.o mm.o sc.o msr.o gdt.o init.o vm.o scheduler.o pic.o pit.o bluescreen.o syscalls.gen.o
 
 kernel: $(OBJECTS) ../../liblfos-kernel.a
 	clang -flto -fuse-ld=lld -nostdlib -o $@ $(OBJECTS) -L ../../ -llfos-kernel -Wl,--image-base,0xFFFF800001000000

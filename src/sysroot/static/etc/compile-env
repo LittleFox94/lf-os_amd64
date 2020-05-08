@@ -1,12 +1,18 @@
 #!/bin/sh
 
-export CC="clang"
-export CFLAGS="--sysroot $(realpath $(dirname "$0")/..) -fuse-ld=lld -rtlib=compiler-rt -flto -O3 -g"
+export LFOS_SYSROOT="$(realpath $(dirname "$0")/..)"
+export CC="$LFOS_SYSROOT/bin/clang"
+export CXX="$LFOS_SYSROOT/bin/clang++"
+export CFLAGS="  --sysroot $LFOS_SYSROOT -O3 -g"
+export CXXFLAGS="--sysroot $LFOS_SYSROOT -O3 -g"
 
 if [ -z "$1" ]; then
 cat <<EOF
 export CC="$CC"
+export CXX="$CXX"
 export CFLAGS="$CFLAGS"
+export CXXFLAGS="$CXXFLAGS"
+export LFOS_SYSROOT="$LFOS_SYSROOT"
 EOF
 else
     exec $@

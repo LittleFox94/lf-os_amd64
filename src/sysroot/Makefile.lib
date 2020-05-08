@@ -2,13 +2,7 @@
 
 src_dir := $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 
-all: libc.a crt1.o crti.o crtn.o
-
-libc.a: $(src_dir)../newlib/build/Makefile
-	+ make -C $(src_dir)../newlib/build
-	+ make -C $(src_dir)../newlib/build install
-	cp -r $(src_dir)../../sysroot/x86_64-lf_os-elf/* $(src_dir)../../sysroot
-	rm -rf $(src_dir)../../sysroot/x86_64-lf_os-elf
+all: libclang_rt.builtins-x86_64.a libc.a libc++.a libc++experimental.a crt1.o crti.o crtn.o
 
 crti.o: $(src_dir)lib/crti.S
 	clang -g -flto -c $< -o $@
@@ -19,26 +13,102 @@ crtn.o: $(src_dir)lib/crtn.S
 crt1.o: $(src_dir)lib/crt1.S
 	clang -g -flto -c $< -o $@
 
-$(src_dir)../newlib/build:
+../tmp/newlib-build:
 	mkdir -p $@
 
-$(src_dir)../newlib/build/Makefile: $(src_dir)../newlib/build crti.o crtn.o
-	cd $(src_dir)../newlib/build && \
-	CC_FOR_TARGET=clang \
-	LD_FOR_TARGET=ld.lld  \
-	CXX_FOR_TARGET=clang++ \
-	AR_FOR_TARGET=llvm-ar-9 \
-	AS_FOR_TARGET=clang \
-	RANLIB_FOR_TARGET=llvm-ranlib-9 \
-	READELF_FOR_TARGET=llvm-readelf-9 \
-	OBJCOPY_FOR_TARGET=llvm-objcopy-9 \
-	OBJDUMP_FOR_TARGET=llvm-objdump-9 \
-	STRIP_FOR_TARGET=llvm-strip-9 \
-	CFLAGS_FOR_TARGET="$(CFLAGS) -flto -DHAVE_INITFINI_ARRAY -D__GLIBC_USE\(...\)=0 $(OPTIMIZATION) -fuse-init-array" \
-	../configure --target x86_64-lf_os-elf --disable-multilib --prefix $(src_dir)../../sysroot
+../tmp/newlib-build/Makefile: libclang_rt.builtins-x86_64.a ../tmp/newlib-build crti.o crtn.o crt1.o
+	cd ../tmp/newlib-build && \
+	CC_FOR_TARGET=$(LFOS_SYSROOT)/bin/clang \
+	LD_FOR_TARGET=$(LFOS_SYSROOT)/bin/ld.lld  \
+	CXX_FOR_TARGET=$(LFOS_SYSROOT)/bin/clang++ \
+	AR_FOR_TARGET=$(LFOS_SYSROOT)/bin/llvm-ar \
+	AS_FOR_TARGET=$(LFOS_SYSROOT)/bin/clang \
+	RANLIB_FOR_TARGET=$(LFOS_SYSROOT)/bin/llvm-ranlib \
+	READELF_FOR_TARGET=$(LFOS_SYSROOT)/bin/llvm-readelf \
+	OBJCOPY_FOR_TARGET=$(LFOS_SYSROOT)/bin/llvm-objcopy \
+	OBJDUMP_FOR_TARGET=$(LFOS_SYSROOT)/bin/llvm-objdump \
+	STRIP_FOR_TARGET=$(LFOS_SYSROOT)/bin/llvm-strip \
+	CFLAGS_FOR_TARGET="$(CFLAGS) --std=gnu17 -flto -ffreestanding $(OPTIMIZATION)" \
+	$(src_dir)../newlib/configure --target x86_64-pc-lf_os \
+	             --disable-multilib \
+				 --with-build-sysroot=$(LFOS_SYSROOT) \
+				 --with-build-time-tools=$(LFOS_SYSROOT) \
+				 --prefix $(LFOS_SYSROOT)
+
+libc.a: ../tmp/newlib-build/Makefile ../bin/clang
+	+ make -C ../tmp/newlib-build
+	+ make -C ../tmp/newlib-build install
+	cp -r $(LFOS_SYSROOT)/x86_64-pc-lf_os/* $(LFOS_SYSROOT)
+	rm -rf $(LFOS_SYSROOT)/x86_64-pc-lf_os
+
+../tmp/compiler-rt-build:
+	mkdir -p $@
+
+../tmp/compiler-rt-build/Makefile: ../tmp/compiler-rt-build libc.a
+	cd ../tmp/compiler-rt-build && \
+	cmake -DCMAKE_INSTALL_PREFIX=$(LFOS_SYSROOT) \
+		  -DCOMPILER_RT_DEFAULT_TARGET_TRIPLE=x86_64-pc-lf_os \
+		  -DCOMPILER_RT_OUTPUT_DIR=$(LFOS_SYSROOT)/lib/clang/11.0.0 \
+		  -DCOMPILER_RT_ENABLE_SHARED=Off \
+		  -DCOMPILER_RT_USE_LIBCXX=Off \
+		  -DCOMPILER_RT_CRT_USE_EH_FRAME_REGISTRY=Off \
+		  -DCMAKE_BUILD_TYPE=Release \
+		  -DCOMPILER_RT_USE_BUILTINS_LIBRARY=On \
+		  -DCMAKE_C_FLAGS="-nodefaultlibs -lc" \
+		  -DCMAKE_CXX_FLAGS="-nodefaultlibs -lc" \
+		  -DCMAKE_TOOLCHAIN_FILE=$(LFOS_SYSROOT)/etc/cmake-cross.toolchain \
+		  $(src_dir)../llvm/compiler-rt
+
+libclang_rt.builtins-x86_64.a: ../bin/clang ../tmp/compiler-rt-build/Makefile
+	+ make -C ../tmp/compiler-rt-build install
+
+../tmp/libcxx-build:
+	mkdir -p $@
+
+../tmp/libcxx-build/Makefile: ../tmp/libcxx-build libc.a libclang_rt.builtins-x86_64.a libc++abi.a
+	cd ../tmp/libcxx-build && \
+	cmake -DCMAKE_TOOLCHAIN_FILE=../../etc/cmake-cross.toolchain \
+		  -DLIBCXX_ENABLE_THREADS=Off \
+		  -DLIBCXX_ENABLE_MONOTONIC_CLOCK=Off \
+		  -DLIBCXX_ENABLE_FILESYSTEM=Off \
+		  -DLIBCXX_ENABLE_STATIC_ABI_LIBRARY=On \
+		  -DLIBCXX_USE_COMPILER_RT=On \
+		  -DLIBCXX_ENABLE_SHARED=Off \
+		  -DLIBCXX_CXX_ABI=libcxxabi \
+		  -DLIBCXX_CXX_STATIC_ABI_LIBRARY=c++abi \
+		  -DLIBCXX_CXX_ABI_LIBRARY_PATH=$(LFOS_SYSROOT)/lib \
+		  -DCMAKE_INSTALL_PREFIX=$(LFOS_SYSROOT) \
+		  -DCMAKE_BUILD_TYPE=Release \
+		  -DCMAKE_C_FLAGS="-nostdlib -lc" \
+		  -DCMAKE_CXX_FLAGS="-nostdlib -lc" \
+		  $(src_dir)../llvm/libcxx
+
+libc++.a libc++experimental.a: ../bin/clang ../tmp/libcxx-build/Makefile
+	+ make -C ../tmp/libcxx-build install
+
+../tmp/libcxxabi-build:
+	mkdir -p $@
+
+../tmp/libcxxabi-build/Makefile: ../tmp/libcxxabi-build libc.a libclang_rt.builtins-x86_64.a
+	cd ../tmp/libcxxabi-build && \
+	cmake -DCMAKE_TOOLCHAIN_FILE=../../etc/cmake-cross.toolchain \
+		  -DLIBCXXABI_ENABLE_THREADS=Off \
+		  -DLIBCXXABI_USE_COMPILER_RT=On \
+		  -DLIBCXXABI_ENABLE_SHARED=Off \
+		  -DLIBCXXABI_ENABLE_STATIC_UNWINDER=Off \
+		  -DLIBCXXABI_USE_LLVM_UNWINDER=On \
+		  -DCMAKE_INSTALL_PREFIX=$(LFOS_SYSROOT) \
+		  -DCMAKE_BUILD_TYPE=Release \
+		  -DCMAKE_C_FLAGS="-nostdlib -lc" \
+		  -DCMAKE_CXX_FLAGS="-nostdlib -lc" \
+		  $(src_dir)../llvm/libcxxabi
+
+libc++abi.a: ../bin/clang ../tmp/libcxxabi-build/Makefile
+	+ make -C ../tmp/libcxxabi-build install
 
 clean:
 	rm -rf $(src_dir)../newlib/build
+	rm -rf tmp
 	rm -f crti.o crtn.o crt1.o
 
 .PHONY: clean

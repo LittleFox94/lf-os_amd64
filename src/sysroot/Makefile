@@ -2,11 +2,13 @@ DIRS = bin include lib src
 
 src_dir := $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 
-all: $(DIRS) $(shell find $(src_dir)static -type f -and -not -name '.*' -printf "%p")
-	rsync -ar $(src_dir)static/ .
+all: $(DIRS) static
+
+static: $(shell find $(src_dir)static -type f -and -not -name '.*' -printf "%p\n")
+	rsync -ar $(src_dir)static/ --exclude '.*' .
 
 include: src
-lib:     include
+lib:     include static bin
 
 %: $(realpath $(firstword $(MAKEFILE_LIST))).%
 	mkdir -p $@

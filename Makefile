@@ -5,6 +5,8 @@ QEMU_MEMORY        := 512M
 QEMUFLAGS 		   := -bios /usr/share/ovmf/OVMF.fd -drive format=raw,file=hd.img,if=none,id=boot_drive -device nvme,drive=boot_drive,serial=1234 -m $(QEMU_MEMORY) -d int,guest_errors --serial file:log.txt
 QEMUFLAGS_NO_DEBUG := -monitor stdio
 
+export LFOS_SYSROOT := $(shell pwd)/sysroot
+
 export OPTIMIZATION := -O3
 
 all: run-kvm
@@ -63,7 +65,7 @@ src/kernel/arch/amd64/kernel:
 src/loader/loader.efi:
 	+ make -C src/loader
 
-src/init/init: sysroot
+src/init/init: sysroot/lib/libc++.a
 	+ ./sysroot/etc/compile-env make -C src/init
 
 util/gsp/gsp-trace:
@@ -80,7 +82,7 @@ install: src/loader/loader.efi src/kernel/arch/amd64/kernel src/init/init
 	cp src/kernel/arch/amd64/kernel /boot/efi/LFOS/kernel
 	cp src/init/init /boot/efi/LFOS/init
 
-sysroot:
+sysroot sysroot/lib/libc++.a:
 	mkdir -p sysroot
 	+ make -C sysroot -f ../src/sysroot/Makefile
 

@@ -3,7 +3,10 @@ OBJECTS = main.o
 all: init
 
 init: $(OBJECTS)
-	$(CC) $(CFLAGS) $(OBJECTS) -o $@
+	$(CXX) $(OPTIMIZATION) -static $(CXXFLAGS) $(OBJECTS) -o $@
+
+%.o: %.cxx
+	$(CXX) $(OPTIMIZATION) $(CXXFLAGS) -c $< -o $@
 
 clean:
 	rm -f $(OBJECTS)
