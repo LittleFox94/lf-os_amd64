@@ -45,7 +45,7 @@ void _panic_message(const char* message, uint64_t rbp, bool rbp_given) {
         fbconsole_write("\nStack trace that led to this error:\n");
 
         int i = 20;
-        while(frame && --i) {
+        while(frame && frame->rip > 0xFFFF800000000000 && --i) {
             fbconsole_write("\e[38;5;7m  0x%016x", frame->rip);
 
             if(bluescreen_symbols != 0) {
