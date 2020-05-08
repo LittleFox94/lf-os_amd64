@@ -283,7 +283,7 @@ ptr_t vm_context_get_physical_for_virtual(vm_table_t* context, ptr_t virtual) {
                         vm_table_t* pt = BASE_TO_TABLE(pd->entries[pd_index].next_base);
 
                         if(pt->entries[pt_index].present) {
-                            return pt->entries[pt_index].next_base << 12;
+                            return (pt->entries[pt_index].next_base << 12) | (virtual & 0xFFF);
                         }
                     }
                 }
