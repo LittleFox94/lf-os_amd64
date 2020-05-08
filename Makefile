@@ -87,7 +87,7 @@ sysroot sysroot/lib/libc++.a:
 	+ make -C sysroot -f ../src/sysroot/Makefile
 
 sysroot.tar.xz: sysroot
-	tar cJf sysroot.tar.xz sysroot --transform s~sysroot~x86_64-lf_os-elf~
+	tar -cJf sysroot.tar.xz --exclude tmp --transform s~sysroot~x86_64-pc-lf_os~ sysroot
 
 clean:
 	+ make -C src/kernel clean
