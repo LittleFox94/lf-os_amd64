@@ -2,7 +2,7 @@
 
 src_dir := $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 
-all: libclang_rt.builtins-x86_64.a libc.a libc++.a libc++experimental.a crt1.o crti.o crtn.o
+all: libclang_rt.builtins-x86_64.a libc.a libc++.a crt1.o crti.o crtn.o
 
 crti.o: $(src_dir)lib/crti.S
 	clang -g -flto -c $< -o $@
@@ -13,7 +13,7 @@ crtn.o: $(src_dir)lib/crtn.S
 crt1.o: $(src_dir)lib/crt1.S
 	clang -g -flto -c $< -o $@
 
-../tmp/newlib-build:
+../tmp/%-build:
 	mkdir -p $@
 
 ../tmp/newlib-build/Makefile: libclang_rt.builtins-x86_64.a ../tmp/newlib-build crti.o crtn.o crt1.o
@@ -28,7 +28,7 @@ crt1.o: $(src_dir)lib/crt1.S
 	OBJCOPY_FOR_TARGET=$(LFOS_SYSROOT)/bin/llvm-objcopy \
 	OBJDUMP_FOR_TARGET=$(LFOS_SYSROOT)/bin/llvm-objdump \
 	STRIP_FOR_TARGET=$(LFOS_SYSROOT)/bin/llvm-strip \
-	CFLAGS_FOR_TARGET="$(CFLAGS) --std=gnu17 -flto -ffreestanding $(OPTIMIZATION)" \
+	CFLAGS_FOR_TARGET="$(CFLAGS) --std=gnu17 -flto $(OPTIMIZATION)" \
 	$(src_dir)../newlib/configure --target x86_64-pc-lf_os \
 	             --disable-multilib \
 				 --with-build-sysroot=$(LFOS_SYSROOT) \
@@ -62,9 +62,6 @@ libc.a: ../tmp/newlib-build/Makefile ../bin/clang
 libclang_rt.builtins-x86_64.a: ../bin/clang ../tmp/compiler-rt-build/Makefile
 	+ make -C ../tmp/compiler-rt-build install
 
-../tmp/libcxx-build:
-	mkdir -p $@
-
 ../tmp/libcxx-build/Makefile: ../tmp/libcxx-build libc.a libclang_rt.builtins-x86_64.a libc++abi.a
 	cd ../tmp/libcxx-build && \
 	cmake -DCMAKE_TOOLCHAIN_FILE=../../etc/cmake-cross.toolchain \
@@ -83,11 +80,8 @@ libclang_rt.builtins-x86_64.a: ../bin/clang ../tmp/compiler-rt-build/Makefile
 		  -DCMAKE_CXX_FLAGS="-nostdlib -lc" \
 		  $(src_dir)../llvm/libcxx
 
-libc++.a libc++experimental.a: ../bin/clang ../tmp/libcxx-build/Makefile
+libc++.a: ../bin/clang ../tmp/libcxx-build/Makefile
 	+ make -C ../tmp/libcxx-build install
-
-../tmp/libcxxabi-build:
-	mkdir -p $@
 
 ../tmp/libcxxabi-build/Makefile: ../tmp/libcxxabi-build libc.a libclang_rt.builtins-x86_64.a
 	cd ../tmp/libcxxabi-build && \

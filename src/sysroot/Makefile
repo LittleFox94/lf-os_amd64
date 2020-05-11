@@ -8,9 +8,9 @@ static: $(shell find $(src_dir)static -type f -and -not -name '.*' -printf "%p\n
 	rsync -ar $(src_dir)static/ --exclude '.*' .
 
 include: src
-lib:     include static bin
+lib:     bin include static
 
-%: $(realpath $(firstword $(MAKEFILE_LIST))).%
+%: $(src_dir)/Makefile.%
 	mkdir -p $@
 	+ make -C $@ -f $<
 
