@@ -57,7 +57,7 @@ runnable-image: hd.img bootable-filesystem
 	gzip -fk $<
 
 lf-os.iso: bootable-filesystem
-	genisoimage -JR --no-emul-boot --eltorito-boot bootfs.img -o $@ bootfs.img sysroot
+	genisoimage --joliet-long -JR --no-emul-boot --eltorito-boot bootfs.img -o $@ -m 'sysroot/tmp*' -m 'sysroot/include/llvm/*' -m 'sysroot/include/clang/*' -m 'sysroot/lib/libLLVM*' -m 'sysroot/lib/libclang*' bootfs.img sysroot
 
 src/kernel/arch/amd64/kernel:
 	+ make -C src/kernel/arch/amd64
