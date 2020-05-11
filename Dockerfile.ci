@@ -1,5 +1,5 @@
 FROM debian:bullseye
 
 RUN apt-get -qq update && \
-    apt-get -y -qq install gnu-efi mtools gdisk clang lld make dosfstools gcc genisoimage doxygen libyaml-perl rsync cmake ccache && \
+    apt-get -y -qq install gnu-efi mtools gdisk clang lld make dosfstools gcc genisoimage doxygen libyaml-perl rsync cmake ccache g++ && \
     rm -rf /var/cache/apt
