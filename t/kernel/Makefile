@@ -1,4 +1,4 @@
-TESTS = slab
+TESTS = slab string
 
 all: $(addprefix run_,$(TESTS))
 
