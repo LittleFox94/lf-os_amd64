@@ -82,7 +82,9 @@ install: src/loader/loader.efi src/kernel/arch/amd64/kernel src/init/init
 	cp src/kernel/arch/amd64/kernel /boot/efi/LFOS/kernel
 	cp src/init/init /boot/efi/LFOS/init
 
-sysroot sysroot/lib/libc++.a:
+sysroot: sysroot/lib/libc++.a
+
+sysroot/lib/libc++.a:
 	mkdir -p sysroot
 	+ make -C sysroot -f ../src/sysroot/Makefile
 
