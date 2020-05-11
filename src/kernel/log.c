@@ -43,7 +43,30 @@ void log_append(char level, char* component, char* message) {
     log_last->current_end += len;
 
     if(fbconsole_active) {
-        fbconsole_write("[%c] %s: %s\n", level, component, message);
+        int color_code;
+
+        switch(level) {
+            case 'D':
+                color_code = 8;
+                break;
+            case 'I':
+                color_code = 15;
+                break;
+            case 'W':
+                color_code = 3;
+                break;
+            case 'E':
+                color_code = 1;
+                break;
+            case 'F':
+                color_code = 5;
+                break;
+            default:
+                color_code = 4;
+                break;
+        }
+
+        fbconsole_write("\e[38;5;%dm[%c] %s: %s\n", color_code, level, component, message);
     }
 }
 
