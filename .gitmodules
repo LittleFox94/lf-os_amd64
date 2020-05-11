@@ -4,5 +4,5 @@
 	branch = lf-os
 [submodule "src/llvm"]
 	path = src/llvm
-	url = https://github.com/LittleFox94/llvm-project.git
+	url = ../llvm-project.git
 	branch = lf-os
