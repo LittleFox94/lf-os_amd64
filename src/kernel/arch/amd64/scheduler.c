@@ -2,6 +2,7 @@
 #include "string.h"
 #include "mm.h"
 #include "bluescreen.h"
+#include "log.h"
 
 typedef enum {
     process_state_empty = 0,
@@ -120,13 +121,13 @@ void schedule_next(cpu_state** cpu, vm_table_t** context) {
 void scheduler_kill_current(enum kill_reason_t reason) {
     processes[scheduler_current_process].state     = process_state_killed;
     processes[scheduler_current_process].exit_code = (int)reason;
-    fbconsole_write("[PID %04d] killed: %d\n", scheduler_current_process, (int)reason);
+    logd("scheduler", "killed PID %d (reason: %d)", scheduler_current_process, (int)reason);
 }
 
 void sc_handle_scheduler_exit(uint64_t exit_code) {
     processes[scheduler_current_process].state     = process_state_exited;
     processes[scheduler_current_process].exit_code = exit_code;
-    fbconsole_write("[PID %04d] exited: %d\n", scheduler_current_process, exit_code);
+    logd("scheduler", "PID %d exited (status: %d)", scheduler_current_process, exit_code);
 }
 
 void sc_handle_scheduler_clone(bool share_memory, ptr_t entry, uint64_t* newPid) {
@@ -184,14 +185,12 @@ bool scheduler_handle_pf(ptr_t fault_address, uint64_t error_code) {
         return true;
     }
 
-    fbconsole_write("[PID %04d] Not handling page fault at 0x%x (RIP: 0x%x, error 0x%x)\n", scheduler_current_process, fault_address, processes[scheduler_current_process].cpu.rip, error_code);
+    logw("scheduler", "Not handling page fault for %d at 0x%x (RIP: 0x%x, error 0x%x)", scheduler_current_process, fault_address, processes[scheduler_current_process].cpu.rip, error_code);
 
     return false;
 }
 
 void sc_handle_memory_sbrk(int64_t inc, ptr_t* data_end) {
-    fbconsole_write("[PID %04d] Moving heap break by %d bytes, old end at 0x%x", scheduler_current_process, inc, processes[scheduler_current_process].heap.end);
-
     ptr_t old_end = processes[scheduler_current_process].heap.end;
     ptr_t new_end = old_end + inc;
 
@@ -215,5 +214,4 @@ void sc_handle_memory_sbrk(int64_t inc, ptr_t* data_end) {
 
     processes[scheduler_current_process].heap.end = new_end;
     *data_end = new_end;
-    fbconsole_write(" new at 0x%x\n", *data_end);
 }

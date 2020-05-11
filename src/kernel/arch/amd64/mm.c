@@ -1,7 +1,7 @@
 #include "arch.h"
 #include "mm.h"
 #include "vm.h"
-#include "fbconsole.h"
+#include "log.h"
 #include "bluescreen.h"
 
 #define PRESENT_BIT 1
@@ -156,7 +156,7 @@ void mm_print_physical_free_regions() {
 
     while(current) {
         if(current->status == MM_FREE) {
-            fbconsole_write(" --> %d free pages starting at 0x%x\n", current->count, current->start);
+            logd("mm", "%d free pages starting at 0x%x\n", current->count, current->start);
         }
 
         current = current->next;

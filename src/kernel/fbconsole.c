@@ -1,12 +1,15 @@
 #include "fbconsole.h"
 #include "mm.h"
 #include "vm.h"
+#include "log.h"
 
 #include "string.h"
 #include "stdarg.h"
 
 #include "config.h"
 #include "font_acorn_8x8.c"
+
+bool fbconsole_active = false;
 
 struct fbconsole_data {
     int      width;
@@ -61,6 +64,9 @@ void fbconsole_init(int width, int height, uint8_t* fb) {
         }, sizeof(int) * 16 * 3);
 
     fbconsole_clear(fbconsole.background_r, fbconsole.background_g, fbconsole.background_b);
+    fbconsole_active = true;
+
+    logd("framebuffer", "framebuffer console @ 0x%x (0x%x)", fb, (uint64_t)vm_context_get_physical_for_virtual(VM_KERNEL_CONTEXT, (ptr_t)fb));
 }
 
 void fbconsole_init_backbuffer(uint8_t* backbuffer) {
@@ -253,10 +259,4 @@ int fbconsole_write(char* string, ...) {
     }
 
     return i;
-}
-
-int scheduler_current_process;
-void sc_handle_debug_print(ptr_t message) {
-    fbconsole_write("[PID %04d] debug: %s", scheduler_current_process, message);
-    if(fbconsole.current_col != 0) fbconsole_next_line();
 }

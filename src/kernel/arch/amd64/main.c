@@ -14,15 +14,15 @@
 #include "pic.h"
 #include "pit.h"
 #include "slab.h"
+#include "log.h"
 
 char* LAST_INIT_STEP;
 extern char build_id[];
 
-#define INIT_STEP(message, code)                                                \
-    LAST_INIT_STEP = message;                                                   \
-    fbconsole_write("\e[38;5;7m   " message);                                   \
-    code                                                                        \
-    fbconsole_write("\r\e[38;2;109;128;255mok\e[38;5;7m\n");
+#define INIT_STEP(message, code) \
+    LAST_INIT_STEP = message;    \
+    code                         \
+    logi("kernel", message);
 
 void nyi();
 void bootstrap_globals();
@@ -38,61 +38,63 @@ void main(void* loaderData) {
 
     bootstrap_globals();
     init_console(loaderStruct);
-    print_memory_regions();
 
-    fbconsole_write("\e[38;5;15mInitializing subsystems\n");
+    logi("kernel", "LF OS for amd64. Build: %s", build_id);
+    logi("kernel", "Initializing subsystems");
 
     INIT_STEP(
-        "Initializing physical memory management",
+        "Initialized physical memory management",
         init_mm(loaderStruct);
     )
 
     INIT_STEP(
-        "Initializing virtual memory management",
+        "Initialized virtual memory management",
         init_vm();
     )
 
     INIT_STEP(
-        "Speed up framebuffer console",
+        "Initialized framebuffer console backbuffer",
         init_console_backbuffer(loaderStruct);
     )
 
     INIT_STEP(
-        "Initializing service registry",
+        "Initialized service registry",
         init_sd();
     )
 
     INIT_STEP(
-        "Initializing syscall interface",
+        "Initialized syscall interface",
         init_gdt();
         init_sc();
     )
 
     INIT_STEP(
-        "Initializing scheduling and program execution",
+        "Initialized scheduling and program execution",
         init_scheduler();
     )
 
     INIT_STEP(
-        "Initializing interrupt management",
+        "Initialized interrupt management",
         init_pic();
         init_pit();
     )
 
     INIT_STEP(
-        "Reading kernel symbols",
+        "Read kernel symbols",
         init_symbols(loaderStruct);
     )
 
     INIT_STEP(
-        "Cleaning bootup memory structures",
+        "Cleaned bootup memory structures",
         cleanup_boot_vm();
     )
 
     INIT_STEP(
-        "Preparing and starting userspace",
+        "Prepared userspace",
         init_init(loaderStruct);
     )
+
+    logi("kernel", "Kernel initialization complete");
 
     LAST_INIT_STEP = "Kernel initialization complete";
     asm("sti");
@@ -104,9 +106,6 @@ void init_console(LoaderStruct* loaderStruct) {
 
     #include "../../bootlogo.c"
     fbconsole_blt(lf_os_bootlogo.pixel_data, lf_os_bootlogo.width, lf_os_bootlogo.height, -(lf_os_bootlogo.width + 5), 5);
-
-    fbconsole_write("LF OS for amd64. Build: %s\n", build_id);
-    fbconsole_write("  framebuffer console @ 0x%x (0x%x)\n\n", (uint64_t)loaderStruct->fb_location, (uint64_t)vm_context_get_physical_for_virtual(VM_KERNEL_CONTEXT, loaderStruct->fb_location));
 }
 
 void init_console_backbuffer(LoaderStruct* loaderStruct) {
@@ -136,7 +135,7 @@ void init_mm(LoaderStruct* loaderStruct) {
         }
     }
 
-    fbconsole_write(" %u pages (%B) free", pages_free, pages_free * 4096);
+    logi("mm", "%u pages (%B) free", pages_free, pages_free * 4096);
 }
 
 void init_symbols(LoaderStruct* loaderStruct) {
@@ -182,18 +181,6 @@ void init_init(LoaderStruct* loaderStruct) {
 
 void bootstrap_globals() {
     asm("mov %%cr3, %0":"=r"(VM_KERNEL_CONTEXT));
-}
-
-void print_memory_regions() {
-    fbconsole_write("Memory regions\n");
-    region_t* region = ALLOCATOR_REGIONS;
-
-    while(region->start != 0 && region->end != 0) {
-        fbconsole_write("  \e[38;5;15m%20s \e[38;5;7m(0x%016x - 0x%016x, \e[38;5;15m% 8B\e[38;5;7m)\n", region->name, region->start, region->end, region->end - region->start + 1);
-        ++region;
-    }
-
-    fbconsole_write("\n");
 }
 
 /* noinline to have a default stop point for profiling */

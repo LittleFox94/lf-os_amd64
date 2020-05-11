@@ -9,6 +9,8 @@ int strcmp(const char* a, const char* b) {
 }
 
 size_t strlen(const char* str) {
+    if(!str) return 0;
+
     size_t i = 0;
 
     while(*(str + i)) {
@@ -16,6 +18,18 @@ size_t strlen(const char* str) {
     }
 
     return i;
+}
+
+char* strncpy(char* dest, const char* src, size_t n) {
+    size_t i;
+    for(i = 0; i < n && src[i]; ++i) {
+        dest[i] = src[i];
+    }
+    for(; i < n; ++i) {
+        dest[i] = 0;
+    }
+
+    return dest;
 }
 
 void memset32(uint32_t* dest, uint32_t c, size_t size) {

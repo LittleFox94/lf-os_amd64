@@ -1,7 +1,7 @@
 #include "vm.h"
 #include "mm.h"
 #include "string.h"
-#include "fbconsole.h"
+#include "log.h"
 #include "slab.h"
 #include "bluescreen.h"
 
@@ -29,10 +29,9 @@ void vm_setup_direct_mapping_init(vm_table_t* context) {
     //  - data structure definitions and macros
 
     ptr_t physicalEndAddress = mm_highest_address();
-    fbconsole_write(" (%B", physicalEndAddress);
 
     if(ALLOCATOR_REGION_DIRECT_MAPPING.start + physicalEndAddress > ALLOCATOR_REGION_DIRECT_MAPPING.end) {
-        fbconsole_write(" -> %B", ALLOCATOR_REGION_DIRECT_MAPPING.end - ALLOCATOR_REGION_DIRECT_MAPPING.start);
+        logw("vm", "More physical memory than direct mapping region. Only %B will be usable", ALLOCATOR_REGION_DIRECT_MAPPING.end - ALLOCATOR_REGION_DIRECT_MAPPING.start);
         physicalEndAddress = ALLOCATOR_REGION_DIRECT_MAPPING.end - ALLOCATOR_REGION_DIRECT_MAPPING.start;
     }
 
@@ -48,7 +47,7 @@ void vm_setup_direct_mapping_init(vm_table_t* context) {
         pageSize = 2 * MiB;
     }
 
-    fbconsole_write(", %d @ %B)", numPages, pageSize);
+    logd("vm", "%B -> %d pages @ %B", physicalEndAddress, numPages, pageSize);
 
     SlabHeader* scratchpad_allocator = (SlabHeader*)ALLOCATOR_REGION_SCRATCHPAD.start;
 
@@ -172,7 +171,7 @@ void cleanup_boot_vm() {
         VM_KERNEL_CONTEXT->entries[pml4_idx].present = 0;
     }
 
-    fbconsole_write(" -> %B freed", ret);
+    logi("vm", "Cleaned %B", ret);
 }
 
 void vm_setup_direct_mapping(vm_table_t* context) {
