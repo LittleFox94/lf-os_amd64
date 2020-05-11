@@ -1,4 +1,4 @@
-OBJECTS = fbconsole.o string.o sd.o elf.o version.o slab.o
+OBJECTS = fbconsole.o string.o sd.o elf.o version.o slab.o log.o
 
 liblfos-kernel.a: version.o $(OBJECTS)
 	ar rcs $@ $(OBJECTS)
