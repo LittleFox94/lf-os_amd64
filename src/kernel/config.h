@@ -7,3 +7,6 @@
 #define FONT_HEIGHT 8
 #define FONT_COL_SPACING 0
 #define FONT_ROW_SPACING 2
+
+// store 4MB of log messages max
+#define LOG_MAX_BUFFER (4 * 1024 * 1024)

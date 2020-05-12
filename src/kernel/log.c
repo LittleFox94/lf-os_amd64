@@ -1,3 +1,4 @@
+#include <config.h>
 #include <stdint.h>
 #include <string.h>
 #include <bluescreen.h>
@@ -15,14 +16,17 @@ struct logging_page {
     char messages[logging_page_size - 18];
 };
 
+// this is our logging page to use before memory management is up
 struct logging_page log_initial_page = {
     .prev        = 0,
     .next        = 0,
     .current_end = 0,
 };
 
-struct logging_page* log_first = &log_initial_page;
-struct logging_page* log_last  = &log_initial_page;
+struct logging_page* log_first      = &log_initial_page;
+struct logging_page* log_last       = &log_initial_page;
+uint64_t             log_page_count = 1;
+uint64_t             log_count      = 0;
 
 void log_append_page() {
     struct logging_page* new = (struct logging_page*)vm_context_alloc_pages(VM_KERNEL_CONTEXT, ALLOCATOR_REGION_SLAB_4K, 1);
@@ -30,6 +34,25 @@ void log_append_page() {
     new->prev = log_last;
     log_last->next = new;
     log_last = new;
+
+    ++log_page_count;
+
+    while(log_page_count * logging_page_size > LOG_MAX_BUFFER) {
+        struct logging_page* page = log_first;
+
+        page->next->prev = 0;
+        log_first = page->next;
+
+        for(int i = 0; i < page->current_end; ++i) {
+            if(!page->messages[i]) {
+                --log_count;
+            }
+        }
+
+        if(page != &log_initial_page) {
+            // XXX: free page
+        }
+    }
 }
 
 void log_append(char level, char* component, char* message) {
@@ -68,6 +91,8 @@ void log_append(char level, char* component, char* message) {
 
         fbconsole_write("\e[38;5;%dm[%c] %s: %s\n", color_code, level, component, message);
     }
+
+    ++log_count;
 }
 
 void log(char level, char* component, char* fmt, ...) {
