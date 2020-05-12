@@ -31,7 +31,6 @@ void init_console_backbuffer();
 void init_mm(LoaderStruct* loaderStruct);
 void init_symbols(LoaderStruct* loaderStruct);
 void init_init(LoaderStruct* loaderStruct);
-void print_memory_regions();
 
 void main(void* loaderData) {
     LoaderStruct* loaderStruct = (LoaderStruct*)loaderData;
@@ -164,7 +163,7 @@ void init_init(LoaderStruct* loaderStruct) {
         void*           data = (uint8_t*)((ptr_t)loaderStruct + desc->offset);
 
         if(strcmp(desc->name, "init") == 0) {
-            vm_table_t* context = vm_context_new();
+            struct vm_table* context = vm_context_new();
 
             ptr_t data_start = 0;
             ptr_t data_end   = 0;

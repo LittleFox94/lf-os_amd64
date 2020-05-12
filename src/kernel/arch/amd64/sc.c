@@ -280,7 +280,7 @@ cpu_state* interrupt_handler(cpu_state* cpu) {
             scheduler_kill_current(kill_reason_abort);
 
             cpu_state*  new_cpu = cpu;
-            vm_table_t* new_context;
+            struct vm_table* new_context;
             schedule_next(&new_cpu, &new_context);
 
             vm_context_activate(new_context);
@@ -294,7 +294,7 @@ cpu_state* interrupt_handler(cpu_state* cpu) {
     }
 
     cpu_state*  new_cpu;
-    vm_table_t* new_context;
+    struct vm_table* new_context;
     schedule_next(&new_cpu, &new_context);
     vm_context_activate(new_context);
 
@@ -307,7 +307,7 @@ cpu_state* syscall_handler(cpu_state* cpu) {
     scheduler_process_save(cpu);
 
     cpu_state*  new_cpu;
-    vm_table_t* new_context;
+    struct vm_table* new_context;
     schedule_next(&new_cpu, &new_context);
     vm_context_activate(new_context);
 

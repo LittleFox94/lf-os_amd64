@@ -1,6 +1,7 @@
 #include "bluescreen.h"
 #include "config.h"
 #include "string.h"
+#include "fbconsole.h"
 
 extern const char* LAST_INIT_STEP;
 

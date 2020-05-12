@@ -23,16 +23,6 @@ typedef struct {
 // this one must be PML4 aligned! (PDP, PD and PT indexes must be zero for the start and 511 for the end)
 #define ALLOCATOR_REGION_DIRECT_MAPPING (region_t){ .name = "Physical mapping",  .start = 0xFFFF840000000000, .end = 0xFFFF87FFFFFFFFFF }
 
-#define ALLOCATOR_REGIONS (region_t[]){ \
-    ALLOCATOR_REGION_USER_STACK,     \
-    ALLOCATOR_REGION_SCRATCHPAD,     \
-    ALLOCATOR_REGION_KERNEL_BINARY,  \
-    ALLOCATOR_REGION_SLAB_4K,        \
-    ALLOCATOR_REGION_KERNEL_HEAP,    \
-    ALLOCATOR_REGION_DIRECT_MAPPING, \
-    ALLOCATOR_REGION_NULL,           \
-}
-
 //! A single entry in a paging table
 struct vm_table_entry {
     unsigned int present      : 1;

@@ -13,7 +13,7 @@ typedef enum {
 } process_state;
 
 typedef struct {
-    vm_table_t*     context;
+    struct vm_table*     context;
     cpu_state       cpu;
     process_state   state;
     region_t        heap;
@@ -65,7 +65,7 @@ int setup_process() {
     return pid;
 }
 
-void start_task(vm_table_t* context, ptr_t entry, ptr_t data_start, ptr_t data_end) {
+void start_task(struct vm_table* context, ptr_t entry, ptr_t data_start, ptr_t data_end) {
     if(!entry) {
         panic_message("Tried to start process without entry");
     }
@@ -87,7 +87,7 @@ void scheduler_process_save(cpu_state* cpu) {
     }
 }
 
-void schedule_next(cpu_state** cpu, vm_table_t** context) {
+void schedule_next(cpu_state** cpu, struct vm_table** context) {
     if(scheduler_current_process >= 0 && processes[scheduler_current_process].state == process_state_running) {
         processes[scheduler_current_process].state = process_state_runnable;
     }
@@ -136,7 +136,7 @@ void sc_handle_scheduler_clone(bool share_memory, ptr_t entry, uint64_t* newPid)
     process_t* process = &processes[pid];
 
     // new memory context ...
-    vm_table_t* context = vm_context_new();
+    struct vm_table* context = vm_context_new();
     process->context    = context;
 
     // .. copy heap ..

@@ -45,12 +45,12 @@ static inline uint8_t inb(uint16_t port) {
 }
 
 #define DUMP_CPU(cpu)  \
-    logd("<-- cut here [CPU DUMP START] ---->"); \
-    logd("%3s: 0x%016x %3s: 0x%016x %3s: 0x%016x %7s: 0x%016x", "RAX", cpu->rax, "RBX", cpu->rbx, "RCX", cpu->rcx, "RDX",    cpu->rdx); \
-    logd("%3s: 0x%016x %3s: 0x%016x %3s: 0x%016x %7s: 0x%016x", "RSI", cpu->rsi, "RDI", cpu->rdi, "RBP", cpu->rbp, "RSP",    cpu->rsp); \
-    logd("%3s: 0x%016x %3s: 0x%016x %3s: 0x%016x %7s: 0x%016x", "R8",  cpu->r8,  "R9",  cpu->r9,  "R10", cpu->r10, "R11",    cpu->r11); \
-    logd("%3s: 0x%016x %3s: 0x%016x %3s: 0x%016x %7s: 0x%016x", "R12", cpu->r12, "R13", cpu->r13, "R14", cpu->r14, "R15",    cpu->r15); \
-    logd("%3s: 0x%016x %3s: 0x%016x %3s: 0x%016x %7s: 0x%016x", "RIP", cpu->rip, "CS",  cpu->cs,  "SS",  cpu->ss,  "RFLAGS", cpu->rflags); \
-    logd("<-- cut here [CPU DUMP END] ---->"); \
+    logd("cpudump", "<-- cut here [CPU DUMP START] ---->"); \
+    logd("cpudump", "%3s: 0x%016x %3s: 0x%016x %3s: 0x%016x %7s: 0x%016x", "RAX", cpu->rax, "RBX", cpu->rbx, "RCX", cpu->rcx, "RDX",    cpu->rdx); \
+    logd("cpudump", "%3s: 0x%016x %3s: 0x%016x %3s: 0x%016x %7s: 0x%016x", "RSI", cpu->rsi, "RDI", cpu->rdi, "RBP", cpu->rbp, "RSP",    cpu->rsp); \
+    logd("cpudump", "%3s: 0x%016x %3s: 0x%016x %3s: 0x%016x %7s: 0x%016x", "R8",  cpu->r8,  "R9",  cpu->r9,  "R10", cpu->r10, "R11",    cpu->r11); \
+    logd("cpudump", "%3s: 0x%016x %3s: 0x%016x %3s: 0x%016x %7s: 0x%016x", "R12", cpu->r12, "R13", cpu->r13, "R14", cpu->r14, "R15",    cpu->r15); \
+    logd("cpudump", "%3s: 0x%016x %3s: 0x%016x %3s: 0x%016x %7s: 0x%016x", "RIP", cpu->rip, "CS",  cpu->cs,  "SS",  cpu->ss,  "RFLAGS", cpu->rflags); \
+    logd("cpudump", "<-- cut here [CPU DUMP END] ---->"); \
 
 #endif
