@@ -1,6 +1,5 @@
 #include "sc.h"
 #include "msr.h"
-#include "fbconsole.h"
 #include "string.h"
 #include "mm.h"
 #include "cpu.h"

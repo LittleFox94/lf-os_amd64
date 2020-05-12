@@ -1,7 +1,8 @@
 #ifndef _CPU_H_INCLUDED
 #define _CPU_H_INCLUDED
 
-#include "fbconsole.h"
+#include <log.h>
+#include <stdint.h>
 
 typedef struct {
     uint64_t r15;
@@ -44,12 +45,12 @@ static inline uint8_t inb(uint16_t port) {
 }
 
 #define DUMP_CPU(cpu)  \
-    fbconsole_write("\e[38;5;15m<-- cut here [CPU DUMP START] ---->\n"); \
-    fbconsole_write("\e[38;5;7m%3s: \e[38;5;15m0x%016x \e[38;5;7m%3s: \e[38;5;15m0x%016x \e[38;5;7m%3s: \e[38;5;15m0x%016x \e[38;5;7m%7s: \e[38;5;15m0x%016x\n", "RAX", cpu->rax, "RBX", cpu->rbx, "RCX", cpu->rcx, "RDX",    cpu->rdx); \
-    fbconsole_write("\e[38;5;7m%3s: \e[38;5;15m0x%016x \e[38;5;7m%3s: \e[38;5;15m0x%016x \e[38;5;7m%3s: \e[38;5;15m0x%016x \e[38;5;7m%7s: \e[38;5;15m0x%016x\n", "RSI", cpu->rsi, "RDI", cpu->rdi, "RBP", cpu->rbp, "RSP",    cpu->rsp); \
-    fbconsole_write("\e[38;5;7m%3s: \e[38;5;15m0x%016x \e[38;5;7m%3s: \e[38;5;15m0x%016x \e[38;5;7m%3s: \e[38;5;15m0x%016x \e[38;5;7m%7s: \e[38;5;15m0x%016x\n", "R8",  cpu->r8,  "R9",  cpu->r9,  "R10", cpu->r10, "R11",    cpu->r11); \
-    fbconsole_write("\e[38;5;7m%3s: \e[38;5;15m0x%016x \e[38;5;7m%3s: \e[38;5;15m0x%016x \e[38;5;7m%3s: \e[38;5;15m0x%016x \e[38;5;7m%7s: \e[38;5;15m0x%016x\n", "R12", cpu->r12, "R13", cpu->r13, "R14", cpu->r14, "R15",    cpu->r15); \
-    fbconsole_write("\e[38;5;7m%3s: \e[38;5;15m0x%016x \e[38;5;7m%3s: \e[38;5;15m0x%016x \e[38;5;7m%3s: \e[38;5;15m0x%016x \e[38;5;7m%7s: \e[38;5;15m0x%016x\n", "RIP", cpu->rip, "CS",  cpu->cs,  "SS",  cpu->ss,  "RFLAGS", cpu->rflags); \
-    fbconsole_write("<-- cut here [CPU DUMP END] ---->\n"); \
+    logd("<-- cut here [CPU DUMP START] ---->"); \
+    logd("%3s: 0x%016x %3s: 0x%016x %3s: 0x%016x %7s: 0x%016x", "RAX", cpu->rax, "RBX", cpu->rbx, "RCX", cpu->rcx, "RDX",    cpu->rdx); \
+    logd("%3s: 0x%016x %3s: 0x%016x %3s: 0x%016x %7s: 0x%016x", "RSI", cpu->rsi, "RDI", cpu->rdi, "RBP", cpu->rbp, "RSP",    cpu->rsp); \
+    logd("%3s: 0x%016x %3s: 0x%016x %3s: 0x%016x %7s: 0x%016x", "R8",  cpu->r8,  "R9",  cpu->r9,  "R10", cpu->r10, "R11",    cpu->r11); \
+    logd("%3s: 0x%016x %3s: 0x%016x %3s: 0x%016x %7s: 0x%016x", "R12", cpu->r12, "R13", cpu->r13, "R14", cpu->r14, "R15",    cpu->r15); \
+    logd("%3s: 0x%016x %3s: 0x%016x %3s: 0x%016x %7s: 0x%016x", "RIP", cpu->rip, "CS",  cpu->cs,  "SS",  cpu->ss,  "RFLAGS", cpu->rflags); \
+    logd("<-- cut here [CPU DUMP END] ---->"); \
 
 #endif

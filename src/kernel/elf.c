@@ -1,5 +1,5 @@
 #include "elf.h"
-#include "fbconsole.h"
+#include "log.h"
 #include "string.h"
 #include "mm.h"
 #include "vm.h"
@@ -8,18 +8,18 @@ ptr_t load_elf(ptr_t start, vm_table_t* context, ptr_t* data_start, ptr_t* data_
     elf_file_header_t* header = (elf_file_header_t*)start;
 
     if(header->ident_magic != ELF_MAGIC) {
-        fbconsole_write("\n[ELF] not an ELF file, invalid magic (%x != %x)!", header->ident_magic, ELF_MAGIC);
+        logf("elf", "not an ELF file, invalid magic (%x != %x)!", header->ident_magic, ELF_MAGIC);
         return 0;
     }
 
     if(header->machine != 0x3E || header->version != 1) {
-        fbconsole_write("\n[ELF] incompatible ELF file, invalid machine or version");
+        logf("elf", "incompatible ELF file, invalid machine or version");
         return 0;
     }
 
     // check if file is an executable
     if(header->type != 0x02) {
-        fbconsole_write("\n[ELF] file not executable (%u != %u)", header->type, 2);
+        logf("elf", "file not executable (%u != %u)", header->type, 2);
         return 0;
     }
 
