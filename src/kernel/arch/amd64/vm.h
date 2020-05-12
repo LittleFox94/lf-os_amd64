@@ -1,18 +1,6 @@
 #ifndef _VM_H_INCLUDED
 #define _VM_H_INCLUDED
 
-/** Virtual memory management module
- *
- * Responsible for allocating free virtual addresses in contexts,
- * creating and destroying contexts and activating them.
- *
- * A context is the thing you put in CR3.
- *
- * LF OS amd64-uefi
- * Copyright (c) 2018 Mara Sophie "LittleFox" Grosch <littlefox@lf-net.org>
- *   -- 2018-08-08
- */
-
 #include "stdint.h"
 #include "stdbool.h"
 
@@ -45,7 +33,8 @@ typedef struct {
     ALLOCATOR_REGION_NULL,           \
 }
 
-typedef struct {
+//! A single entry in a paging table
+struct vm_table_entry {
     unsigned int present      : 1;
     unsigned int writeable    : 1;
     unsigned int userspace    : 1;
@@ -59,32 +48,33 @@ typedef struct {
     unsigned long next_base   : 40;
     unsigned int available2   : 11;
     unsigned int nx           : 1;
-}__attribute__((packed)) vm_table_entry_t;
+}__attribute__((packed));
 
-typedef struct {
-    vm_table_entry_t entries[512];
-}__attribute__((packed)) vm_table_t;
+//! A paging table, when this is a PML4 it may also be called context
+struct vm_table {
+    struct vm_table_entry entries[512];
+}__attribute__((packed));
 
-vm_table_t* VM_KERNEL_CONTEXT;
+struct vm_table* VM_KERNEL_CONTEXT;
 
 void init_vm();
 void cleanup_boot_vm();
 
-vm_table_t* vm_context_new();
+struct vm_table* vm_context_new();
 
-void vm_context_activate(vm_table_t* context);
+void vm_context_activate(struct vm_table* context);
 
-void vm_context_map(vm_table_t* context, ptr_t virtual, ptr_t physical);
+void vm_context_map(struct vm_table* context, ptr_t virtual, ptr_t physical);
 
-ptr_t vm_context_get_free_address(vm_table_t* table, bool kernel);
+ptr_t vm_context_get_free_address(struct vm_table* table, bool kernel);
 
-int   vm_table_get_free_index1(vm_table_t* table);
-int   vm_table_get_free_index3(vm_table_t* table, int start, int end);
+int   vm_table_get_free_index1(struct vm_table* table);
+int   vm_table_get_free_index3(struct vm_table* table, int start, int end);
 
-ptr_t vm_context_get_physical_for_virtual(vm_table_t* context, ptr_t virtual);
+ptr_t vm_context_get_physical_for_virtual(struct vm_table* context, ptr_t virtual);
 
-ptr_t vm_context_alloc_pages(vm_table_t* context, region_t region, size_t num);
+ptr_t vm_context_alloc_pages(struct vm_table* context, region_t region, size_t num);
 
-void vm_copy_page(vm_table_t* dst_ctx, ptr_t dst, vm_table_t* src_ctx, ptr_t src);
+void vm_copy_page(struct vm_table* dst_ctx, ptr_t dst, struct vm_table* src_ctx, ptr_t src);
 
 #endif

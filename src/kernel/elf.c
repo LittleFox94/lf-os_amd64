@@ -4,7 +4,7 @@
 #include "mm.h"
 #include "vm.h"
 
-ptr_t load_elf(ptr_t start, vm_table_t* context, ptr_t* data_start, ptr_t* data_end) {
+ptr_t load_elf(ptr_t start, struct vm_table* context, ptr_t* data_start, ptr_t* data_end) {
     elf_file_header_t* header = (elf_file_header_t*)start;
 
     if(header->ident_magic != ELF_MAGIC) {

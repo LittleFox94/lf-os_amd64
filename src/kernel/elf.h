@@ -89,7 +89,7 @@ typedef struct elf_symbol elf_symbol_t;
  * \param[out] data_end     End of the data section
  * \returns                 Entrypoint of the image
  */
-ptr_t load_elf(ptr_t elf, vm_table_t* context, ptr_t* data_start, ptr_t* data_end);
+ptr_t load_elf(ptr_t elf, struct vm_table* context, ptr_t* data_start, ptr_t* data_end);
 
 /**
  * Return section header of ELF file by name

@@ -18,7 +18,7 @@
 #define GDT_RING3      0x60
 #define GDT_PRESENT    0x80
 
-typedef struct {
+struct idt_entry {
     uint16_t baseLow;
     uint16_t selector;
     uint8_t  ist;
@@ -26,23 +26,23 @@ typedef struct {
     uint16_t baseMid;
     uint32_t baseHigh;
     uint32_t _reserved;
-}__attribute__((packed)) idt_entry_t;
+}__attribute__((packed));
 
-typedef struct {
+struct gdt_entry {
     uint16_t limitLow;
     uint16_t baseLow;
     uint8_t  baseMid;
     uint8_t  type;
     uint8_t  size;
     uint8_t  baseHigh;
-}__attribute__((packed)) gdt_entry_t;
+}__attribute__((packed));
 
-typedef struct {
+struct table_pointer {
     uint16_t limit;
     uint64_t base;
-}__attribute__((packed)) table_pointer;
+}__attribute__((packed));
 
-typedef struct {
+struct tss {
     uint32_t _reserved0;
 
     uint64_t rsp0;
@@ -62,11 +62,11 @@ typedef struct {
     uint64_t _reserved2;
     uint16_t _reserved3;
     uint16_t iopb_offset;
-}__attribute__((packed)) tss_t;
+}__attribute__((packed));
 
-idt_entry_t _idt[256];
-gdt_entry_t _gdt[8];
-tss_t       _tss = {
+struct idt_entry _idt[256];
+struct gdt_entry _gdt[8];
+struct tss       _tss = {
     ._reserved1 = 0,
     ._reserved2 = 0,
     ._reserved3 = 0,
@@ -205,7 +205,7 @@ void _setup_idt() {
     _set_idt_entry(46, (ptr_t)idt_entry_46);
     _set_idt_entry(47, (ptr_t)idt_entry_47);
 
-    table_pointer idtp = {
+    struct table_pointer idtp = {
         .limit = sizeof(_idt) - 1,
         .base  = (ptr_t)_idt,
     };
@@ -252,7 +252,7 @@ void init_gdt() {
     _gdt[7].limitLow = ((ptr_t)&_tss >> 32) & 0xFFFF;
     _gdt[7].baseLow  = ((ptr_t)&_tss >> 48) & 0xFFFF;
 
-    table_pointer gdtp = {
+    struct table_pointer gdtp = {
         .limit = sizeof(_gdt) -1,
         .base  = (ptr_t)_gdt,
     };
