@@ -23,10 +23,10 @@ pages:
 build:
   stage: build
   script:
+    - make clean
     - make hd.img.gz lf-os.iso.gz sysroot.tar.xz
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
-    GIT_STRATEGY:           clone
   cache:
     paths:
     # this one is very heavy to build, so we keep it
