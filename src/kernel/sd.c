@@ -1,7 +1,5 @@
 #include "sd.h"
 
-#include "fbconsole.h"
-
 struct ServiceRegistration {
     enum ServiceType type;
 
