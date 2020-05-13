@@ -1,7 +1,7 @@
 /**
  * \file
  *
- * This file and tpa.c are the implementation of a thin provisioned array, an array with
+ * This file and tpa.h are the implementation of a thin provisioned array, an array with
  * unlimited size and holes for unused data.
  *
  * There is a small data overhead (8 byte per entry, could be 4 byte on 32bit platforms. aligned)
@@ -9,6 +9,8 @@
  * in page).
  *
  * However, the implementation is simple and for many use cases this is a practical thing :)
+ *
+ * You can look at /t/kernel/tpa.c for some examples.
  *
  * License: MIT
  * Author:  Mara Sophie Grosch (littlefox@lf-net.org)
