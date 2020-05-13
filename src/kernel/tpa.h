@@ -13,7 +13,7 @@ typedef struct tpa tpa_t;
  * \param entry_size Size of each entry
  * \returns A new TPA to use
  */
-tpa_t* tpa_new(allocator_t* allocator, uint8_t entry_size);
+tpa_t* tpa_new(allocator_t* allocator, deallocator_t* deallocator, uint8_t entry_size);
 
 /**
  * Deallocate every data in use by the given TPA And the TPA itself
@@ -54,7 +54,7 @@ size_t tpa_size(tpa_t* tpa);
  *
  * \remarks Has to search through the TPA and might be slow
  * \param tpa The TPA
- * \returns The index of the last entry in the last allocated page or -1
+ * \returns The index after the last entry in the last allocated page or -1
  */
 ssize_t tpa_length(tpa_t* tpa);
 
