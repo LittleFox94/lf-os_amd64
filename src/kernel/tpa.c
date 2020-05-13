@@ -1,3 +1,19 @@
+/**
+ * \file
+ *
+ * This file and tpa.c are the implementation of a thin provisioned array, an array with
+ * unlimited size and holes for unused data.
+ *
+ * There is a small data overhead (8 byte per entry, could be 4 byte on 32bit platforms. aligned)
+ * and quite some important runtime overhead (linked list to find the correct page, array access
+ * in page).
+ *
+ * However, the implementation is simple and for many use cases this is a practical thing :)
+ *
+ * License: MIT
+ * Author:  Mara Sophie Grosch (littlefox@lf-net.org)
+ */
+
 #include <tpa.h>
 #include <stdbool.h>
 #include <string.h>
