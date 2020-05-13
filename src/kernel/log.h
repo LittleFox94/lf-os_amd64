@@ -22,36 +22,41 @@ void log(char level, char* component, char* fmt, ...);
 /**
  * Append a debug log message to the kernel log buffer
  * \param component Sub component (kernel, mm, vm, scheduler, ...)
- * \param ... sprintf format string variables to set in the resulting message
+ * \param fmt sprintf format string
+ * \param ... variables to set in the resulting message
  */
-#define logd(...) log('D', __VA_ARGS__)
+#define logd(component, fmt, ...) log('D', component, fmt, __VA_ARGS__)
 
 /**
  * Append a info log message to the kernel log buffer
  * \param component Sub component (kernel, mm, vm, scheduler, ...)
- * \param ... sprintf format string variables to set in the resulting message
+ * \param fmt sprintf format string
+ * \param ... variables to set in the resulting message
  */
-#define logi(...) log('I', __VA_ARGS__)
+#define logi(component, fmt, ...) log('I', _component, fmt, _VA_ARGS__)
 
 /**
  * Append a warning log message to the kernel log buffer
  * \param component Sub component (kernel, mm, vm, scheduler, ...)
- * \param ... sprintf format string variables to set in the resulting message
+ * \param fmt sprintf format string
+ * \param ... variables to set in the resulting message
  */
-#define logw(...) log('W', __VA_ARGS__)
+#define logw(component, fmt, ...) log('W', _component, fmt, _VA_ARGS__)
 
 /**
  * Append a error log message to the kernel log buffer
  * \param component Sub component (kernel, mm, vm, scheduler, ...)
- * \param ... sprintf format string variables to set in the resulting message
+ * \param fmt sprintf format string
+ * \param ... variables to set in the resulting message
  */
-#define loge(...) log('E', __VA_ARGS__)
+#define loge(component, fmt, ...) log('E', _component, fmt, _VA_ARGS__)
 
 /**
  * Append a fatal log message to the kernel log buffer
  * \param component Sub component (kernel, mm, vm, scheduler, ...)
- * \param ... sprintf format string variables to set in the resulting message
+ * \param fmt sprintf format string
+ * \param ... variables to set in the resulting message
  */
-#define logf(...) log('F', __VA_ARGS__)
+#define logf(component, fmt, ...) log('F', _component, fmt, _VA_ARGS__)
 
 #endif
