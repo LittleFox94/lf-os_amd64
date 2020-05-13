@@ -33,7 +33,7 @@ void log(char level, char* component, char* fmt, ...);
  * \param fmt sprintf format string
  * \param ... variables to set in the resulting message
  */
-#define logi(component, fmt, ...) log('I', _component, fmt, _VA_ARGS__)
+#define logi(component, fmt, ...) log('I', component, fmt, __VA_ARGS__)
 
 /**
  * Append a warning log message to the kernel log buffer
@@ -41,7 +41,7 @@ void log(char level, char* component, char* fmt, ...);
  * \param fmt sprintf format string
  * \param ... variables to set in the resulting message
  */
-#define logw(component, fmt, ...) log('W', _component, fmt, _VA_ARGS__)
+#define logw(component, fmt, ...) log('W', component, fmt, __VA_ARGS__)
 
 /**
  * Append a error log message to the kernel log buffer
@@ -49,7 +49,7 @@ void log(char level, char* component, char* fmt, ...);
  * \param fmt sprintf format string
  * \param ... variables to set in the resulting message
  */
-#define loge(component, fmt, ...) log('E', _component, fmt, _VA_ARGS__)
+#define loge(component, fmt, ...) log('E', component, fmt, __VA_ARGS__)
 
 /**
  * Append a fatal log message to the kernel log buffer
@@ -57,6 +57,6 @@ void log(char level, char* component, char* fmt, ...);
  * \param fmt sprintf format string
  * \param ... variables to set in the resulting message
  */
-#define logf(component, fmt, ...) log('F', _component, fmt, _VA_ARGS__)
+#define logf(component, fmt, ...) log('F', component, fmt, __VA_ARGS__)
 
 #endif
