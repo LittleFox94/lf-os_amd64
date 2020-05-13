@@ -38,10 +38,12 @@ void memset32(uint32_t* dest, uint32_t c, size_t size) {
     }
 }
 
-void memset(uint8_t* dest, uint8_t c, size_t size) {
+void* memset(void* dest, int c, size_t size) {
     for(size_t i = 0; i < size; ++i) {
-        dest[i] = c;
+        *((uint8_t*)dest + i) = c;
     }
+
+    return dest;
 }
 
 void* memcpy(void* dest, void const* source, size_t size) {
