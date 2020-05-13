@@ -11,9 +11,10 @@ typedef struct tpa tpa_t;
  *
  * \param allocator Allocator function to use
  * \param entry_size Size of each entry
+ * \param page_size Size of each data page
  * \returns A new TPA to use
  */
-tpa_t* tpa_new(allocator_t* allocator, deallocator_t* deallocator, uint8_t entry_size);
+tpa_t* tpa_new(allocator_t* allocator, deallocator_t* deallocator, uint64_t entry_size, uint64_t page_size);
 
 /**
  * Deallocate every data in use by the given TPA And the TPA itself

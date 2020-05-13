@@ -5,7 +5,7 @@
 int main() {
     bool error = false;
 
-    tpa_t* tpa = tpa_new(malloc, free, sizeof(uint64_t));
+    tpa_t* tpa = tpa_new(malloc, free, sizeof(uint64_t), 4096);
 
     eq(4096, tpa_size(tpa), "Size of TPA with no entries correct");
     eq(0, tpa_entries(tpa), "Entrycount of TPA with no entries correct");

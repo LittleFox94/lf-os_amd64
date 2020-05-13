@@ -2,7 +2,7 @@
 #include <stdbool.h>
 #include <string.h>
 
-//! Header of a tpa page. Data follows after this until tpa_page_header+4096
+//! Header of a tpa page. Data follows after this until &tpa_page_header+tpa->page_size
 struct tpa_page_header {
     //! Pointer to the next page
     struct tpa_page_header* next;
@@ -21,17 +21,21 @@ struct tpa {
     deallocator_t* deallocator;
 
     //! Size of each entry
-    uint8_t entry_size;
+    uint64_t entry_size;
+
+    //! Size of each data page
+    uint64_t page_size;
 
     //! Pointer to the first data page
     struct tpa_page_header* first;
 };
 
-tpa_t* tpa_new(allocator_t* alloc, deallocator_t* dealloc, uint8_t entry_size) {
-    tpa_t* tpa = alloc(4096);
+tpa_t* tpa_new(allocator_t* alloc, deallocator_t* dealloc, uint64_t entry_size, uint64_t page_size) {
+    tpa_t* tpa = alloc(sizeof(struct tpa));
     tpa->allocator   = alloc;
     tpa->deallocator = dealloc;
     tpa->entry_size  = entry_size;
+    tpa->page_size   = page_size;
     tpa->first       = 0;
 
     return tpa;
@@ -49,10 +53,10 @@ void tpa_delete(tpa_t* tpa) {
 }
 
 size_t tpa_size(tpa_t* tpa) {
-    size_t res = 4096; // for the header
+    size_t res = tpa->page_size; // for the header
     struct tpa_page_header* current = tpa->first;
     while(current) {
-        res += 4096;
+        res += tpa->page_size;
         current = current->next;
     }
 
@@ -60,7 +64,7 @@ size_t tpa_size(tpa_t* tpa) {
 }
 
 size_t tpa_entries_per_page(tpa_t* tpa) {
-    return ((4096-sizeof(struct tpa_page_header)) / (tpa->entry_size + 8));
+    return ((tpa->page_size - sizeof(struct tpa_page_header)) / (tpa->entry_size + 8));
 }
 
 ssize_t tpa_length(tpa_t* tpa) {
@@ -160,7 +164,7 @@ void tpa_set(tpa_t* tpa, uint64_t idx, void* data) {
     }
     else {
         if(!page) {
-            page = tpa->allocator(4096);
+            page = tpa->allocator(tpa->page_size);
             page->start_idx = (idx / tpa_entries_per_page(tpa)) * tpa_entries_per_page(tpa);
 
             struct tpa_page_header* current = tpa->first;
