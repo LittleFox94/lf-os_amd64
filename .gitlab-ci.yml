@@ -1,4 +1,4 @@
-image: registry.lf-net.org/littlefox/lf-os_amd64/ci:2020051102
+image: registry.lf-net.org/littlefox/lf-os_amd64/ci:2020051401
 stages:
 - test
 - build
@@ -33,6 +33,9 @@ build:
     # this one is very heavy to build, so we keep it
     # don't do that for the runtime libs, we might change in ugly ways
     - sysroot/tmp/clang-build
+    # those are unproblematic to keep and take enough time to justify the exception
+    - '*.img'
+    - '*.gz'
   artifacts:
     paths:
       - hd.img.gz
