@@ -22,6 +22,7 @@ pages:
 
 build:
   stage: build
+  interruptible: true
   script:
     - make clean
     - make hd.img.gz lf-os.iso.gz sysroot.tar.xz
