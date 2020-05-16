@@ -101,7 +101,7 @@ uint16_t tpa_offset_in_page(tpa_t* tpa, uint64_t idx) {
 }
 
 uint64_t* tpa_get_marker(tpa_t* tpa, struct tpa_page_header* page, uint64_t idx) {
-    return (uint64_t*)((void*)page + tpa_offset_in_page(tpa, idx - page->start_idx));
+    return (uint64_t*)((void*)page + tpa_offset_in_page(tpa, idx));
 }
 
 bool tpa_entry_exists_in_page(tpa_t* tpa, struct tpa_page_header* page, uint64_t idx) {
