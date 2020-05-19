@@ -257,73 +257,55 @@ int vm_table_get_free_index3(struct vm_table *table, int start, int end) {
 }
 
 ptr_t vm_context_get_physical_for_virtual(struct vm_table* context, ptr_t virtual) {
-    uint16_t pml4_index = PML4_INDEX(virtual);
-    uint16_t pdp_index  = PDP_INDEX(virtual);
-    uint16_t pd_index   = PD_INDEX(virtual);
-    uint16_t pt_index   = PT_INDEX(virtual);
+    if(!context->entries[PML4_INDEX(virtual)].present)
+        return 0;
 
-    if(context->entries[pml4_index].present) {
-        struct vm_table* pdp = BASE_TO_TABLE(context->entries[pml4_index].next_base);
+    struct vm_table* pdp = BASE_TO_TABLE(context->entries[PML4_INDEX(virtual)].next_base);
 
-        if(pdp->entries[pdp_index].present) {
-            // check if last level
-            if(pdp->entries[pdp_index].huge) {
-                return (pdp->entries[pdp_index].next_base << 30) | (virtual & 0x3FFFFFFF);
-            }
-            else {
-                struct vm_table* pd = BASE_TO_TABLE(pdp->entries[pdp_index].next_base);
+    if(!pdp->entries[PDP_INDEX(virtual)].present)
+        return 0;
+    else if(pdp->entries[PDP_INDEX(virtual)].huge)
+        return (pdp->entries[PDP_INDEX(virtual)].next_base << 30) | (virtual & 0x3FFFFFFF);
 
-                if(pd->entries[pd_index].present) {
-                    // check if last level
-                    if(pd->entries[pd_index].huge) {
-                        return (pd->entries[pd_index].next_base << 21) | (virtual & 0x1FFFFF);
-                    }
-                    else {
-                        struct vm_table* pt = BASE_TO_TABLE(pd->entries[pd_index].next_base);
+    struct vm_table* pd = BASE_TO_TABLE(pdp->entries[PDP_INDEX(virtual)].next_base);
 
-                        if(pt->entries[pt_index].present) {
-                            return (pt->entries[pt_index].next_base << 12) | (virtual & 0xFFF);
-                        }
-                    }
-                }
-            }
-        }
-    }
+    if(!pd->entries[PD_INDEX(virtual)].present)
+        return 0;
+    else if(pd->entries[PD_INDEX(virtual)].huge)
+        return (pd->entries[PD_INDEX(virtual)].next_base << 21) | (virtual & 0x1FFFFF);
 
-    // nope
-    return 0;
+    struct vm_table* pt = BASE_TO_TABLE(pd->entries[PD_INDEX(virtual)].next_base);
+
+    if(!pt->entries[PT_INDEX(virtual)].present)
+        return 0;
+    else
+        return (pt->entries[PT_INDEX(virtual)].next_base << 12) | (virtual & 0xFFF);
 }
 
-bool vm_context_page_present(struct vm_table* context, uint16_t pml4_index, uint16_t pdp_index, uint16_t pd_index, uint16_t pt_index) {
-    if(context->entries[pml4_index].present) {
-        struct vm_table* pdp = BASE_TO_TABLE(context->entries[pml4_index].next_base);
+bool vm_context_page_present(struct vm_table* context, ptr_t virtual) {
+    if(!context->entries[PML4_INDEX(virtual)].present)
+        return false;
 
-        if(pdp->entries[pdp_index].present) {
-            // check if last level
-            if(pdp->entries[pdp_index].huge) {
-                return true;
-            }
-            else {
-                struct vm_table* pd = BASE_TO_TABLE(pdp->entries[pdp_index].next_base);
+    struct vm_table* pdp = BASE_TO_TABLE(context->entries[PML4_INDEX(virtual)].next_base);
 
-                if(pd->entries[pd_index].present) {
-                    // check if last level
-                    if(pd->entries[pd_index].huge) {
-                        return true;
-                    }
-                    else {
-                        struct vm_table* pt = BASE_TO_TABLE(pd->entries[pd_index].next_base);
+    if(!pdp->entries[PDP_INDEX(virtual)].present)
+        return false;
+    else if(pdp->entries[PDP_INDEX(virtual)].huge)
+        return true;
 
-                        if(pt->entries[pt_index].present) {
-                            return true;
-                        }
-                    }
-                }
-            }
-        }
-    }
+    struct vm_table* pd = BASE_TO_TABLE(pdp->entries[PDP_INDEX(virtual)].next_base);
 
-    return false;
+    if(!pd->entries[PD_INDEX(virtual)].present)
+        return false;
+    else if(pd->entries[PD_INDEX(virtual)].huge)
+        return true;
+
+    struct vm_table* pt = BASE_TO_TABLE(pd->entries[PD_INDEX(virtual)].next_base);
+
+    if(!pt->entries[PT_INDEX(virtual)].present)
+        return false;
+    else
+        return true;
 }
 
 ptr_t vm_context_alloc_pages(struct vm_table* context, region_t region, size_t num) {
@@ -331,14 +313,14 @@ ptr_t vm_context_alloc_pages(struct vm_table* context, region_t region, size_t n
     ptr_t found   = 0;
 
     while(!found && current <= region.end) {
-        if(vm_context_page_present(context, PML4_INDEX(current), PDP_INDEX(current), PD_INDEX(current), PT_INDEX(current))) {
+        if(vm_context_page_present(context, current)) {
             current += 4096;
             continue;
         }
 
         bool abortThisCandidate = false;
         for(size_t i = 0; i < num; ++i) {
-            if(vm_context_page_present(context, PML4_INDEX(current), PDP_INDEX(current), PD_INDEX(current), PT_INDEX(current))) {
+            if(vm_context_page_present(context, current + (i * 4096))) {
                 current += 4096;
                 abortThisCandidate = true;
                 break;
@@ -366,11 +348,11 @@ void vm_copy_page(struct vm_table* dst_ctx, ptr_t dst, struct vm_table* src_ctx,
     // XXX: make some copy-on-write here
     // XXX: incompatible with non-4k pages!
 
-    if(vm_context_page_present(src_ctx, PML4_INDEX(src), PDP_INDEX(src), PD_INDEX(src), PT_INDEX(src))) {
+    if(vm_context_page_present(src_ctx, src)) {
         ptr_t src_phys = vm_context_get_physical_for_virtual(src_ctx, src);
         ptr_t dst_phys;
 
-        if(!vm_context_page_present(dst_ctx, PML4_INDEX(dst), PDP_INDEX(dst), PD_INDEX(dst), PT_INDEX(dst))) {
+        if(!vm_context_page_present(dst_ctx, dst)) {
             dst_phys = (ptr_t)mm_alloc_pages(1);
             vm_context_map(dst_ctx, dst, dst_phys);
         } else {
