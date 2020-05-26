@@ -41,7 +41,9 @@ ptr_t load_elf(ptr_t start, struct vm_table* context, ptr_t* data_start, ptr_t* 
                 if(toCopy > 0x1000) toCopy = 0x1000;
 
                 if((programHeader->vaddr + j) & 0xFFF) {
-                    toCopy -= (programHeader->vaddr + j) & 0xFFF;
+                    if(toCopy > ((programHeader->vaddr + j) & 0xFFF))
+                        toCopy -= (programHeader->vaddr + j) & 0xFFF;
+
                     offset  = (programHeader->vaddr + j) & 0xFFF;
                 }
 
@@ -51,6 +53,7 @@ ptr_t load_elf(ptr_t start, struct vm_table* context, ptr_t* data_start, ptr_t* 
                     j -= (programHeader->vaddr + j) & 0xFFF;
                 }
             }
+
         }
 
         ptr_t end = programHeader->vaddr + programHeader->memLength + 1;
