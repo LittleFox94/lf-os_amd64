@@ -9,7 +9,7 @@ export LFOS_SYSROOT := $(shell pwd)/sysroot
 
 export OPTIMIZATION := -O3
 
-all: run-kvm
+default: run-kvm
 
 doc: src/kernel/arch/amd64/kernel # to get some generated sources
 	doxygen Doxyfile
@@ -17,46 +17,42 @@ doc: src/kernel/arch/amd64/kernel # to get some generated sources
 test:
 	+ make -C t/kernel
 
-run: runnable-image
+run: hd.img
 	qemu-system-x86_64 $(QEMUFLAGS) $(QEMUFLAGS_NO_DEBUG) -s
 
-run-kvm: runnable-image
+run-kvm: hd.img
 	kvm $(QEMUFLAGS) $(QEMUFLAGS_NO_DEBUG)
 
-profile: runnable-image util/gsp/gsp-trace util/gsp/gsp-syms
+profile: hd.img util/gsp/gsp-trace util/gsp/gsp-syms
 	./util/gsp/gsp-trace -i src/kernel/arch/amd64/kernel -c -o lf-os.trace -g "stdio:qemu-system-x86_64 $(QEMUFLAGS) -gdb stdio -S -display vnc=:0" -S _panic
 
-debug: runnable-image src/kernel/arch/amd64/kernel
+debug: hd.img src/kernel/arch/amd64/kernel
 	gdb -ex "target remote | qemu-system-x86_64 $(QEMUFLAGS) -gdb stdio -S"
 
-debug-kvm: runnable-image src/kernel/arch/amd64/kernel
+debug-kvm: hd.img src/kernel/arch/amd64/kernel
 	gdb -ex "target remote | kvm $(QEMUFLAGS) -gdb stdio -S"
 
-bootfs.img:
+bootfs.img: src/loader/loader.efi src/kernel/arch/amd64/kernel src/init/init
 	dd if=/dev/zero of=bootfs.img bs=1k count=65536
 	$(MKVFAT) bootfs.img -F 32
 	mmd -i bootfs.img ::/LFOS
 	mmd -i bootfs.img ::/EFI
 	mmd -i bootfs.img ::/EFI/BOOT
-
-bootable-filesystem: bootfs.img src/loader/loader.efi src/kernel/arch/amd64/kernel src/init/init
 	mcopy -i bootfs.img -o src/loader/loader.efi 		::/EFI/BOOT/BOOTX64.EFI
 	mcopy -i bootfs.img -o src/init/init  				::/LFOS/init
 	mcopy -i bootfs.img -o src/kernel/arch/amd64/kernel ::/LFOS/kernel
 
-hd.img:
+hd.img: bootfs.img
 	dd if=/dev/zero of=hd.img bs=512 count=133156
 	$(SGDISK) -Z hd.img
 	$(SGDISK) -o hd.img
 	$(SGDISK) -n 1:2048:133120 -t 1:ef00 hd.img
-
-runnable-image: hd.img bootable-filesystem
 	dd if=bootfs.img of=hd.img seek=2048 obs=512 ibs=512 count=131072 conv=notrunc
 
-%.gz: % runnable-image
+%.gz: % hd.img
 	gzip -fk $<
 
-lf-os.iso: bootable-filesystem
+lf-os.iso: bootfs.img
 	genisoimage --joliet-long -JR --no-emul-boot --eltorito-boot bootfs.img -o $@ -m 'sysroot/tmp*' -m 'sysroot/include/llvm/*' -m 'sysroot/include/clang/*' -m 'sysroot/lib/libLLVM*' -m 'sysroot/lib/libclang*' bootfs.img sysroot
 
 src/kernel/arch/amd64/kernel:
