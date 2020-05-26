@@ -13,7 +13,8 @@ typedef struct {
 #define ALLOCATOR_REGION_NULL           (region_t){ .name = "NULL", .start = 0, .end = 0 }
 
 // Stack has to be 16-bytes aligned
-#define ALLOCATOR_REGION_USER_STACK     (region_t){ .name = "User stack", .start = 0x00007F0000001000, .end = 0x00007FFFFFFFEFF0 }
+#define ALLOCATOR_REGION_USER_STACK     (region_t){ .name = "User stack", .start = 0x00003F0000001000, .end = 0x00003FFFFFFFEFF0 }
+#define ALLOCATOR_REGION_USER_HARDWARE  (region_t){ .name = "User stack", .start = 0x00007F0000000000, .end = 0x00007FFFFFFFFFFF }
 
 #define ALLOCATOR_REGION_SCRATCHPAD     (region_t){ .name = "Kernel scratchpad", .start = 0xFFFF800000000000, .end = 0xFFFF800000FFFFFF }
 #define ALLOCATOR_REGION_KERNEL_BINARY  (region_t){ .name = "Kernel binary",     .start = 0xFFFF800001000000, .end = 0xFFFF800008FFFFFF }
@@ -21,36 +22,36 @@ typedef struct {
 #define ALLOCATOR_REGION_KERNEL_HEAP    (region_t){ .name = "Kernel heap",       .start = 0xFFFF800040000000, .end = 0xFFFF8007FFFFFFFF }
 
 // this one must be PML4 aligned! (PDP, PD and PT indexes must be zero for the start and 511 for the end)
+// must also be the last region
 #define ALLOCATOR_REGION_DIRECT_MAPPING (region_t){ .name = "Physical mapping",  .start = 0xFFFF840000000000, .end = 0xFFFF87FFFFFFFFFF }
 
-//! A single entry in a paging table
-struct vm_table_entry {
-    unsigned int present      : 1;
-    unsigned int writeable    : 1;
-    unsigned int userspace    : 1;
-    unsigned int writethrough : 1;
-    unsigned int cachedisable : 1;
-    unsigned int accessed     : 1;
-    unsigned int dirty        : 1;
-    unsigned int huge         : 1;
-    unsigned int global       : 1;
-    unsigned int available    : 3;
-    unsigned long next_base   : 40;
-    unsigned int available2   : 11;
-    unsigned int nx           : 1;
-}__attribute__((packed));
+// Some usage flags for pages
+static const uint32_t PageUsageKernel          = 1;  //! Page is used by kernel, userspace otherwise
+static const uint32_t PageUsageHardware        = 2;  //! Page accesses MMIO hardware, plain memory otherwise
+static const uint32_t PageCoW                  = 4;  //! Copy page on fault and give RW access on new page, normal #PF logic otherwise
+static const uint32_t PageSharedMemory         = 8;  //! Page is mapped in multiple processes as shared memory
+static const uint32_t PageLocked               = 16; //! Page is locked and cannot be unmapped
+static const uint32_t PageUsagePagingStructure = 32; //! Page is used as paging structure
 
-//! A paging table, when this is a PML4 it may also be called context
-struct vm_table {
-    struct vm_table_entry entries[512];
-}__attribute__((packed));
+// Sizes a page can have
+static const uint8_t  PageSize4KiB = 0;
+static const uint8_t  PageSize2MiB = 1;
+static const uint8_t  PageSize1GiB = 2;
 
+struct vm_table;
 struct vm_table* VM_KERNEL_CONTEXT;
 
 void init_vm();
 void cleanup_boot_vm();
 
+//! Like malloc but allocates full pages only. 16 byte data overhead.
+void* vm_alloc(size_t size);
+
+//! the matching free() like function for vm_alloc
+void  vm_free(void* ptr);
+
 struct vm_table* vm_context_new();
+struct vm_table* vm_current_context();
 
 void vm_context_activate(struct vm_table* context);
 
@@ -66,5 +67,8 @@ ptr_t vm_context_get_physical_for_virtual(struct vm_table* context, ptr_t virtua
 ptr_t vm_context_alloc_pages(struct vm_table* context, region_t region, size_t num);
 
 void vm_copy_page(struct vm_table* dst_ctx, ptr_t dst, struct vm_table* src_ctx, ptr_t src);
+
+//! Map a given memory area in the currently running userspace process at a random location
+ptr_t vm_map_hardware(ptr_t hw, size_t len);
 
 #endif

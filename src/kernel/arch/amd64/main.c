@@ -179,7 +179,7 @@ void init_init(LoaderStruct* loaderStruct) {
 }
 
 void bootstrap_globals() {
-    asm("mov %%cr3, %0":"=r"(VM_KERNEL_CONTEXT));
+    VM_KERNEL_CONTEXT = vm_current_context();
 }
 
 /* noinline to have a default stop point for profiling */
