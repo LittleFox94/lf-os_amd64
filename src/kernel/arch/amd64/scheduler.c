@@ -137,7 +137,7 @@ void sc_handle_scheduler_clone(bool share_memory, ptr_t entry, uint64_t* newPid)
 
     // new memory context ...
     struct vm_table* context = vm_context_new();
-    process->context    = context;
+    process->context         = context;
 
     // .. copy heap ..
     if(!share_memory) {
@@ -152,13 +152,22 @@ void sc_handle_scheduler_clone(bool share_memory, ptr_t entry, uint64_t* newPid)
     process->heap.start = processes[scheduler_current_process].heap.start;
     process->heap.end   = processes[scheduler_current_process].heap.end;
 
-    // .. and stack
+    // .. and stack ..
     for(size_t i = processes[scheduler_current_process].stack.start; i < processes[scheduler_current_process].stack.end; i += 0x1000) {
         vm_copy_page(context, (ptr_t)i, processes[scheduler_current_process].context, (ptr_t)i);
     }
 
     process->stack.start = processes[scheduler_current_process].stack.start;
     process->stack.end   = processes[scheduler_current_process].stack.end;
+
+    // .. and remap hardware resources
+    for(ptr_t i = ALLOCATOR_REGION_USER_HARDWARE.start; i < ALLOCATOR_REGION_USER_HARDWARE.end; i += 4096) {
+        ptr_t hw = vm_context_get_physical_for_virtual(processes[scheduler_current_process].context, i);
+
+        if(hw) {
+            vm_context_map(context, i, hw);
+        }
+    }
 
     if(share_memory && entry) {
         process->cpu.rip = entry;
