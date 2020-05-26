@@ -500,6 +500,7 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE* system_tab
     state.loaderSize  = (size_t)li->ImageSize;
 
     state.scratchpad  = AllocatePool(16 * MB);
+    __builtin_memset(state.scratchpad, 0, 16 * MB);
 
     state.loaderScratchpadSize = 2 * MB;
     state.loaderScratchpadFree = state.loaderScratchpad
