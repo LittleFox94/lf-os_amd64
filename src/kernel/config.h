@@ -10,3 +10,6 @@
 
 // store 4MB of log messages max
 #define LOG_MAX_BUFFER (4 * 1024 * 1024)
+
+// Shall we log to COM0?
+#define LOG_COM0 true

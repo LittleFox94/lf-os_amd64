@@ -62,8 +62,11 @@ void log_append(char level, char* component, char* message) {
         log_append_page();
     }
 
-    ksnprintf(log_last->messages + log_last->current_end, sizeof(log_last->messages) - log_last->current_end, "%c\t%s\t%s", level, component, message);
+    uint64_t msg_start = log_last->current_end + 1;
+
+    ksnprintf(log_last->messages + log_last->current_end, sizeof(log_last->messages) - log_last->current_end, "%c\t%s\t%s", (int)level, component, message);
     log_last->current_end += len;
+    uint64_t msg_end = log_last->current_end;
 
     if(fbconsole_active) {
         int color_code;
@@ -90,6 +93,13 @@ void log_append(char level, char* component, char* message) {
         }
 
         fbconsole_write("\e[38;5;%dm[%c] %s: %s\n", color_code, level, component, message);
+    }
+
+    if(LOG_COM0) {
+        for(size_t i = msg_start; i < msg_end; ++i) {
+            outb(0x3F8, log_last->messages[i]);
+        }
+        outb(0x3F8, '\n');
     }
 
     ++log_count;
