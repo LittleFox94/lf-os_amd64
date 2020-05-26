@@ -48,8 +48,11 @@ struct tpa {
     struct tpa_page_header* first;
 };
 
-tpa_t* tpa_new(allocator_t* alloc, deallocator_t* dealloc, uint64_t entry_size, uint64_t page_size) {
-    tpa_t* tpa = alloc(sizeof(struct tpa));
+tpa_t* tpa_new(allocator_t* alloc, deallocator_t* dealloc, uint64_t entry_size, uint64_t page_size, tpa_t* tpa) {
+    if(!tpa) {
+        tpa = alloc(sizeof(struct tpa));
+    }
+
     tpa->allocator   = alloc;
     tpa->deallocator = dealloc;
     tpa->entry_size  = entry_size;
@@ -96,7 +99,7 @@ ssize_t tpa_length(tpa_t* tpa) {
     return current->start_idx + tpa_entries_per_page(tpa);
 }
 
-uint16_t tpa_offset_in_page(tpa_t* tpa, uint64_t idx) {
+uint64_t tpa_offset_in_page(tpa_t* tpa, uint64_t idx) {
     return sizeof(struct tpa_page_header) + ((tpa->entry_size + 8) * idx);
 }
 
@@ -121,7 +124,7 @@ size_t tpa_entries(tpa_t* tpa) {
 
         current = current->next;
     }
-    
+
     return res;
 }
 
@@ -135,6 +138,8 @@ struct tpa_page_header* tpa_get_page_for_idx(tpa_t* tpa, uint64_t idx) {
         if(current->start_idx > idx) {
             break;
         }
+
+        current = current->next;
     }
 
     return 0;
@@ -183,17 +188,19 @@ void tpa_set(tpa_t* tpa, uint64_t idx, void* data) {
     else {
         if(!page) {
             page = tpa->allocator(tpa->page_size);
+            memset(page, 0, tpa->page_size);
             page->start_idx = (idx / tpa_entries_per_page(tpa)) * tpa_entries_per_page(tpa);
 
             struct tpa_page_header* current = tpa->first;
-            while(current && current->next && current->next->start_idx > page->start_idx) {
+            while(current && current->next && current->next->start_idx < page->start_idx) {
                 current = current->next;
             }
 
-            if(current) {
+            if(current && current->start_idx < page->start_idx) {
                 struct tpa_page_header* next = current->next;
-                current->next = page;
                 page->next = next;
+
+                current->next = page;
                 page->prev = current;
 
                 if(next) {
@@ -201,7 +208,14 @@ void tpa_set(tpa_t* tpa, uint64_t idx, void* data) {
                 }
             }
             else {
+                if(current && current->start_idx > page->start_idx) {
+                    page->next = current;
+                    page->prev = current->prev;
+                    current->prev = page;
+                }
+
                 tpa->first = page;
+
             }
         }
 
