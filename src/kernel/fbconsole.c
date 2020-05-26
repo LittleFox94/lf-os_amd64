@@ -260,3 +260,20 @@ int fbconsole_write(char* string, ...) {
 
     return i;
 }
+
+void sc_handle_hardware_framebuffer(ptr_t *fb, uint16_t *width, uint16_t *height, uint16_t* stride, uint16_t* colorFormat) {
+    if(fbconsole_active) {
+        fbconsole_active = false;
+
+        *width = fbconsole.width;
+        *height = fbconsole.height;
+        *stride = fbconsole.width; // stride is added with #10
+        *colorFormat = 0; // to be specified
+
+        *fb = vm_map_hardware(vm_context_get_physical_for_virtual(VM_KERNEL_CONTEXT, (ptr_t)fbconsole.fb), *stride * *height * 4);
+        fbconsole_clear(0, 0, 0);
+
+        extern int scheduler_current_process;
+        logd("fbconsole", "Gave up control of framebuffer, now process %d is in charge", scheduler_current_process);
+    }
+}

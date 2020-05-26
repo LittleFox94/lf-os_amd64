@@ -49,6 +49,35 @@ groups:
       reg:  rax
       desc: Pointer to the last byte in the data segment
 
+- number: 2
+  name:   hardware
+  desc:   Various syscalls to access hardware resources
+  syscalls:
+  - number: 0
+    name:   framebuffer
+    desc:   Take control of the framebuffer (if still in control by kernel)
+    returns:
+    - name: framebuffer
+      type: uint64_t
+      reg:  rax
+      desc: Pointer to the framebuffer
+    - name: width
+      type: uint16_t
+      reg:  rdi
+      desc: Width of the framebuffer
+    - name: height
+      type: uint16_t
+      reg:  rdi
+      desc: Height of the framebuffer
+    - name: stride
+      type: uint16_t
+      reg:  rdi
+      desc: Stride (number of bytes per pixel row) of the framebuffer
+    - name: colorFormat
+      type: uint16_t
+      reg:  rdi
+      desc: TBD
+
 - number: 255
   name:   debug
   desc:   Debugging syscalls (simple text output, logging, ...)
