@@ -60,6 +60,11 @@ my %TYPES = (
         length => 1,
         signed => 0,
     },
+
+    'void*' => {
+        length => 64,
+        signed => 0,
+    }
 );
 
 my %reg_to_inline_asm = (
@@ -159,7 +164,7 @@ sub render_syscall_func {
                     print $outfh '(';
                 }
 
-                print $outfh "($param->{name}$mask)";
+                print $outfh "(uint64_t)($param->{name}$mask)";
 
                 if($shift > 0) {
                     print $outfh " << $shift)";
@@ -176,18 +181,24 @@ sub render_syscall_func {
 
         print $outfh "    uint64_t rdx = (($group->{number} & 0xFF) << 24) | ($syscall->{number} & 0xFFFFFF);\n";
 
+        my %rregs;
+        for my $arg ($syscall->{returns}->@*) {
+            push($rregs{$arg->{reg}}->@*, $arg);
+        }
+
+        for my $reg (keys %rregs) {
+            if(!$pregs{$reg}) {
+                print $outfh "    uint64_t $reg;\n";
+            }
+        }
+
         print $outfh "\n    asm volatile(\"syscall\":";
-        print $outfh join(', ', map { '"=' . $reg_to_inline_asm{$_->{reg}} . "\"($_->{reg})" } $syscall->{returns}->@*);
+        print $outfh join(', ', map { '"=' . $reg_to_inline_asm{$_} . "\"($_)" } keys %rregs);
         print $outfh ':';
         print $outfh join(', ', map { '"' . $reg_to_inline_asm{$_} . "\"($_)" } (keys %pregs, 'rdx'));
         print $outfh ':';
         print $outfh '"rbx", "rcx", "r11"';
         print $outfh ");\n\n";
-
-        my %rregs;
-        for my $arg ($syscall->{returns}->@*) {
-            push($rregs{$arg->{reg}}->@*, $arg);
-        }
 
         for my $reg (keys %rregs) {
             my $total = sum map { $TYPES{$_->{type}}->{length} } $rregs{$reg}->@*;
@@ -216,12 +227,10 @@ sub render_syscall_func {
                     $ret = $return->{reg};
                 }
 
-                print $outfh "($ret$mask)";
+                print $outfh "($ret$mask);\n";
 
                 $bits_before += $TYPES{$return->{type}}->{length};
             }
-
-            print $outfh ";\n";
         }
 
         print $outfh "}\n\n";
@@ -325,7 +334,7 @@ sub render_syscall_decode {
                 print $outfh '(';
             }
 
-            print $outfh "($return->{name}$mask)";
+            print $outfh "(uint64_t)($return->{name}$mask)";
 
             if($shift > 0) {
                 print $outfh " << $shift)";
