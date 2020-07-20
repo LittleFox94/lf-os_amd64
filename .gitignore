@@ -9,6 +9,8 @@
 *.elf
 .*.s??
 *.gen.c
+*.deb
+debian-binary
 doc/doxygen
 src/init/init
 src/kernel/arch/amd64/kernel

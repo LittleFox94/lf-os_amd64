@@ -1,0 +1,4 @@
+#!/bin/sh
+
+rm -rf /boot/efi/EFI/LFOS
+rm -rf /boot/efi/LFOS

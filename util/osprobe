@@ -1,0 +1,22 @@
+#!/bin/sh
+# os-prober script for LF OS
+# Detects LF OS bootloader on a EFI System Partition
+
+. /usr/share/os-prober/common.sh
+
+efi="$1"
+
+found=
+
+if [ -d "$efi/LFOS" ]; then
+	long="LF OS"
+	short="lf-os"
+	path=LFOS/bootx64.efi
+	found=true
+fi  
+
+if [ -n "$found" ]; then
+	label="$(count_next_label "$short")"
+	result "${path}:${long}:${label}"
+fi
+exit 0

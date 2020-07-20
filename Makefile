@@ -7,7 +7,7 @@ QEMUFLAGS_NO_DEBUG := -monitor stdio
 
 export LFOS_SYSROOT := $(shell pwd)/sysroot
 
-export OPTIMIZATION := -O3
+export OPTIMIZATION :=
 
 default: run-kvm
 
@@ -87,6 +87,24 @@ sysroot/lib/libc++.a:
 sysroot.tar.xz: sysroot
 	tar -cJf sysroot.tar.xz --exclude tmp --transform s~sysroot~x86_64-pc-lf_os~ sysroot
 
+lf-os.deb: packaging/control.tar.xz packaging/data.tar.xz
+	echo "2.0" > debian-binary
+	rm -f lf-os.deb
+	ar r lf-os.deb debian-binary packaging/control.tar.xz packaging/data.tar.xz
+
+packaging/control.tar.xz: packaging/debian_*
+	tar -cJf $@ packaging/debian_* --transform s.packaging/debian_..
+
+packaging/data.tar.xz: src/loader/loader.efi src/kernel/arch/amd64/kernel src/init/init util/osprobe
+	mkdir -p packaging/root/boot/efi/EFI/LFOS/
+	mkdir -p packaging/root/boot/efi/LFOS
+	mkdir -p packaging/root/usr/lib/os-probes/mounted/efi
+	cp src/loader/loader.efi 		packaging/root/boot/efi/EFI/LFOS/BOOTX64.EFI
+	cp src/kernel/arch/amd64/kernel packaging/root/boot/efi/LFOS/kernel
+	cp src/init/init 	 			packaging/root/boot/efi/LFOS/init
+	cp util/osprobe 	 			packaging/root/usr/lib/os-probes/mounted/efi/20lfos
+	tar --owner root --group root -cJf $@ packaging/root/* --transform s.packaging/root/..
+
 clean:
 	+ make -C src/kernel clean
 	+ make -C src/loader clean
@@ -94,6 +112,7 @@ clean:
 	+ make -C src/sysroot clean
 	+ make -C util/gsp clean
 	+ make -C util clean
+	rm -f packaging/*.tar.xz packaging/root lf-os.deb
 	rm -f bootfs.img hd.img hd.img.gz lf-os.iso lf-os.iso.gz
 
 .PHONY: clean all test test-kvm src/kernel/arch/amd64/kernel src/init/init src/loader/loader.efi util/gsp/gsp-trace util/gsp/gsp-syms util/embed sysroot
