@@ -24,7 +24,7 @@ build:
   stage: build
   interruptible: true
   before_script:
-    - sed -i "s/Version: 0.0.0/Version: 0.0.0-$CI_PIPELINE_IID/" packaging/debian_control
+    - 'sed -i "s/Version: 0.0.0/Version: 0.0.0-$CI_PIPELINE_IID/" packaging/debian_control'
   script:
     - make clean
     - make hd.img.gz lf-os.iso.gz sysroot.tar.xz lf-os.deb
