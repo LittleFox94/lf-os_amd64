@@ -40,6 +40,7 @@ build:
     - '*.gz'
   artifacts:
     paths:
+      - lf-os.deb
       - hd.img.gz
       - lf-os.iso.gz
       - sysroot.tar.xz
