@@ -112,7 +112,7 @@ clean:
 	+ make -C src/sysroot clean
 	+ make -C util/gsp clean
 	+ make -C util clean
-	rm -f packaging/*.tar.xz packaging/root lf-os.deb
+	rm -rf packaging/*.tar.xz packaging/root lf-os.deb
 	rm -f bootfs.img hd.img hd.img.gz lf-os.iso lf-os.iso.gz
 
 .PHONY: clean all test test-kvm src/kernel/arch/amd64/kernel src/init/init src/loader/loader.efi util/gsp/gsp-trace util/gsp/gsp-syms util/embed sysroot
