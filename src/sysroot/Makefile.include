@@ -13,4 +13,4 @@ kernel/syscalls.h: kernel ../../src/syscalls.yml ../../src/syscall-generator.pl
 clean:
 	rm -rf $(HEADERS) kernel
 
-.PHOMY: clean
+.PHONY: clean
