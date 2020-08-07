@@ -12,7 +12,7 @@ struct ServiceRegistration {
 
 // TODO: use better data structures
 struct ServiceRegistration services[128] = {
-    { .type = ServiceTypeFilesystem, .displayName = "init", .name = "/", .parent = 0, .process = 1 },
+    { .type = ServiceTypeFilesystem, .displayName = "init", .name = "/", .parent = 0, .process = 0 },
 };
 
 void init_sd() {
