@@ -223,3 +223,26 @@ void tpa_set(tpa_t* tpa, uint64_t idx, void* data) {
         memcpy((void*)page + tpa_offset_in_page(tpa, idx - page->start_idx) + 8, data, tpa->entry_size);
     }
 }
+
+size_t tpa_next(tpa_t* tpa, size_t cur) {
+    struct tpa_page_header* page;
+
+    // seek to first page where our next entry could be in
+    for(page = tpa->first; page && page->start_idx + tpa_entries_per_page(tpa) < cur; page = page->next) { }
+
+    while(page) {
+        for (size_t page_idx = (cur - page->start_idx) + 1; page_idx < tpa_entries_per_page(tpa); ++page_idx) {
+            if(*(tpa_get_marker(tpa, page, page_idx))) {
+                return page->start_idx + page_idx;
+            }
+        }
+
+        page = page->next;
+
+        if(page) {
+            cur  = page->start_idx;
+        }
+    }
+
+    return 0;
+}

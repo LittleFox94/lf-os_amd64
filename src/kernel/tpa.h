@@ -69,4 +69,15 @@ ssize_t tpa_length(tpa_t* tpa);
  */
 size_t tpa_entries(tpa_t* tpa);
 
+/**
+ * Returns the next non-empty element after cur
+ *
+ * \remarks Has to iterate through the pages to get the page to the cur idx
+ * \param tba The TPA
+ * \param cur The current index
+ * \returns The next non-empty element index after cur. Special case: returns 0 when nothing found, you
+ *          are expected to check if the returned value is larger than cur to check if something was found.
+ */
+size_t tpa_next(tpa_t* tpa, size_t cur);
+
 #endif
