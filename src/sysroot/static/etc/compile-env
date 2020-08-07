@@ -15,5 +15,5 @@ export CXXFLAGS="$CXXFLAGS"
 export LFOS_SYSROOT="$LFOS_SYSROOT"
 EOF
 else
-    exec $@
+    exec "$@"
 fi
