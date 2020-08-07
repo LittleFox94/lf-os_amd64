@@ -1,12 +1,13 @@
-#include "fbconsole.h"
-#include "mm.h"
-#include "vm.h"
-#include "log.h"
+#include <fbconsole.h>
+#include <mm.h>
+#include <vm.h>
+#include <log.h>
+#include <scheduler.h>
 
-#include "string.h"
-#include "stdarg.h"
+#include <string.h>
+#include <stdarg.h>
 
-#include "config.h"
+#include <config.h>
 #include "font_acorn_8x8.c"
 
 bool fbconsole_active = false;
@@ -273,7 +274,6 @@ void sc_handle_hardware_framebuffer(ptr_t *fb, uint16_t *width, uint16_t *height
         *fb = vm_map_hardware(vm_context_get_physical_for_virtual(VM_KERNEL_CONTEXT, (ptr_t)fbconsole.fb), *stride * *height * 4);
         fbconsole_clear(0, 0, 0);
 
-        extern int scheduler_current_process;
         logd("fbconsole", "Gave up control of framebuffer, now process %d is in charge", scheduler_current_process);
     }
 }

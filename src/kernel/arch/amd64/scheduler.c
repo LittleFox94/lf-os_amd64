@@ -1,11 +1,13 @@
-#include "scheduler.h"
-#include "string.h"
-#include "mm.h"
-#include "bluescreen.h"
-#include "log.h"
+#include <scheduler.h>
+#include <string.h>
+#include <mm.h>
+#include <bluescreen.h>
+#include <log.h>
+#include <mutex.h>
 
 typedef enum {
     process_state_empty = 0,
+    process_state_waiting,
     process_state_runnable,
     process_state_running,
     process_state_exited,
@@ -13,15 +15,18 @@ typedef enum {
 } process_state;
 
 typedef struct {
-    struct vm_table*     context;
-    cpu_state       cpu;
-    process_state   state;
-    region_t        heap;
-    region_t        stack;
-    uint8_t         exit_code;
+    struct vm_table* context;
+    cpu_state        cpu;
+    process_state    state;
+    region_t         heap;
+    region_t         stack;
+    uint8_t          exit_code;
+
+    enum wait_reason waiting_for;
+    union wait_data  waiting_data;
 } process_t;
 
-volatile int scheduler_current_process = -1;
+volatile pid_t scheduler_current_process = -1;
 
 // TODO: better data structure here. A binary tree with prev/next pointers should be great
 #define MAX_PROCS 4096
@@ -31,8 +36,8 @@ void init_scheduler() {
     memset((uint8_t*)processes, 0, sizeof(process_t) * MAX_PROCS);
 }
 
-int free_pid() {
-    int i;
+pid_t free_pid() {
+    pid_t i;
     for(i = 0; i < MAX_PROCS; ++i) {
         if(processes[i].state == process_state_empty) {
             return i;
@@ -42,8 +47,8 @@ int free_pid() {
     return -1;
 }
 
-int setup_process() {
-    int pid = free_pid();
+pid_t setup_process() {
+    pid_t pid = free_pid();
     if(pid == -1) {
         panic_message("Out of PIDs!");
     }
@@ -70,7 +75,7 @@ void start_task(struct vm_table* context, ptr_t entry, ptr_t data_start, ptr_t d
         panic_message("Tried to start process without entry");
     }
 
-    int pid            = setup_process();
+    pid_t pid            = setup_process();
     process_t* process = &processes[pid];
 
     process->context = context;
@@ -92,8 +97,8 @@ void schedule_next(cpu_state** cpu, struct vm_table** context) {
         processes[scheduler_current_process].state = process_state_runnable;
     }
 
-    int processBefore = scheduler_current_process;
-    for(int i = processBefore + 1; i < MAX_PROCS; ++i) {
+    pid_t processBefore = scheduler_current_process;
+    for(pid_t i = processBefore + 1; i < MAX_PROCS; ++i) {
         if(processes[i].state == process_state_runnable) {
             scheduler_current_process = i;
             break;
@@ -101,7 +106,7 @@ void schedule_next(cpu_state** cpu, struct vm_table** context) {
     }
 
     if(scheduler_current_process == processBefore) {
-        for(int i = 0; i <= processBefore; ++i) {
+        for(pid_t i = 0; i <= processBefore; ++i) {
             if(processes[i].state == process_state_runnable) {
                 scheduler_current_process = i;
                 break;
@@ -118,21 +123,35 @@ void schedule_next(cpu_state** cpu, struct vm_table** context) {
     *context =  processes[scheduler_current_process].context;
 }
 
-void scheduler_kill_current(enum kill_reason_t reason) {
+void scheduler_process_cleanup(pid_t pid) {
+    mutex_unlock_holder(pid);
+}
+
+void scheduler_kill_current(enum kill_reason reason) {
     processes[scheduler_current_process].state     = process_state_killed;
     processes[scheduler_current_process].exit_code = (int)reason;
     logd("scheduler", "killed PID %d (reason: %d)", scheduler_current_process, (int)reason);
+
+    scheduler_process_cleanup(scheduler_current_process);
 }
 
 void sc_handle_scheduler_exit(uint64_t exit_code) {
     processes[scheduler_current_process].state     = process_state_exited;
     processes[scheduler_current_process].exit_code = exit_code;
     logd("scheduler", "PID %d exited (status: %d)", scheduler_current_process, exit_code);
+
+    scheduler_process_cleanup(scheduler_current_process);
 }
 
-void sc_handle_scheduler_clone(bool share_memory, ptr_t entry, uint64_t* newPid) {
+void sc_handle_scheduler_clone(bool share_memory, ptr_t entry, pid_t* newPid) {
     // make new process
-    uint64_t pid = setup_process();
+    pid_t pid = setup_process();
+
+    if(pid < 0) {
+        *newPid = -1;
+        return;
+    }
+
     process_t* process = &processes[pid];
 
     // new memory context ...
@@ -197,6 +216,36 @@ bool scheduler_handle_pf(ptr_t fault_address, uint64_t error_code) {
     logw("scheduler", "Not handling page fault for %d at 0x%x (RIP: 0x%x, error 0x%x)", scheduler_current_process, fault_address, processes[scheduler_current_process].cpu.rip, error_code);
 
     return false;
+}
+
+void scheduler_wait_for(pid_t pid, enum wait_reason reason, union wait_data data) {
+    if(pid == -1) {
+        pid = scheduler_current_process;
+    }
+
+    processes[pid].state        = process_state_waiting;
+    processes[pid].waiting_for  = reason;
+    processes[pid].waiting_data = data;
+}
+
+void scheduler_waitable_done(enum wait_reason reason, union wait_data data) {
+    for(int i = 0; i < MAX_PROCS; ++i) {
+        pid_t pid = (scheduler_current_process + i) % MAX_PROCS;
+
+        process_t* p = &processes[pid];
+
+        if(p->state == process_state_waiting && p->waiting_for == reason) {
+            switch(reason) {
+                case wait_reason_mutex:
+                    if(p->waiting_data.mutex == data.mutex) {
+                        if(mutex_lock(data.mutex, pid)) {
+                            p->state = process_state_runnable;
+                        }
+                    }
+                    break;
+            }
+        }
+    }
 }
 
 void sc_handle_memory_sbrk(int64_t inc, ptr_t* data_end) {

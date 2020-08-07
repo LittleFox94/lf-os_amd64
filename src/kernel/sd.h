@@ -1,7 +1,7 @@
 #ifndef _SD_H_INCLUDED
 #define _SD_H_INCLUDED
 
-#include "process.h"
+#include <scheduler.h>
 
 enum ServiceType {
     ServiceTypeBlockDevice,

@@ -55,6 +55,10 @@ my %TYPES = (
         length => 64,
         signed => 1,
     },
+    pid_t => {
+        length => 64,
+        signed => 1,
+    },
 
     bool => {
         length => 1,
@@ -98,10 +102,12 @@ print $outfh <<EOF;
 EOF
 
 if($mode eq 'kernel') {
-    print $outfh "#include \"bluescreen.h\"\n\n";
+    print $outfh "#include <scheduler.h>\n\n";
+    print $outfh "#include <bluescreen.h>\n\n";
 }
 else {
     print $outfh <<EOF
+#include <sys/types.h>
 #include <stdint.h>
 
 EOF

@@ -2,19 +2,19 @@
 
 #include "../../../loader/loader.h"
 
-#include "bluescreen.h"
-#include "mm.h"
-#include "vm.h"
-#include "fbconsole.h"
-#include "sd.h"
-#include "sc.h"
-#include "elf.h"
-#include "scheduler.h"
-#include "string.h"
-#include "pic.h"
-#include "pit.h"
-#include "slab.h"
-#include "log.h"
+#include <bluescreen.h>
+#include <mm.h>
+#include <vm.h>
+#include <fbconsole.h>
+#include <sd.h>
+#include <sc.h>
+#include <elf.h>
+#include <scheduler.h>
+#include <string.h>
+#include <pic.h>
+#include <pit.h>
+#include <slab.h>
+#include <log.h>
 
 char* LAST_INIT_STEP;
 extern char build_id[];
@@ -59,6 +59,11 @@ void main(void* loaderData) {
     INIT_STEP(
         "Initialized service registry",
         init_sd();
+    )
+
+    INIT_STEP(
+        "Initialized mutex subsystem",
+        init_mutex();
     )
 
     INIT_STEP(

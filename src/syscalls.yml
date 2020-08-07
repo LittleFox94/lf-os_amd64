@@ -27,8 +27,8 @@ groups:
       reg:  rdi
     returns:
     - name: pid
-      desc: PID of the new process in the old process, 0 in the new process
-      type: uint64_t
+      desc: PID of the new process in the old process, 0 in the new process, -1 denotes an error
+      type: pid_t
       reg:  rax
 
 - number: 1
@@ -77,6 +77,66 @@ groups:
       type: uint16_t
       reg:  rdi
       desc: TBD
+
+- number: 3
+  name:   locking
+  desc:   Mutexes, Semaphores, and co
+  syscalls:
+  - number: 0
+    name:   create_mutex
+    desc:   This syscall creates a new mutex
+    returns:
+    - name:        mutex
+      desc: pthread_mutex_t value for the new mutex
+      type: uint64_t
+      reg:  rax
+    - name: error
+      desc: error code, zero if success
+      type: uint64_t
+      reg:  rdi
+  - number: 1
+    name:   destroy_mutex
+    desc:   destroys the given mutex, returns an error if locked
+    parameters:
+    - name: mutex
+      desc: mutex to destroy as pthread_mutex_t
+      type: uint64_t
+      reg:  rax
+    returns:
+    - name: error
+      desc: error code, zero if success
+      type: uint64_t
+      reg:  rdi
+  - number: 2
+    name:   lock_mutex
+    desc:   Waits for the mutex to be free and locks it or tries to lock it without blocking
+    parameters:
+    - name: mutex
+      desc: mutex to lock as pthread_mutex_t
+      type: uint64_t
+      reg:  rax
+    - name: trylock
+      desc: Try to lock instead of block
+      type: bool
+      reg:  rdi
+    returns:
+    - name: error
+      desc: error of this operation, zero if success
+      type: uint64_t
+      reg:  rax
+  - number: 3
+    name:   unlock_mutex
+    desc:   Unlocks a mutex
+    parameters:
+    - name: mutex
+      desc: mutex to lock as pthread_mutex_t
+      type: uint64_t
+      reg:  rax
+    returns:
+    - name: error
+      desc: error of this operation, zero if success
+      type: uint64_t
+      reg:  rax
 
 - number: 255
   name:   debug

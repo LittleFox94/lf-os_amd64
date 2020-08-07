@@ -5,6 +5,7 @@
 #include <fbconsole.h>
 #include <log.h>
 #include <vm.h>
+#include <scheduler.h>
 
 const int logging_page_size = 4096;
 
@@ -96,9 +97,10 @@ void log_append(char level, char* component, char* message) {
     }
 
     if(LOG_COM0) {
-        for(size_t i = msg_start; i < msg_end; ++i) {
+        for(size_t i = msg_start; i < msg_end-1; ++i) {
             outb(0x3F8, log_last->messages[i]);
         }
+        outb(0x3F8, '\r'); // UEFI uses CR LF, at least OVMF does .. be consistent at least
         outb(0x3F8, '\n');
     }
 
@@ -117,7 +119,6 @@ void log(char level, char* component, char* fmt, ...) {
     log_append(level, component, buffer);
 }
 
-int scheduler_current_process;
 void sc_handle_debug_print(char* message) {
     if(message[strlen(message)-1] == '\n') {
         message[strlen(message)-1] = 0;
