@@ -97,20 +97,12 @@ void schedule_next(cpu_state** cpu, struct vm_table** context) {
         processes[scheduler_current_process].state = process_state_runnable;
     }
 
-    pid_t processBefore = scheduler_current_process;
-    for(pid_t i = processBefore + 1; i < MAX_PROCS; ++i) {
-        if(processes[i].state == process_state_runnable) {
-            scheduler_current_process = i;
-            break;
-        }
-    }
+    for(int i = 1; i <= MAX_PROCS; ++i) {
+        pid_t pid = (scheduler_current_process + i) % MAX_PROCS;
 
-    if(scheduler_current_process == processBefore) {
-        for(pid_t i = 0; i <= processBefore; ++i) {
-            if(processes[i].state == process_state_runnable) {
-                scheduler_current_process = i;
-                break;
-            }
+        if(processes[pid].state == process_state_runnable) {
+            scheduler_current_process = pid;
+            break;
         }
     }
 
