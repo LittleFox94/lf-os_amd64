@@ -8,22 +8,27 @@
     + `int pthread_mutexattr_destroy (pthread_mutexattr_t *__attr);`
     + `int pthread_mutexattr_getpshared (const pthread_mutexattr_t *__attr, int *__pshared);`
     + `int pthread_mutexattr_setpshared (pthread_mutexattr_t *__attr, int __pshared);`
+
   - `int pthread_mutex_init (pthread_mutex_t *__mutex, const pthread_mutexattr_t *__attr);`
     + syscall definition: ✓
     + syscall implementation: ✓
     + userspace implementation: ✓ (well, attributes are ignored)
+
   - `int pthread_mutex_destroy (pthread_mutex_t *__mutex);`
     + syscall definition: ✓
     + syscall implementation: ✓
     + userspace implementation: ✓
+
   - `int pthread_mutex_lock (pthread_mutex_t *__mutex);`
     + syscall definition: ✓
     + syscall implementation: ✓
     + userspace implementation: ✓
+
   - `int pthread_mutex_trylock (pthread_mutex_t *__mutex);`
     + syscall definition: ✓
     + syscall implementation: ✓
     + userspace implementation: ✓
+
   - `int pthread_mutex_unlock (pthread_mutex_t *__mutex);`
     + syscall definition: ✓
     + syscall implementation: ✓
@@ -37,12 +42,35 @@
     + `int pthread_condattr_setclock (pthread_condattr_t *__attr, clockid_t __clock_id);`
     + `int pthread_condattr_getpshared (const pthread_condattr_t *__attr, int *__pshared);`
     + `int pthread_condattr_setpshared (pthread_condattr_t *__attr, int __pshared);`
+
   - `int pthread_cond_init (pthread_cond_t *__cond, const pthread_condattr_t *__attr);`
+    + syscall definition: ✓
+    + syscall implementation: ✓
+    + userspace implementation: ✓ (well, attributes are ignored)
+
   - `int pthread_cond_destroy (pthread_cond_t *__mutex);`
+    + syscall definition: ✓
+    + syscall implementation: ✓
+    + userspace implementation: ✓
+
   - `int pthread_cond_signal (pthread_cond_t *__cond);`
+    + syscall definition: ✓
+    + syscall implementation: ✓
+    + userspace implementation: ✓
+
   - `int pthread_cond_broadcast (pthread_cond_t *__cond);`
+    + syscall definition: ✓
+    + syscall implementation: ✓
+    + userspace implementation: ✓
+
   - `int pthread_cond_wait (pthread_cond_t *__cond, pthread_mutex_t *__mutex);`
+    + syscall definition: ✓
+    + syscall implementation: ✓
+    + userspace implementation: ✓
+
   - `int pthread_cond_timedwait (pthread_cond_t *__cond, pthread_mutex_t *__mutex, const struct timespec *__abstime);`
+    + **returns ENOTSUP for now** (no timer yet)
+
 
 ### Threads + attrs
   - attr

@@ -12,9 +12,6 @@ struct mutex_data {
     //! Current state of this mutex
     bool state;
 
-    //! Count of consumer waiting on this mutex
-    uint64_t wait_count;
-
     //! PID of the process who holds the current lock
     pid_t holder;
 };
@@ -30,7 +27,6 @@ mutex_t mutex_create() {
 
     struct mutex_data data = {
         .state      = false,
-        .wait_count = 0,
         .holder     = 0,
     };
 
@@ -51,8 +47,8 @@ void mutex_destroy(mutex_t mutex) {
         panic_message("Tried to destroy locked mutex!");
     }
 
-    logd("mutex", "Destroyed mutex %u", mutex);
     tpa_set(mutexes, mutex, 0);
+    logd("mutex", "Destroyed mutex %u", mutex);
 }
 
 bool mutex_lock(mutex_t mutex, pid_t holder) {
@@ -94,7 +90,7 @@ bool mutex_unlock(mutex_t mutex, pid_t holder) {
         wd.mutex = mutex;
 
         logd("mutex", "Mutex %u is now free", mutex);
-        scheduler_waitable_done(wait_reason_mutex, wd);
+        scheduler_waitable_done(wait_reason_mutex, wd, 1);
 
         return true;
     }
@@ -105,7 +101,7 @@ void mutex_unlock_holder(pid_t pid) {
     do {
         logd("mutex", "Looking at the holder of %d", mutex);
         struct mutex_data* data = tpa_get(mutexes, mutex);
-       
+
         // we have to check if the mutex is valid since the first
         // iteration of this loop always looks at mutex 1 which could
         // be invalid by now. Following iterations should be validity-
@@ -122,6 +118,7 @@ void mutex_unlock_holder(pid_t pid) {
 void sc_handle_locking_create_mutex(uint64_t* mutex, uint64_t* error) {
     if(!next_mutex) {
         *error = 12; // ENOMEM TODO: errno.h
+        logw("mutex", "Mutex namespace overflow!");
         return;
     }
 
@@ -170,7 +167,7 @@ void sc_handle_locking_lock_mutex(uint64_t mutex, bool trylock, uint64_t* error)
         if(!mutex_lock(mutex, holder)) {
             logw("mutex", "Unexpected mutex_lock error - we checked the same conditions. Mutex %u, new holder %d, current state %s, held by %d",
                     mutex, holder, data->state ? "locked" : "unlocked", data->holder);
-            
+
             if(trylock) {
                 *error = 16; // EBUSY;
                 return;
@@ -182,10 +179,9 @@ void sc_handle_locking_lock_mutex(uint64_t mutex, bool trylock, uint64_t* error)
                 logd("mutex", "Made process %d wait on mutex %u", holder, mutex);
             }
         }
-        else {
-            *error = 0;
-        }
     }
+
+    *error = 0;
 }
 
 void sc_handle_locking_unlock_mutex(uint64_t mutex, uint64_t* error) {

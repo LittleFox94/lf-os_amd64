@@ -220,7 +220,7 @@ void scheduler_wait_for(pid_t pid, enum wait_reason reason, union wait_data data
     processes[pid].waiting_data = data;
 }
 
-void scheduler_waitable_done(enum wait_reason reason, union wait_data data) {
+void scheduler_waitable_done(enum wait_reason reason, union wait_data data, size_t max_amount) {
     for(int i = 0; i < MAX_PROCS; ++i) {
         pid_t pid = (scheduler_current_process + i) % MAX_PROCS;
 
@@ -233,6 +233,11 @@ void scheduler_waitable_done(enum wait_reason reason, union wait_data data) {
                         if(mutex_lock(data.mutex, pid)) {
                             p->state = process_state_runnable;
                         }
+                    }
+                    break;
+                case wait_reason_condvar:
+                    if(p->waiting_data.condvar == data.condvar && max_amount--) {
+                        p->state = process_state_runnable;
                     }
                     break;
             }

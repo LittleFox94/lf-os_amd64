@@ -7,7 +7,7 @@ QEMUFLAGS_NO_DEBUG := -monitor stdio
 
 export LFOS_SYSROOT := $(shell pwd)/sysroot
 
-export OPTIMIZATION :=
+export OPTIMIZATION := -Og
 
 default: run-kvm
 

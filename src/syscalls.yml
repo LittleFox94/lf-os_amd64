@@ -137,6 +137,65 @@ groups:
       desc: error of this operation, zero if success
       type: uint64_t
       reg:  rax
+  - number: 4
+    name:   create_condvar
+    desc:   Create a new condvar processes can wait on
+    returns:
+    - name: condvar
+      desc: pthread_cond_t value for the new condvar
+      type: uint64_t
+      reg:  rax
+    - name: error
+      desc: error code, zero if success
+      type: uint64_t
+      reg:  rdi
+  - number: 5
+    name:   destroy_condvar
+    desc:   Destroys a given condvar. Errors if processes are waiting on it
+    parameters:
+    - name: condvar
+      desc: pthread_cond_t value to destroy
+      type: uint64_t
+      reg:  rax
+    returns:
+    - name: error
+      desc: error code, zero if success
+      type: uint64_t
+      reg:  rdi
+  - number: 6
+    name:   signal_condvar
+    desc:   Signals a condvar to unlock up to amount processes
+    parameters:
+    - name: condvar
+      desc: condvar to signal
+      type: uint64_t
+      reg:  rax
+    - name: amount
+      desc: maximum amount of processes to unlock
+      type: uint64_t
+      reg:  rdi
+    returns:
+    - name: error
+      desc: error code, zero if success
+      type: uint64_t
+      reg:  rdi
+  - number: 7
+    name:   wait_condvar
+    desc:   Makes the calling process blocking wait on the condvar
+    parameters:
+    - name: condvar
+      desc: condvar to wait on
+      type: uint64_t
+      reg:  rax
+    - name: timeout
+      desc: Wait timeout, not yet implemented
+      type: uint64_t
+      reg:  rdi
+    returns:
+    - name: error
+      desc: error code, zero if success
+      type: uint64_t
+      reg:  rdi
 
 - number: 255
   name:   debug

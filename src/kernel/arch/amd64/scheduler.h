@@ -11,15 +11,18 @@ enum kill_reason {
 
 enum wait_reason {
     wait_reason_mutex,
+    wait_reason_condvar,
 };
 
 typedef int64_t pid_t;
 extern volatile pid_t scheduler_current_process;
 
 #include <mutex.h>
+#include <condvar.h>
 
 union wait_data {
-    mutex_t mutex;
+    mutex_t   mutex;
+    condvar_t condvar;
 };
 
 void init_scheduler();
@@ -32,6 +35,6 @@ bool scheduler_handle_pf(ptr_t fault_address, uint64_t error_code);
 void scheduler_kill_current(enum kill_reason kill_reason);
 
 void scheduler_wait_for(pid_t pid, enum wait_reason reason, union wait_data data);
-void scheduler_waitable_done(enum wait_reason reason, union wait_data data);
+void scheduler_waitable_done(enum wait_reason reason, union wait_data data, size_t max_amount);
 
 #endif
