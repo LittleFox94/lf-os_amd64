@@ -43,6 +43,7 @@ void log_append_page() {
 
         page->next->prev = 0;
         log_first = page->next;
+        --log_page_count;
 
         for(int i = 0; i < page->current_end; ++i) {
             if(!page->messages[i]) {
