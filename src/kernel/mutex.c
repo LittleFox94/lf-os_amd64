@@ -31,8 +31,6 @@ mutex_t mutex_create() {
     };
 
     tpa_set(mutexes, next_mutex, &data);
-
-    logd("mutex", "Created new mutex %u", next_mutex);
     return next_mutex++;
 }
 
@@ -48,7 +46,6 @@ void mutex_destroy(mutex_t mutex) {
     }
 
     tpa_set(mutexes, mutex, 0);
-    logd("mutex", "Destroyed mutex %u", mutex);
 }
 
 bool mutex_lock(mutex_t mutex, pid_t holder) {
@@ -63,8 +60,6 @@ bool mutex_lock(mutex_t mutex, pid_t holder) {
     else {
         data->state  = true;
         data->holder = holder;
-
-        logd("mutex", "Mutex %u is now held by %d", mutex, holder);
         return true;
     }
 }
@@ -88,8 +83,6 @@ bool mutex_unlock(mutex_t mutex, pid_t holder) {
 
         union wait_data wd;
         wd.mutex = mutex;
-
-        logd("mutex", "Mutex %u is now free", mutex);
         scheduler_waitable_done(wait_reason_mutex, wd, 1);
 
         return true;
@@ -160,7 +153,6 @@ void sc_handle_locking_lock_mutex(uint64_t mutex, bool trylock, uint64_t* error)
             union wait_data wd;
             wd.mutex = mutex;
             scheduler_wait_for(-1, wait_reason_mutex, wd);
-            logd("mutex", "Made process %d wait on mutex %u", holder, mutex);
         }
     }
     else {
@@ -176,7 +168,6 @@ void sc_handle_locking_lock_mutex(uint64_t mutex, bool trylock, uint64_t* error)
                 union wait_data wd;
                 wd.mutex = mutex;
                 scheduler_wait_for(-1, wait_reason_mutex, wd);
-                logd("mutex", "Made process %d wait on mutex %u", holder, mutex);
             }
         }
     }
