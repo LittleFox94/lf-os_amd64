@@ -4,7 +4,7 @@ stages:
 - pages
 
 default:
-  image: registry.lf-net.org/littlefox/lf-os_amd64/ci:2020100604
+  image: registry.lf-net.org/littlefox/lf-os_amd64/ci:2020100605
 
 test:
   stage: test

@@ -1,3 +1,3 @@
 FROM alpine:3.12
 
-RUN apk add -U --no-cache mtools sgdisk gcc g++ make doxygen perl-yaml cmake graphviz
+RUN apk add -U --no-cache mtools sgdisk gcc g++ make doxygen perl-yaml cmake graphviz python3
