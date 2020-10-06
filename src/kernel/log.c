@@ -7,7 +7,7 @@
 #include <vm.h>
 #include <scheduler.h>
 
-const int logging_page_size = 4096;
+const int logging_page_size = 4080;
 
 struct logging_page {
     struct logging_page* prev;
@@ -30,7 +30,7 @@ uint64_t             log_page_count = 1;
 uint64_t             log_count      = 0;
 
 void log_append_page() {
-    struct logging_page* new = (struct logging_page*)vm_context_alloc_pages(VM_KERNEL_CONTEXT, ALLOCATOR_REGION_SLAB_4K, 1);
+    struct logging_page* new = (struct logging_page*)vm_alloc(logging_page_size);
     memset((void*)new, 0, logging_page_size);
     new->prev = log_last;
     log_last->next = new;
@@ -52,7 +52,7 @@ void log_append_page() {
         }
 
         if(page != &log_initial_page) {
-            // XXX: free page
+            vm_free(page);
         }
     }
 }

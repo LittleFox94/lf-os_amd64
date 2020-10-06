@@ -26,7 +26,7 @@ ptr_t load_elf(ptr_t start, struct vm_table* context, ptr_t* data_start, ptr_t* 
     for(int i = 0; i < header->programHeaderCount; ++i) {
         elf_program_header_t* programHeader = (elf_program_header_t*)(start + header->programHeaderOffset + (i * header->programHeaderEntrySize));
 
-        if(programHeader->type != 1) {
+        if(programHeader->type != 1 && programHeader->type != 7) {
             continue;
         }
 

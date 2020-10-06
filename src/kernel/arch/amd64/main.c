@@ -33,6 +33,7 @@ void init_symbols(LoaderStruct* loaderStruct);
 void init_init(LoaderStruct* loaderStruct);
 
 void main(void* loaderData) {
+    logd("kernel", "Hello world!");
     LoaderStruct* loaderStruct = (LoaderStruct*)loaderData;
 
     bootstrap_globals();

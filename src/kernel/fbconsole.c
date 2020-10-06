@@ -64,8 +64,8 @@ void fbconsole_init(int width, int height, uint8_t* fb) {
             { 255, 255, 255 },
         }, sizeof(int) * 16 * 3);
 
-    fbconsole_clear(fbconsole.background_r, fbconsole.background_g, fbconsole.background_b);
     fbconsole_active = true;
+    fbconsole_clear(fbconsole.background_r, fbconsole.background_g, fbconsole.background_b);
 
     logd("framebuffer", "framebuffer console @ 0x%x (0x%x)", fb, (uint64_t)vm_context_get_physical_for_virtual(VM_KERNEL_CONTEXT, (ptr_t)fb));
 }
@@ -76,6 +76,11 @@ void fbconsole_init_backbuffer(uint8_t* backbuffer) {
 }
 
 void fbconsole_clear(int r, int g, int b) {
+    if(!fbconsole_active) {
+        logd("fbconsole", "was in userspace control, fbconsole_clear gave it back to kernel");
+        fbconsole_active = true;
+    }
+
     memset32((uint32_t*)fbconsole.backbuffer, (r << 16) | (g << 8) | (b << 0), fbconsole.width * fbconsole.height);
 
     if(fbconsole.backbuffer != fbconsole.fb) {
@@ -264,8 +269,6 @@ int fbconsole_write(char* string, ...) {
 
 void sc_handle_hardware_framebuffer(ptr_t *fb, uint16_t *width, uint16_t *height, uint16_t* stride, uint16_t* colorFormat) {
     if(fbconsole_active) {
-        fbconsole_active = false;
-
         *width = fbconsole.width;
         *height = fbconsole.height;
         *stride = fbconsole.width; // stride is added with #10
@@ -273,6 +276,7 @@ void sc_handle_hardware_framebuffer(ptr_t *fb, uint16_t *width, uint16_t *height
 
         *fb = vm_map_hardware(vm_context_get_physical_for_virtual(VM_KERNEL_CONTEXT, (ptr_t)fbconsole.fb), *stride * *height * 4);
         fbconsole_clear(0, 0, 0);
+        fbconsole_active = false;
 
         logd("fbconsole", "Gave up control of framebuffer, now process %d is in charge", scheduler_current_process);
     }

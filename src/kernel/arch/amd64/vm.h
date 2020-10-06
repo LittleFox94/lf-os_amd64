@@ -39,7 +39,7 @@ static const uint8_t  PageSize2MiB = 1;
 static const uint8_t  PageSize1GiB = 2;
 
 struct vm_table;
-struct vm_table* VM_KERNEL_CONTEXT;
+extern struct vm_table* VM_KERNEL_CONTEXT;
 
 void init_vm();
 void cleanup_boot_vm();

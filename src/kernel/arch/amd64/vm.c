@@ -10,6 +10,7 @@ extern void load_cr3(ptr_t cr3);
 
 static bool vm_direct_mapping_initialized = false;
 static tpa_t* page_descriptors = 0;
+struct vm_table* VM_KERNEL_CONTEXT;
 
 struct page_descriptor {
     uint32_t flags: 30;
@@ -245,6 +246,7 @@ void init_vm() {
     }
 
     logd("vm", "reserved kernel PML4 entries");
+    return;
 
     uint16_t pml4_idx = 0;
     uint16_t pdp_idx  = 0;

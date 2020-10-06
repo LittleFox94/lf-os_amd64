@@ -87,7 +87,10 @@ void start_task(struct vm_table* context, ptr_t entry, ptr_t data_start, ptr_t d
 }
 
 void scheduler_process_save(cpu_state* cpu) {
-    if(scheduler_current_process >= 0 && processes[scheduler_current_process].state == process_state_running) {
+    if(scheduler_current_process >= 0 &&
+        (processes[scheduler_current_process].state == process_state_running ||
+         processes[scheduler_current_process].state == process_state_waiting)
+    ) {
         memcpy(&processes[scheduler_current_process].cpu, cpu, sizeof(cpu_state));
     }
 }
@@ -269,4 +272,8 @@ void sc_handle_memory_sbrk(int64_t inc, ptr_t* data_end) {
 
     processes[scheduler_current_process].heap.end = new_end;
     *data_end = new_end;
+}
+
+void sc_handle_scheduler_yield() {
+    // no-op
 }

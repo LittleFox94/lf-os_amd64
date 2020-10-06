@@ -4,13 +4,14 @@
 #include <mutex.h>
 #include <log.h>
 #include <scheduler.h>
+#include <errno.h>
 
 static tpa_t*   mutexes;
 static uint64_t next_mutex = 1;
 
 struct mutex_data {
-    //! Current state of this mutex
-    bool state;
+    //! Current state of this mutex, 0 = unlocked
+    int state;
 
     //! PID of the process who holds the current lock
     pid_t holder;
@@ -26,7 +27,7 @@ mutex_t mutex_create() {
     }
 
     struct mutex_data data = {
-        .state      = false,
+        .state      = 0,
         .holder     = 0,
     };
 
@@ -58,7 +59,7 @@ bool mutex_lock(mutex_t mutex, pid_t holder) {
         return false;
     }
     else {
-        data->state  = true;
+        ++data->state;
         data->holder = holder;
         return true;
     }
@@ -79,17 +80,20 @@ bool mutex_unlock(mutex_t mutex, pid_t holder) {
         panic_message("Tried to unlock stolen mutex");
     }
     else {
-        data->state = false;
+        --data->state;
 
-        union wait_data wd;
-        wd.mutex = mutex;
-        scheduler_waitable_done(wait_reason_mutex, wd, 1);
+        if(!data->state) {
+            union wait_data wd;
+            wd.mutex = mutex;
+            scheduler_waitable_done(wait_reason_mutex, wd, 1);
+        }
 
         return true;
     }
 }
 
 void mutex_unlock_holder(pid_t pid) {
+    size_t prev = 0;
     size_t mutex = 1;
     do {
         logd("mutex", "Looking at the holder of %d", mutex);
@@ -105,12 +109,14 @@ void mutex_unlock_holder(pid_t pid) {
 
             mutex_unlock(mutex, pid);
         }
-    } while(tpa_next(mutexes, mutex) > mutex);
+
+        prev = mutex;
+    } while((mutex = tpa_next(mutexes, prev)) > prev);
 }
 
 void sc_handle_locking_create_mutex(uint64_t* mutex, uint64_t* error) {
     if(!next_mutex) {
-        *error = 12; // ENOMEM TODO: errno.h
+        *error = ENOMEM;
         logw("mutex", "Mutex namespace overflow!");
         return;
     }
@@ -123,11 +129,11 @@ void sc_handle_locking_destroy_mutex(uint64_t mutex, uint64_t* error) {
     struct mutex_data* data = tpa_get(mutexes, mutex);
 
     if(!data) {
-        *error = 22; // EINVAL
+        *error = EINVAL;
         return;
     }
     else if(data->state) {
-        *error = 16; // EBUSY
+        *error = EBUSY;
         return;
     }
 
@@ -141,12 +147,12 @@ void sc_handle_locking_lock_mutex(uint64_t mutex, bool trylock, uint64_t* error)
     pid_t holder = scheduler_current_process;
 
     if(!data) {
-        *error = 22; // EINVAL
+        *error = EINVAL;
         return;
     }
     else if(data->state && data->holder != holder) {
         if(trylock) {
-            *error = 16; // EBUSY
+            *error = EBUSY;
             return;
         }
         else {
@@ -161,7 +167,7 @@ void sc_handle_locking_lock_mutex(uint64_t mutex, bool trylock, uint64_t* error)
                     mutex, holder, data->state ? "locked" : "unlocked", data->holder);
 
             if(trylock) {
-                *error = 16; // EBUSY;
+                *error = EBUSY;
                 return;
             }
             else {
@@ -181,7 +187,7 @@ void sc_handle_locking_unlock_mutex(uint64_t mutex, uint64_t* error) {
     pid_t holder = scheduler_current_process;
 
     if(!data) {
-        *error = 22; // EINVAL
+        *error = EINVAL;
         return;
     }
     else if(!data->state) {
@@ -189,7 +195,7 @@ void sc_handle_locking_unlock_mutex(uint64_t mutex, uint64_t* error) {
         return;
     }
     else if(data->holder != holder) {
-        *error = 1; // EPERM
+        *error = EPERM;
         return;
     }
 

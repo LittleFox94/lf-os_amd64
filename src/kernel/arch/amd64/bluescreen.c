@@ -24,14 +24,12 @@ struct SymbolData {
 struct SymbolData* bluescreen_symbols = 0;
 
 void _panic_message(const char* message, uint64_t rbp, bool rbp_given) {
-    //fbconsole_clear(0, 0, 127);
-    fbconsole_write("\n\e[38;5;9m\e[48;5;0m");
-    fbconsole_write("An error occured and LF OS has to be halted.\n"
-                    "Below you can find more information:\n\n");
+    fbconsole_clear(0, 0, 0);
+    logf("panic", "An error occured and LF OS has to be halted. More info below:");
 
-    fbconsole_write("LF OS build:    %s\n",   BUILD_ID);
-    fbconsole_write("Last init step: %s\n",   LAST_INIT_STEP);
-    fbconsole_write("Error message:  %s\n\n", message);
+    logf("panic", "LF OS build:    %s",   BUILD_ID);
+    logf("panic", "Last init step: %s",   LAST_INIT_STEP);
+    logf("panic", "Error message:  %s\n", message);
 
     struct StackFrame* frame;
 
@@ -43,12 +41,10 @@ void _panic_message(const char* message, uint64_t rbp, bool rbp_given) {
     }
 
     if(frame) {
-        fbconsole_write("\nStack trace that led to this error:\n");
+        logi("panic", "Stack trace that led to this error:");
 
         int i = 20;
         while(frame && frame->rip > 0xFFFF800000000000 && --i) {
-            fbconsole_write("\e[38;5;7m  0x%016x", frame->rip);
-
             if(bluescreen_symbols != 0) {
                 int64_t difference = 0x7FFFFFFFFFFFFFFF;
                 struct Symbol* best = 0;
@@ -63,12 +59,15 @@ void _panic_message(const char* message, uint64_t rbp, bool rbp_given) {
                     }
                 }
 
-                if(best) {
-                    fbconsole_write("\e[38;5;15m %s(+0x%x)", bluescreen_symbols->symbolNames + best->name, frame->rip - best->address);
-                }
-            }
+                char buffer[256];
+                buffer[0] = 0;
 
-            fbconsole_write("\n");
+                if(best) {
+                    ksnprintf(buffer, 256, " %s(+0x%x)", bluescreen_symbols->symbolNames + best->name, frame->rip - best->address);
+                }
+
+                logi("panic", "  0x%016x%s", frame->rip, buffer);
+            }
 
             if(frame->prev != frame) {
                 frame = frame->prev;
@@ -78,8 +77,6 @@ void _panic_message(const char* message, uint64_t rbp, bool rbp_given) {
             }
         }
     }
-
-    fbconsole_write("\n");
 }
 
 void panic() {
@@ -174,9 +171,14 @@ void panic_cpu(const cpu_state* cpu) {
             }
         }
 
+        char buffer[256];
+        buffer[0] = 0;
+
         if(best) {
-            fbconsole_write("\e[38;7;7mRIP: \e[38;5;15m %s(+0x%x)\n\n", bluescreen_symbols->symbolNames + best->name, cpu->rip - best->address);
+            ksnprintf(buffer, 256, " %s(+0x%x)", bluescreen_symbols->symbolNames + best->name, cpu->rip - best->address);
         }
+
+        logi("panic", "RIP: 0x%016x%s", cpu->rip, buffer);
     }
 
     DUMP_CPU(cpu);

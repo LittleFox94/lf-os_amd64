@@ -23,13 +23,17 @@ groups:
     - name: entry
       desc: |
         Entrypoint of the child. Special case: NULL, will continue at the same code location (only valid if share_memory == 1)
-      type: ptr_t
+      type: void*
       reg:  rdi
     returns:
     - name: pid
       desc: PID of the new process in the old process, 0 in the new process, -1 denotes an error
       type: pid_t
       reg:  rax
+
+  - number: 2
+    name:  yield
+    desc:  Yield, scheduler another process
 
 - number: 1
   name:   memory
@@ -45,7 +49,7 @@ groups:
       reg:  rax
     returns:
     - name: data_end
-      type: ptr_t
+      type: void*
       reg:  rax
       desc: Pointer to the last byte in the data segment
 
@@ -58,7 +62,7 @@ groups:
     desc:   Take control of the framebuffer (if still in control by kernel)
     returns:
     - name: framebuffer
-      type: uint64_t
+      type: uint32_t*
       reg:  rax
       desc: Pointer to the framebuffer
     - name: width
@@ -86,7 +90,7 @@ groups:
     name:   create_mutex
     desc:   This syscall creates a new mutex
     returns:
-    - name:        mutex
+    - name: mutex
       desc: pthread_mutex_t value for the new mutex
       type: uint64_t
       reg:  rax
@@ -207,5 +211,5 @@ groups:
     parameters:
     - name: str
       desc: Message to print
-      type: ptr_t
+      type: char*
       reg:  rax

@@ -231,7 +231,7 @@ size_t tpa_next(tpa_t* tpa, size_t cur) {
     for(page = tpa->first; page && page->start_idx + tpa_entries_per_page(tpa) < cur; page = page->next) { }
 
     while(page) {
-        for (size_t page_idx = (cur - page->start_idx) + 1; page_idx < tpa_entries_per_page(tpa); ++page_idx) {
+        for (size_t page_idx = (cur - page->start_idx); page_idx < tpa_entries_per_page(tpa); ++page_idx) {
             if(*(tpa_get_marker(tpa, page, page_idx))) {
                 return page->start_idx + page_idx;
             }
@@ -240,7 +240,7 @@ size_t tpa_next(tpa_t* tpa, size_t cur) {
         page = page->next;
 
         if(page) {
-            cur  = page->start_idx;
+            cur = page->start_idx;
         }
     }
 

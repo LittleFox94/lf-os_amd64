@@ -17,11 +17,6 @@ use List::Util 'sum';
 use YAML 'LoadFile';
 
 my %TYPES = (
-    'ptr_t' => {
-        length => 64,
-        signed => 0,
-    },
-
     uint8_t => {
         length => 8,
         signed => 0,
@@ -113,6 +108,20 @@ else {
 EOF
 }
 
+sub type_data {
+    my ($type) = @_;
+
+    if($type =~ /^[a-zA-Z_][a-zA-Z0-9_]+\*$/) {
+        return {
+            length => 64,
+            signed => 0,
+            cast   => 1,
+        };
+    }
+
+    return $TYPES{$type};
+}
+
 sub render_syscall_func {
     my ($group, $syscall) = @_;
 
@@ -144,13 +153,13 @@ sub render_syscall_func {
         }
 
         for my $reg (keys %pregs) {
-            my $total = sum map { $TYPES{$_->{type}}->{length} } $pregs{$reg}->@*;
+            my $total = sum map { type_data($_->{type})->{length} } $pregs{$reg}->@*;
 
             if($total > 64) {
                 die("Cannot allocate $total bits on a single register (max 64)\n");
             }
 
-            print $outfh "    uint64_t $reg = ";
+            print $outfh "    volatile uint64_t $reg = ";
 
             my $bits_before = 0;
             for my $param ($pregs{$reg}->@*) {
@@ -160,8 +169,8 @@ sub render_syscall_func {
 
                 my $shift = $bits_before;
                 my $mask;
-                if($TYPES{$param->{type}}->{length} < 64) {
-                    $mask  = ' & ' . ((1 << $TYPES{$param->{type}}->{length}) - 1);
+                if(type_data($param->{type})->{length} < 64) {
+                    $mask  = ' & ' . ((1 << type_data($param->{type})->{length}) - 1);
                 } else {
                     $mask = '';
                 }
@@ -176,7 +185,7 @@ sub render_syscall_func {
                     print $outfh " << $shift)";
                 }
 
-                $bits_before += $TYPES{$param->{type}}->{length};
+                $bits_before += type_data($param->{type})->{length};
             }
 
             print $outfh ";\n";
@@ -185,7 +194,7 @@ sub render_syscall_func {
         die "Group number overflow!\n"   if($group->{number} > 0xFF);
         die "Syscall number overflow!\n" if($syscall->{number} > 0xFFFFFF);
 
-        print $outfh "    uint64_t rdx = (($group->{number} & 0xFF) << 24) | ($syscall->{number} & 0xFFFFFF);\n";
+        print $outfh "    volatile uint64_t rdx = (($group->{number} & 0xFF) << 24) | ($syscall->{number} & 0xFFFFFF);\n";
 
         my %rregs;
         for my $arg ($syscall->{returns}->@*) {
@@ -194,7 +203,7 @@ sub render_syscall_func {
 
         for my $reg (keys %rregs) {
             if(!$pregs{$reg}) {
-                print $outfh "    uint64_t $reg;\n";
+                print $outfh "    volatile uint64_t $reg;\n";
             }
         }
 
@@ -207,7 +216,7 @@ sub render_syscall_func {
         print $outfh ");\n\n";
 
         for my $reg (keys %rregs) {
-            my $total = sum map { $TYPES{$_->{type}}->{length} } $rregs{$reg}->@*;
+            my $total = sum map { type_data($_->{type})->{length} } $rregs{$reg}->@*;
 
             if($total > 64) {
                 die("Cannot allocate $total bits on a single register (max 64)\n");
@@ -217,13 +226,17 @@ sub render_syscall_func {
             for my $return ($rregs{$reg}->@*) {
                 my $shift = $bits_before;
                 my $mask;
-                if($TYPES{$return->{type}}->{length} < 64) {
-                    $mask  = ' & ' . ((1 << $TYPES{$return->{type}}->{length}) - 1);
+                if(type_data($return->{type})->{length} < 64) {
+                    $mask  = ' & ' . ((1 << type_data($return->{type})->{length}) - 1);
                 } else {
                     $mask = '';
                 }
 
                 print $outfh "    *$return->{name} = ";
+
+                if(type_data($return->{type})->{cast}) {
+                    print $outfh '(' . $return->{type} . ')';
+                }
 
                 my $ret;
                 if($shift > 0) {
@@ -235,7 +248,7 @@ sub render_syscall_func {
 
                 print $outfh "($ret$mask);\n";
 
-                $bits_before += $TYPES{$return->{type}}->{length};
+                $bits_before += type_data($return->{type})->{length};
             }
         }
 
@@ -256,7 +269,7 @@ sub render_syscall_decode {
     print $outfh "                // decoding parameters\n";
 
     for my $reg (keys %pregs) {
-        my $total = sum map { $TYPES{$_->{type}}->{length} } $pregs{$reg}->@*;
+        my $total = sum map { type_data($_->{type})->{length} } $pregs{$reg}->@*;
 
         if($total > 64) {
             die("Cannot allocate $total bits on a single register (max 64)\n");
@@ -266,13 +279,17 @@ sub render_syscall_decode {
         for my $param ($pregs{$reg}->@*) {
             my $shift = $bits_before;
             my $mask;
-            if($TYPES{$param->{type}}->{length} < 64) {
-                $mask  = ' & ' . ((1 << $TYPES{$param->{type}}->{length}) - 1);
+            if(type_data($param->{type})->{length} < 64) {
+                $mask  = ' & ' . ((1 << type_data($param->{type})->{length}) - 1);
             } else {
                 $mask = '';
             }
 
             print $outfh "                $param->{type} $param->{name} = ";
+
+            if(type_data($param->{type})->{cast}) {
+                print $outfh '(' . $param->{type} . ')';
+            }
 
             my $ret;
             if($shift > 0) {
@@ -284,7 +301,7 @@ sub render_syscall_decode {
 
             print $outfh "($ret$mask);\n";
 
-            $bits_before += $TYPES{$param->{type}}->{length};
+            $bits_before += type_data($param->{type})->{length};
         }
     }
 
@@ -314,7 +331,7 @@ sub render_syscall_decode {
     }
 
     for my $reg (keys %rregs) {
-        my $total = sum map { $TYPES{$_->{type}}->{length} } $rregs{$reg}->@*;
+        my $total = sum map { type_data($_->{type})->{length} } $rregs{$reg}->@*;
 
         if($total > 64) {
             die("Cannot allocate $total bits on a single register (max 64)\n");
@@ -330,8 +347,8 @@ sub render_syscall_decode {
 
             my $shift = $bits_before;
             my $mask;
-            if($TYPES{$return->{type}}->{length} < 64) {
-                $mask  = ' & ' . ((1 << $TYPES{$return->{type}}->{length}) - 1);
+            if(type_data($return->{type})->{length} < 64) {
+                $mask  = ' & ' . ((1 << type_data($return->{type})->{length}) - 1);
             } else {
                 $mask = '';
             }
@@ -346,7 +363,7 @@ sub render_syscall_decode {
                 print $outfh " << $shift)";
             }
 
-            $bits_before += $TYPES{$return->{type}}->{length};
+            $bits_before += type_data($return->{type})->{length};
         }
 
         print $outfh ";\n";
