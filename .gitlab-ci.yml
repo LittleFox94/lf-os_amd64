@@ -4,13 +4,10 @@ stages:
 - pages
 
 default:
-  image: registry.lf-net.org/littlefox/lf-os_amd64/ci:2020100601
+  image: registry.lf-net.org/littlefox/lf-os_amd64/ci:2020100604
 
 test:
   stage: test
-  variables:
-    CFLAGS:   -fuse-ld=lld
-    CXXFLAGS: -fuse-ld=lld
   script:
   - cmake -DCMAKE_BUILD_TYPE=Release -B build -S .
   - make -C build test-kernel
@@ -25,8 +22,6 @@ build:
   - mv build/hd.img hd.img
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
-    CFLAGS:   -fuse-ld=lld
-    CXXFLAGS: -fuse-ld=lld
   cache:
     paths:
     - build
