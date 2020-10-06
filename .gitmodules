@@ -6,3 +6,6 @@
 	path = src/llvm
 	url = ../llvm-project.git
 	branch = lf-os
+[submodule "src/loader/efi"]
+	path = src/loader/efi
+	url = https://github.com/yoppeh/efi.git

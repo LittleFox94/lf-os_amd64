@@ -1,0 +1,53 @@
+set(CMAKE_C_FLAGS "-nostdlib")
+set(CMAKE_CXX_FLAGS "-nostdlib")
+add_subdirectory(src/userspace/libpthread)
+
+include(ExternalProject)
+
+ExternalProject_Add(
+    "libc++abi"
+    DEPENDS "pthread"
+    CMAKE_CACHE_ARGS
+        "-DCMAKE_TOOLCHAIN_FILE:STRING=${toolchain}/etc/cmake.toolchain"
+        "-DCMAKE_INSTALL_PREFIX:STRING=${toolchain}"
+        "-DCMAKE_C_FLAGS:STRING=${CMAKE_C_FLAGS}"
+        "-DCMAKE_CXX_FLAGS:STRING=${CMAKE_CXX_FLAGS}"
+        "-DLIBCXXABI_ENABLE_THREADS:STRING=Off"
+        "-DLIBCXXABI_USE_COMPILER_RT:STRING=On"
+        "-DLIBCXXABI_ENABLE_SHARED:STRING=Off"
+        "-DLIBCXXABI_ENABLE_STATIC_UNWINDER:STRING=On"
+        "-DLIBCXXABI_USE_LLVM_UNWINDER:STRING=On"
+        "-DLIBUNWIND_ENABLE_SHARED:STRING=Off"
+    SOURCE_DIR
+        "${CMAKE_SOURCE_DIR}/src/llvm/libcxxabi"
+    USES_TERMINAL_CONFIGURE ON
+    USES_TERMINAL_BUILD     ON
+    USES_TERMINAL_INSTALL   ON
+    BUILD_ALWAYS            ON
+)
+
+ExternalProject_Add(
+    "libc++"
+    DEPENDS "libc++abi"
+    CMAKE_CACHE_ARGS
+        "-DCMAKE_TOOLCHAIN_FILE:STRING=${toolchain}/etc/cmake.toolchain"
+        "-DCMAKE_INSTALL_PREFIX:STRING=${toolchain}"
+        "-DCMAKE_C_FLAGS:STRING=${CMAKE_C_FLAGS}"
+        "-DCMAKE_CXX_FLAGS:STRING=${CMAKE_CXX_FLAGS}"
+        "-DLIBCXX_ENABLE_THREADS:STRING=On"
+        "-DLIBCXX_ENABLE_MONOTONIC_CLOCK:STRING=On"
+        "-DLIBCXX_ENABLE_FILESYSTEM:STRING=Off"
+        "-DLIBCXX_ENABLE_STATIC_ABI_LIBRARY:STRING=On"
+        "-DLIBCXX_ENABLE_SHARED:STRING=Off"
+        "-DLIBCXX_USE_COMPILER_RT:STRING=On"
+        "-DLIBCXX_CXX_ABI:STRING=libcxxabi"
+        "-DLIBCXX_CXX_STATIC_ABI_LIBRARY:STRING=c++abi"
+        "-DLIBCXX_CXX_ABI_LIBRARY_PATH:STRING=${toolchain}/lib"
+        "-DLIBCXX_INCLUDE_TESTS:STRING=Off"
+    SOURCE_DIR
+        "${CMAKE_SOURCE_DIR}/src/llvm/libcxx"
+    USES_TERMINAL_CONFIGURE ON
+    USES_TERMINAL_BUILD     ON
+    USES_TERMINAL_INSTALL   ON
+    BUILD_ALWAYS            ON
+)

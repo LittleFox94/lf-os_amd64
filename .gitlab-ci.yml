@@ -1,46 +1,41 @@
-image: registry.lf-net.org/littlefox/lf-os_amd64/ci:2020051401
 stages:
 - test
 - build
 - pages
 
+default:
+  image: registry.lf-net.org/littlefox/lf-os_amd64/ci:2020100601
+
 test:
   stage: test
   script:
-    - make test
+  - cmake -DCMAKE_BUILD_TYPE=Release -B build -S .
+  - make -C build test-kernel
 
-pages:
-  stage: pages
-  script:
-    - make doc
-    - mv doc/doxygen/html public
-  artifacts:
-    paths:
-    - public
-  only:
-  - master
-
-build:
+toolchain:
   stage: build
   interruptible: true
-  before_script:
-    - 'sed -i "s/Version: 0.0.0/Version: 0.0.0-$CI_PIPELINE_IID/" packaging/debian_control'
   script:
-    - make clean
-    - make hd.img.gz lf-os.iso.gz sysroot.tar.xz lf-os.deb
+  - cmake -DCMAKE_BUILD_TYPE=Release -B build -S .
+  - make -C build -j$(($(nproc) / 2)) hd.img
+  after_script:
+  - mv build/hd.img hd.img
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
   cache:
     paths:
-    # this one is very heavy to build, so we keep it
-    # don't do that for the runtime libs, we might change in ugly ways
-    - sysroot/tmp/clang-build
-    # those are unproblematic to keep and take enough time to justify the exception
-    - '*.img'
-    - '*.gz'
+    - build
   artifacts:
     paths:
-      - lf-os.deb
-      - hd.img.gz
-      - lf-os.iso.gz
-      - sysroot.tar.xz
+    - hd.img
+
+#pages:
+#  stage: pages
+#  script:
+#    - make doc
+#    - mv doc/doxygen/html ../public
+#  artifacts:
+#    paths:
+#    - public
+#  only:
+#  - master

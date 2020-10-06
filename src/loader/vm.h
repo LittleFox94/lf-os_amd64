@@ -21,19 +21,19 @@
     .nx             = 0
 
 typedef struct {
-    unsigned int present      : 1;
-    unsigned int writeable    : 1;
-    unsigned int userspace    : 1;
-    unsigned int writethrough : 1;
-    unsigned int cachedisable : 1;
-    unsigned int accessed     : 1;
-    unsigned int dirty        : 1;
-    unsigned int huge         : 1;
-    unsigned int global       : 1;
-    unsigned int available    : 3;
-    unsigned long next_base   : 40;
-    unsigned int available2   : 11;
-    unsigned int nx           : 1;
+    unsigned long long present      : 1;
+    unsigned long long writeable    : 1;
+    unsigned long long userspace    : 1;
+    unsigned long long writethrough : 1;
+    unsigned long long cachedisable : 1;
+    unsigned long long accessed     : 1;
+    unsigned long long dirty        : 1;
+    unsigned long long huge         : 1;
+    unsigned long long global       : 1;
+    unsigned long long available    : 3;
+    unsigned long long next_base    : 40;
+    unsigned long long available2   : 11;
+    unsigned long long nx           : 1;
 }__attribute__((packed)) vm_table_entry_t;
 
 typedef struct {

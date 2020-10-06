@@ -1,5 +1,3 @@
-FROM debian:bullseye
+FROM alpine:3.12
 
-RUN apt-get -qq update && \
-    apt-get -y -qq install gnu-efi mtools gdisk clang lld make dosfstools gcc genisoimage doxygen libyaml-perl rsync cmake ccache g++ python3-distutils graphviz && \
-    rm -rf /var/cache/apt
+RUN apk add -U --no-cache mtools sgdisk clang lld make doxygen perl-yaml cmake graphviz

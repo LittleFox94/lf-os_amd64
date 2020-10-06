@@ -1,0 +1,1 @@
+#define LF_OS_LOCATION L"@loader_lfos_path@"
