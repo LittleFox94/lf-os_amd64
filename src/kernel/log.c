@@ -64,7 +64,7 @@ void log_append(char level, char* component, char* message) {
         log_append_page();
     }
 
-    uint64_t msg_start = log_last->current_end + 1;
+    uint64_t msg_start = log_last->current_end;
 
     ksnprintf(log_last->messages + log_last->current_end, sizeof(log_last->messages) - log_last->current_end, "%c\t%s\t%s", (int)level, component, message);
     log_last->current_end += len;
