@@ -8,6 +8,8 @@ default:
 
 test:
   stage: test
+  variables:
+    CTEST_OUTPUT_ON_FAILURE: "1"
   script:
   - cmake -DCMAKE_BUILD_TYPE=Release -B build -S .
   - make -C build test-kernel
