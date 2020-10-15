@@ -125,5 +125,8 @@ void sc_handle_debug_print(char* message) {
         message[strlen(message)-1] = 0;
     }
 
-    logd("userspace", "debug from %d: %s", scheduler_current_process, message);
+    char buffer[20];
+    ksnprintf(buffer, 20, "process %d", scheduler_current_process);
+
+    logd(buffer, "%s", message);
 }
