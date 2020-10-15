@@ -73,6 +73,7 @@ if(${stage} STREQUAL "root")
 
     include(tests)
     include(images)
+    include(helper_targets)
     add_dependencies(hd.img stage_userspace)
 else()
     include("stage_${stage}")
