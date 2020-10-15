@@ -1,10 +1,10 @@
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -nostdlib")
+set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -nostdlib")
+
 add_subdirectory(src/loader)
 add_subdirectory(src/kernel)
 
 include(ExternalProject)
-
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -nostdlib")
-set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -nostdlib")
 
 ExternalProject_Add(
     "compiler-rt"
@@ -24,4 +24,5 @@ ExternalProject_Add(
     USES_TERMINAL_CONFIGURE ON
     USES_TERMINAL_BUILD     ON
     USES_TERMINAL_INSTALL   ON
+    BUILD_ALWAYS            ON
 )

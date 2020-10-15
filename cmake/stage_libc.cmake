@@ -22,6 +22,7 @@ ExternalProject_Add(
         OBJDUMP_FOR_TARGET=${toolchain}/bin/llvm-objdump
         STRIP_FOR_TARGET=${toolchain}/bin/llvm-strip
         "CFLAGS_FOR_TARGET=${CMAKE_C_FLAGS} -flto"
+        "LDFLAGS_FOR_TARGET=${CMAKE_LINKER_FLAGS}"
     BUILD_ALWAYS ON
 )
 
