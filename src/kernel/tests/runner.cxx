@@ -1,13 +1,16 @@
+#define _TESTRUNNER
 #include "lfostest.h"
 
 #include <iostream>
 #include <dlfcn.h>
 
-#define ne(expected, actual) (expected == actual)
-#define eq(expected, actual) (expected != actual)
+#define ne(expected, actual) (expected != actual)
+#define eq(expected, actual) (expected == actual)
+#define lt(expected, actual) (expected >  actual)
+#define gt(expected, actual) (expected <  actual)
 
 #define testFunctionT(type, name) inline bool name ## _ ## type ## Impl(type expected, type actual) { \
-    return !name(expected, actual); \
+    return name(expected, actual); \
 }
     TEST_FUNCTIONS
 #undef testFunctionT
@@ -17,15 +20,15 @@ int main(int argc, char* argv[]) {
     TestUtils utils;
 #define testFunctionT(type, name) utils.name ## _ ## type = [](type expected, type actual, const char* message) { \
     bool r = name ## _ ## type ## Impl(expected, actual); \
-    std::cerr << message << ": " << (r ? "OK" : "NOK") << std::endl; \
+    std::cerr << "\e[38;5;" << (r ? "2mok " : "1mnok") << "  " << message << std::endl; \
     if(!r) result = false; \
 };
     TEST_FUNCTIONS
 #undef testFunctionT
 
     void* testlib;
-    if((testlib = dlopen(argv[1], RTLD_NOW | RTLD_LOCAL)) == 0) {
-        std::cerr << "Could not open testlib: " << dlerror() << std::endl;
+    if((testlib = dlopen(argv[1], RTLD_LAZY | RTLD_GLOBAL)) == 0) {
+        std::cerr << "Could not load testlib: " << dlerror() << std::endl;
         return -1;
     }
 
@@ -40,4 +43,15 @@ int main(int argc, char* argv[]) {
     dlclose(testlib);
 
     return result ? 0 : 1;
+}
+
+extern "C" {
+    __attribute__((noreturn)) void panic_message(const char* message) {
+        fprintf(stderr, "Panic() called: %s\n", message);
+        exit(-1);
+    }
+
+    __attribute__((noreturn)) void panic() {
+        panic_message("Unknown error");
+    }
 }

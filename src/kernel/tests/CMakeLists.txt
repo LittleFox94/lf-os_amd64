@@ -12,7 +12,6 @@ foreach(test IN LISTS test_files)
     string(REGEX REPLACE "^test_(.*).c$" "\\1" test ${test})
     add_library(kerneltest-${test} SHARED
         ${CMAKE_CURRENT_SOURCE_DIR}/test_${test}.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/../${test}.c
     )
     target_include_directories(kerneltest-${test}
         PRIVATE
@@ -22,7 +21,7 @@ foreach(test IN LISTS test_files)
             ${CMAKE_CURRENT_SOURCE_DIR}/../arch/amd64
     )
     target_compile_options(kerneltest-${test}
-        PRIVATE -ffreestanding -nostdlib -nodefaultlibs -static -fvisibility=hidden
+        PRIVATE -ffreestanding -nostdlib -nodefaultlibs -static -fvisibility=hidden -nostdinc
     )
 
     add_test(

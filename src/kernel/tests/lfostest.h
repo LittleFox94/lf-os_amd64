@@ -1,18 +1,30 @@
 #ifndef _LFOSTEST_H_INCLUDED
 #define _LFOSTEST_H_INCLUDED
 
-#include <stdbool.h>
 #include <stdint.h>
-#include <stddef.h>
-#include <stdlib.h>
+#include <stdbool.h>
 
+#ifndef _TESTRUNNER
+void* malloc(size_t);
+void free(void*);
+#else
+#include <stddef.h>
 typedef uint64_t ptr_t;
+#endif
 
 #define TEST_FUNCTIONS \
     testFunctionT(size_t, eq) \
     testFunctionT(size_t, ne) \
+    testFunctionT(size_t, lt) \
+    testFunctionT(size_t, gt) \
+    testFunctionT(uint8_t, eq) \
+    testFunctionT(uint8_t, ne) \
+    testFunctionT(uint8_t, lt) \
+    testFunctionT(uint8_t, gt) \
     testFunctionT(ptr_t, eq) \
-    testFunctionT(ptr_t, ne)
+    testFunctionT(ptr_t, ne) \
+    testFunctionT(bool, eq) \
+    testFunctionT(bool, ne)
 
 typedef struct {
 #define testFunctionT(type, name) void(*name ## _ ## type)(type expected, type actual, const char* message);

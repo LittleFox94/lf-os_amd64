@@ -1,5 +1,5 @@
 #include "lfostest.h"
-#include <tpa.h>
+#include <tpa.c>
 
 size_t tpa_entries_per_page(tpa_t* tpa);
 

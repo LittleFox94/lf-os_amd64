@@ -1,5 +1,5 @@
 #include <lfostest.h>
-#include <string.h>
+#include <string.c>
 
 __attribute__ ((visibility ("default"))) void testmain(TestUtils* t) {
     char buffer[20];

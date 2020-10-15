@@ -1,5 +1,5 @@
 #include <lfostest.h>
-#include <slab.h>
+#include <slab.c>
 
 __attribute__ ((visibility ("default"))) void testmain(TestUtils* t) {
     ptr_t memory = (ptr_t)malloc(1024 * 1024);
