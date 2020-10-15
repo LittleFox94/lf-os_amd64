@@ -421,6 +421,40 @@ void vm_context_map(struct vm_table* context, ptr_t virtual, ptr_t physical) {
     pt_entry->userspace = 1;
 }
 
+void vm_context_unmap(struct vm_table* context, ptr_t virtual) {
+    struct vm_table_entry* pml4_entry = &context->entries[PML4_INDEX(virtual)];
+
+    if(!pml4_entry->present) {
+        return;
+    }
+
+    struct vm_table*       pdp       = BASE_TO_TABLE(pml4_entry->next_base);
+    struct vm_table_entry* pdp_entry = &pdp->entries[PDP_INDEX(virtual)];
+
+    if(!pdp_entry->present) {
+        return;
+    }
+
+    struct vm_table*       pd       = BASE_TO_TABLE(pdp_entry->next_base);
+    struct vm_table_entry* pd_entry = &pd->entries[PD_INDEX(virtual)];
+
+    if(!pd_entry->present) {
+        return;
+    }
+
+    struct vm_table*       pt       = BASE_TO_TABLE(pd_entry->next_base);
+    struct vm_table_entry* pt_entry = &pt->entries[PT_INDEX(virtual)];
+
+    if(!pt_entry->present) {
+        return;
+    }
+
+    pt_entry->next_base = 0;
+    pt_entry->present   = 0;
+    pt_entry->writeable = 0;
+    pt_entry->userspace = 0;
+}
+
 int vm_table_get_free_index1(struct vm_table *table) {
     return vm_table_get_free_index3(table, 0, 512);
 }
@@ -572,7 +606,14 @@ void vm_free(void* ptr) {
         panic_message("VM corruption detected!");
     }
 
-    logd("vm", "vm_free has to free %d pages (%B)", (size + 4095) / 4096, size);
+    uint64_t pages = (size + 4095) / 4096;
+
+    for(uint64_t i = 0; i < pages; ++i) {
+        ptr_t vir = ((ptr_t)ptr - 8) + (i * 0x1000);
+        ptr_t phy = vm_context_get_physical_for_virtual(VM_KERNEL_CONTEXT, vir);
+        vm_context_unmap(VM_KERNEL_CONTEXT, vir);
+        mm_mark_physical_pages(phy, 1, MM_FREE);
+    }
 }
 
 struct vm_table* vm_current_context() {
