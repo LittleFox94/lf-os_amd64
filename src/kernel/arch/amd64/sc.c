@@ -276,6 +276,8 @@ cpu_state* interrupt_handler(cpu_state* cpu) {
                 }
             }
 
+            logw("sc", "Process %d caused exception %u for reason %u at 0x%x", scheduler_current_process, cpu->interrupt,cpu->error_code, cpu->rip);
+
             // exception in user space
             scheduler_kill_current(kill_reason_abort);
 
