@@ -271,7 +271,7 @@ void sc_handle_memory_sbrk(int64_t inc, ptr_t* data_end) {
     }
 
     processes[scheduler_current_process].heap.end = new_end;
-    *data_end = new_end;
+    *data_end = old_end;
 }
 
 void sc_handle_scheduler_yield() {
