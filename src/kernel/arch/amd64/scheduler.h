@@ -1,6 +1,7 @@
 #ifndef _SCHEDULER_H_INCLUDED
 #define _SCHEDULER_H_INCLUDED
 
+#include <stdint.h>
 #include <vm.h>
 #include <cpu.h>
 
@@ -14,7 +15,6 @@ enum wait_reason {
     wait_reason_condvar,
 };
 
-typedef int64_t pid_t;
 extern volatile pid_t scheduler_current_process;
 
 #include <mutex.h>
