@@ -11,16 +11,21 @@ add_custom_command(
 )
 
 add_executable(kernel
-    condvar.c
-    elf.c
-    fbconsole.c
-    log.c
-    mutex.c
-    sd.c
-    slab.c
-    string.c
-    tpa.c
+    condvar.c   condvar.h
+    elf.c       elf.h
+    fbconsole.c fbconsole.h
+    log.c       log.h
+    mutex.c     mutex.h
+    sd.c        sd.h
+    slab.c      slab.h
+    string.c    string.h
+    tpa.c       tpa.h
+    mq.c        mq.h
     version.c
+                allocator.h
+                bitmap.h
+                stdarg.h
+                stdbool.h
     ${PROJECT_BINARY_DIR}/syscalls.gen.c
 )
 
