@@ -11,6 +11,9 @@ test:
   script:
   - cmake -DCMAKE_BUILD_TYPE=Release -B build -S .
   - make -C build test-kernel
+  cache:
+    paths:
+    - build
 
 build:
   stage: build
