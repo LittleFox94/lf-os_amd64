@@ -4,6 +4,8 @@
 #include <iostream>
 #include <dlfcn.h>
 
+#define LFOS_API extern "C" __attribute__((visibility("default")))
+
 #define ne(expected, actual) (expected != actual)
 #define eq(expected, actual) (expected == actual)
 #define lt(expected, actual) (expected >  actual)
@@ -26,8 +28,10 @@ int main(int argc, char* argv[]) {
     TEST_FUNCTIONS
 #undef testFunctionT
 
+    dlopen(NULL, RTLD_NOW | RTLD_NOLOAD | RTLD_GLOBAL);
+
     void* testlib;
-    if((testlib = dlopen(argv[1], RTLD_LAZY | RTLD_GLOBAL)) == 0) {
+    if((testlib = dlopen(argv[1], RTLD_NOW)) == 0) {
         std::cerr << "Could not load testlib: " << dlerror() << std::endl;
         return -1;
     }
@@ -45,13 +49,11 @@ int main(int argc, char* argv[]) {
     return result ? 0 : 1;
 }
 
-extern "C" {
-    __attribute__((noreturn)) void panic_message(const char* message) {
-        fprintf(stderr, "Panic() called: %s\n", message);
-        exit(-1);
-    }
+LFOS_API void panic_message(const char* message) {
+    fprintf(stderr, "Panic() called: %s\n", message);
+    exit(-1);
+}
 
-    __attribute__((noreturn)) void panic() {
-        panic_message("Unknown error");
-    }
+LFOS_API void panic() {
+    panic_message("Unknown error");
 }

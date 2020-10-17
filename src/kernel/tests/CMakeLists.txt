@@ -5,6 +5,9 @@ include(CTest)
 
 add_executable(test_runner runner.cxx)
 target_link_libraries(test_runner dl)
+target_compile_options(test_runner PRIVATE -fvisibility=hidden)
+target_link_options(test_runner PRIVATE -Wl,-E)
+
 add_custom_target(test-kernel COMMAND ${CMAKE_CTEST_COMMAND} DEPENDS test_runner)
 
 file(GLOB test_files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} test_*.c)
