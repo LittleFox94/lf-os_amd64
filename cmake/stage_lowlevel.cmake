@@ -10,7 +10,7 @@ ExternalProject_Add(
     "compiler-rt"
     CMAKE_CACHE_ARGS
         "-DCOMPILER_RT_DEFAULT_TARGET_ONLY:BOOL=ON"
-        "-DCOMPILER_RT_OUTPUT_DIR:STRING=${toolchain}/lib/clang/11.0.0"
+        "-DCOMPILER_RT_OUTPUT_DIR:STRING=${toolchain}/lib/clang/12.0.0"
         "-DCOMPILER_RT_ENABLE_SHARED:STRING=OFF"
         "-DCOMPILER_RT_USE_LIBCXX:STRING=OFF"
         "-DCOMPILER_RT_CRT_USE_EH_FRAME_REGISTRY:STRING=OFF"
