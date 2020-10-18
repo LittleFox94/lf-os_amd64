@@ -4,7 +4,7 @@ stages:
 - pages
 
 default:
-  image: registry.lf-net.org/littlefox/lf-os_amd64/ci:2020100605
+  image: registry.lf-net.org/littlefox/lf-os_amd64/ci:2020101801
 
 test:
   stage: test
@@ -19,7 +19,7 @@ build:
   interruptible: true
   script:
   - cmake -DCMAKE_BUILD_TYPE=Release -B build -S .
-  - make -C build -j$(($(nproc) / 2)) hd.img
+  - make -C build -j$(nproc) hd.img
   after_script:
   - mv build/hd.img hd.img
   variables:
