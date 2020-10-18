@@ -31,13 +31,14 @@ build:
     paths:
     - hd.img
 
-#pages:
-#  stage: pages
-#  script:
-#    - make doc
-#    - mv doc/doxygen/html ../public
-#  artifacts:
-#    paths:
-#    - public
-#  only:
-#  - master
+pages:
+  stage: pages
+  script:
+  - cmake -DCMAKE_BUILD_TYPE=Release -B build -S .
+  - make -C build doc
+  - mv build/doc/html public
+  artifacts:
+    paths:
+    - public
+  only:
+  - master

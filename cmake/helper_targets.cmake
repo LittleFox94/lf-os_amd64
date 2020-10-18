@@ -5,3 +5,14 @@ add_custom_target(qemu
     DEPENDS hd.img
     USES_TERMINAL
 )
+
+add_custom_target(doc
+    COMMAND doxygen ${CMAKE_BINARY_DIR}/Doxyfile
+    DEPENDS Doxyfile
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+)
+
+file(WRITE ${CMAKE_BINARY_DIR}/Doxyfile
+    "@INCLUDE = ${CMAKE_SOURCE_DIR}/Doxyfile\n"
+    "OUTPUT_DIRECTORY = ${CMAKE_BINARY_DIR}/doc"
+)
