@@ -13,3 +13,41 @@ add_custom_target(hd.img
     COMMAND ${mformat} -i hd.img@@1M -F -L ${boot_fs_sectors}
     COMMAND ${mcopy}   -i hd.img@@1M -sbnmv ${CMAKE_BINARY_DIR}/shared/* ::/
 )
+
+set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME main)
+
+install(DIRECTORY ${CMAKE_BINARY_DIR}/shared/EFI/LFOS DESTINATION /boot/efi/EFI)
+install(DIRECTORY ${CMAKE_BINARY_DIR}/shared/LFOS     DESTINATION /boot/efi)
+install(PROGRAMS util/osprobe RENAME 20lfos           DESTINATION /usr/lib/os-probes/mounted/efi)
+
+install(DIRECTORY ${toolchain}/ DESTINATION /opt/lf_os USE_SOURCE_PERMISSIONS COMPONENT toolchain)
+
+configure_file(cmake/cmake.toolchain.in cmake.toolchain @ONLY)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/cmake.toolchain DESTINATION /opt/lf_os/etc                                               COMPONENT toolchain)
+install(FILES cmake/cmake.platform                        DESTINATION /opt/lf_os/share/cmake/Modules/Platform RENAME "LF-OS.cmake" COMPONENT toolchain)
+
+set(CPACK_PACKAGE_CONTACT "Mara Sophie Grosch <littlefox@lf-net.org>")
+set(CPACK_PACKAGE_HOMEPAGE "https://praios.lf-net.org/littlefox/lf-os_amd64")
+set(CPACK_PACKAGE_INSTALL_DIRECTORY /opt/lf_os)
+
+set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE amd64)
+set(CPACK_DEBIAN_PACKAGE_CONTROL_STRICT_PERMISSION ON)
+set(CPACK_DEB_COMPONENT_INSTALL ON)
+set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
+
+set(CPACK_DEBIAN_MAIN_PACKAGE_NAME lf_os)
+set(CPACK_DEBIAN_MAIN_PACKAGE_SECTION kernel)
+set(CPACK_DEBIAN_MAIN_PACKAGE_DEPENDS "grub-efi-amd64, os-prober")
+set(CPACK_DEBIAN_MAIN_PACKAGE_CONTROL_EXTRA
+    ${CMAKE_SOURCE_DIR}/packaging/preinst
+    ${CMAKE_SOURCE_DIR}/packaging/postinst
+    ${CMAKE_SOURCE_DIR}/packaging/postrm
+)
+
+set(CPACK_DEBIAN_TOOLCHAIN_PACKAGE_NAME lf_os-dev)
+set(CPACK_DEBIAN_TOOLCHAIN_PACKAGE_RECOMMENDS "cmake (>= 3.10), ninja")
+
+include(CPack)
+include(CPackComponent)
+cpack_add_component(main      DESCRIPTION "Bootable LF OS system")
+cpack_add_component(toolchain DESCRIPTION "Toolchain for LF OS programs")
