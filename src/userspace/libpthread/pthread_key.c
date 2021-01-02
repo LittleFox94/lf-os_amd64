@@ -4,12 +4,19 @@
 #include <limits.h>
 #include <stdio.h>
 
+// XXX: this is a bad implementation. replace it.
+
 int pthread_key_create(pthread_key_t* key, void (*destructor)(void*)) {
-    if(hcreate_r(ULONG_MAX, (struct hsearch_data*)key)) {
+    if(hcreate_r(ULONG_MAX, (struct hsearch_data*)*key)) {
         return 0;
     }
 
     return errno;
+}
+
+int pthread_key_delete(pthread_key_t key) {
+    hdestroy_r((struct hsearch_data*)key);
+    return 0;
 }
 
 void* pthread_getspecific(pthread_key_t key) {

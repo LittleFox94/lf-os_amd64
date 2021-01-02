@@ -1,5 +1,5 @@
-#define _POSIX_THREADS
 #include <pthread.h>
+#include <errno.h>
 
 #include <kernel/syscalls.h>
 
@@ -44,6 +44,14 @@ int pthread_cond_wait (pthread_cond_t *cond, pthread_mutex_t *mutex) {
     return pthread_mutex_lock(mutex);
 }
 
-int pthread_cond_timedwait (pthread_cond_t *__cond, pthread_mutex_t *__mutex, const struct timespec *__abstime) {
-    return 95; // XXX: errno.h ... this one is ENOTSUP
+int pthread_cond_timedwait (pthread_cond_t *cond, pthread_mutex_t *mutex, const struct timespec *abstime) {
+    return ENOTSUP;
+}
+
+int pthread_condattr_init(pthread_condattr_t *attr) {
+    return 0;
+}
+
+int pthread_condattr_destroy(pthread_condattr_t *attr) {
+    return 0;
 }

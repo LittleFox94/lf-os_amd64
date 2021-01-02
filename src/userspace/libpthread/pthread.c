@@ -1,6 +1,14 @@
 #include <pthread.h>
 #include <errno.h>
 
+int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void*(*start)(void*), void* arg) {
+    return EINVAL;
+}
+
+int pthread_cancel(pthread_t thread) {
+    return EINVAL;
+}
+
 pthread_t pthread_self() {
     return getpid();
 }
@@ -39,4 +47,23 @@ int pthread_join(pthread_t thread, void **retval) {
 
 int pthread_detach(pthread_t thread) {
     return ESRCH;
+}
+
+int pthread_setcancelstate(int state, int *oldstate) {
+    return EINVAL;
+}
+
+int pthread_setcanceltype(int type, int *oldtype) {
+    return EINVAL;
+}
+
+void pthread_testcancel() {
+}
+
+int pthread_attr_init(pthread_attr_t *attr) {
+    return 0;
+}
+
+int pthread_attr_destroy(pthread_attr_t *attr) {
+    return 0;
 }
