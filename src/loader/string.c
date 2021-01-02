@@ -1,13 +1,34 @@
 #include <stdint.h>
+#include <stdbool.h>
 #include <efi.h>
 
+static bool uart_out = false;
 static EFI_SYSTEM_TABLE* st;
 EFI_BOOT_SERVICES* BS;
 
-void init_stdlib(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE* system_table) {
-    st = system_table;
-    BS = st->BootServices;
-    st->ConOut->ClearScreen(st->ConOut);
+static void outb(uint16_t port, uint8_t data) {
+    asm("outb %0, %1"::"a"(data), "d"(port));
+}
+
+static uint8_t inb(uint16_t port) {
+    uint8_t data = 0;
+    asm("inb %1, %0":"=a"(data):"d"(port));
+    return data;
+}
+
+static int is_transmit_empty() {
+   return inb(0x3F8 + 5) & 0x20;
+}
+
+static void conwrite(CHAR16* s) {
+    st->ConOut->OutputString(st->ConOut, s);
+
+    if(uart_out) {
+        do {
+            while (is_transmit_empty() == 0) { }
+            outb(0x3F8, *s);
+        } while(*(++s));
+    }
 }
 
 void* memset(void* s, int c, size_t n) {
@@ -78,7 +99,7 @@ size_t wprintui(unsigned long long int i, unsigned char base) {
         i /= base;
     }
 
-    st->ConOut->OutputString(st->ConOut, buffer + (buffer_size - len) - 1);
+    conwrite(buffer + (buffer_size - len) - 1);
 
     return len;
 }
@@ -88,7 +109,7 @@ size_t wprinti(long long int i, unsigned char base) {
 
     if(neg) {
         i *= -1;
-        st->ConOut->OutputString(st->ConOut, L"-");
+        conwrite(L"-");
     }
 
     return wprintui(i, base) + (neg ? 1 : 0);
@@ -111,7 +132,7 @@ int wprintf(const CHAR16* fmt, ...) {
                 placeholder = 1;
             }
             else if(c == '\n') {
-                st->ConOut->OutputString(st->ConOut, L"\r\n");
+                conwrite(L"\r\n");
                 len += 2;
             }
             else {
@@ -119,18 +140,23 @@ int wprintf(const CHAR16* fmt, ...) {
                 CHAR16 buffer[2];
                 buffer[0] = c;
                 buffer[1]  =0;
-                st->ConOut->OutputString(st->ConOut, buffer);
+                conwrite(buffer);
             }
         }
         else {
             switch(c) {
                 case '%':
-                    st->ConOut->OutputString(st->ConOut, L"\r\n");
+                    conwrite(L"\r\n");
                     len += 2;
+                    break;
+                case 'b':
+                    CHAR16* b = __builtin_va_arg(args, int) ? L"true" : L"false";
+                    conwrite(b);
+                    len += wcslen(b);
                     break;
                 case 's':
                     CHAR16* s = __builtin_va_arg(args, CHAR16*);
-                    st->ConOut->OutputString(st->ConOut, s);
+                    conwrite(s);
                     len += wcslen(s);
                     break;
                 case 'u':
@@ -180,4 +206,23 @@ int wprintf(const CHAR16* fmt, ...) {
 
     __builtin_va_end(args);
     return len;
+}
+
+void init_stdlib(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE* system_table) {
+    st = system_table;
+    BS = st->BootServices;
+    st->ConOut->ClearScreen(st->ConOut);
+
+    if(wcscmp(st->FirmwareVendor, L"EDK II") != 0) {
+        uart_out = true;
+
+        // stolen from osdev
+        outb(0x3F8 + 1, 0x00);    // Disable all interrupts
+        outb(0x3F8 + 3, 0x80);    // Enable DLAB (set baud rate divisor)
+        outb(0x3F8 + 0, 0x0c);    // Set divisor to 12 (lo byte) 9600 baud
+        outb(0x3F8 + 1, 0x00);    //                   (hi byte)
+        outb(0x3F8 + 3, 0x03);    // 8 bits, no parity, one stop bit
+    }
+
+    wprintf(L"UART output enabled: %b\n", uart_out);
 }
