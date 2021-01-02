@@ -15,6 +15,7 @@ bool fbconsole_active = false;
 struct fbconsole_data {
     int      width;
     int      height;
+    int      stride;
     uint8_t* fb;
     uint8_t* backbuffer;
 
@@ -27,9 +28,10 @@ struct fbconsole_data {
 
 static struct fbconsole_data fbconsole;
 
-void fbconsole_init(int width, int height, uint8_t* fb) {
+void fbconsole_init(int width, int height, int stride, uint8_t* fb) {
     fbconsole.width      = width;
     fbconsole.height     = height;
+    fbconsole.stride     = stride;
     fbconsole.fb         = fb;
     fbconsole.backbuffer = fb;
 
@@ -71,7 +73,7 @@ void fbconsole_init(int width, int height, uint8_t* fb) {
 }
 
 void fbconsole_init_backbuffer(uint8_t* backbuffer) {
-    memcpy(backbuffer, fbconsole.fb, fbconsole.width * fbconsole.height * 4);
+    memcpy(backbuffer, fbconsole.fb, fbconsole.stride * fbconsole.height * 4);
     fbconsole.backbuffer = backbuffer;
 }
 
@@ -81,10 +83,10 @@ void fbconsole_clear(int r, int g, int b) {
         fbconsole_active = true;
     }
 
-    memset32((uint32_t*)fbconsole.backbuffer, (r << 16) | (g << 8) | (b << 0), fbconsole.width * fbconsole.height);
+    memset32((uint32_t*)fbconsole.backbuffer, (r << 16) | (g << 8) | (b << 0), fbconsole.stride * fbconsole.height);
 
     if(fbconsole.backbuffer != fbconsole.fb) {
-        memset32((uint32_t*)fbconsole.fb, (r << 16) | (g << 8) | (b << 0), fbconsole.width * fbconsole.height);
+        memset32((uint32_t*)fbconsole.fb, (r << 16) | (g << 8) | (b << 0), fbconsole.stride * fbconsole.height);
     }
 
     fbconsole.current_row = 0;
@@ -95,10 +97,13 @@ void fbconsole_blt(const uint8_t* image, uint16_t width, uint16_t height, int16_
     if(tx < 0) tx = fbconsole.width + tx;
     if(ty < 0) ty = fbconsole.height + ty;
 
+    if(tx < 0) tx = 0;
+    if(ty < 0) ty = 0;
+
     for(uint16_t y = 0; y < height; ++y) {
-        size_t imgRow =  y       *           width * 4;
-        size_t fbRow  = (ty + y) * fbconsole.width * 4;
-        for(uint16_t x = 0; x < width; ++x) {
+        size_t imgRow =  y       *           width  * 4;
+        size_t fbRow  = (ty + y) * fbconsole.stride * 4;
+        for(uint16_t x = 0; x < width && x + tx < fbconsole.width; ++x) {
             size_t imgCol = imgRow + (x * 4);
             size_t fbCol  = fbRow  + ((tx + x) * 4);
 
@@ -115,7 +120,7 @@ void fbconsole_blt(const uint8_t* image, uint16_t width, uint16_t height, int16_
 }
 
 void fbconsole_setpixel(const int x, const int y, const int r, const int g, const int b) {
-    int index = ((y * fbconsole.width) + x) * 4;
+    int index = ((y * fbconsole.stride) + x) * 4;
     fbconsole.backbuffer[index + 2] = r;
     fbconsole.backbuffer[index + 1] = g;
     fbconsole.backbuffer[index + 0] = b;
@@ -142,19 +147,19 @@ void fbconsole_draw_char(int start_x, int start_y, char c) {
 
 void fbconsole_scroll(unsigned int scroll_amount) {
     size_t row_start = scroll_amount * (FONT_HEIGHT + FONT_ROW_SPACING);
-    size_t begin     = row_start * fbconsole.width * 4;
-    size_t end       = fbconsole.width * fbconsole.height * 4;
+    size_t begin     = row_start * fbconsole.stride * 4;
+    size_t end       = fbconsole.stride * fbconsole.height * 4;
 
     memcpy(fbconsole.backbuffer, fbconsole.backbuffer + begin, end - begin);
 
     memset32(
-        (uint32_t*)(fbconsole.backbuffer + (end - (row_start * 4 * fbconsole.width))),
+        (uint32_t*)(fbconsole.backbuffer + (end - (row_start * 4 * fbconsole.stride))),
         (fbconsole.background_r << 16) | (fbconsole.background_g << 8) | (fbconsole.background_b << 0),
-        row_start * fbconsole.width
+        row_start * fbconsole.stride
     );
 
     if(fbconsole.fb != fbconsole.backbuffer) {
-        memcpy(fbconsole.fb, fbconsole.backbuffer, fbconsole.width * fbconsole.height * 4);
+        memcpy(fbconsole.fb, fbconsole.backbuffer, fbconsole.stride * fbconsole.height * 4);
     }
 }
 
@@ -271,7 +276,7 @@ void sc_handle_hardware_framebuffer(ptr_t *fb, uint16_t *width, uint16_t *height
     if(fbconsole_active) {
         *width = fbconsole.width;
         *height = fbconsole.height;
-        *stride = fbconsole.width; // stride is added with #10
+        *stride = fbconsole.stride;
         *colorFormat = 0; // to be specified
 
         *fb = vm_map_hardware(vm_context_get_physical_for_virtual(VM_KERNEL_CONTEXT, (ptr_t)fbconsole.fb), *stride * *height * 4);

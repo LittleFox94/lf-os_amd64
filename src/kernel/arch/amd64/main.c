@@ -107,14 +107,14 @@ void main(void* loaderData) {
 }
 
 void init_console(LoaderStruct* loaderStruct) {
-    fbconsole_init(loaderStruct->fb_width, loaderStruct->fb_height, (uint8_t*)loaderStruct->fb_location);
+    fbconsole_init(loaderStruct->fb_width, loaderStruct->fb_height, loaderStruct->fb_stride, (uint8_t*)loaderStruct->fb_location);
 
     #include "../../bootlogo.c"
     fbconsole_blt(lf_os_bootlogo.pixel_data, lf_os_bootlogo.width, lf_os_bootlogo.height, -(lf_os_bootlogo.width + 5), 5);
 }
 
 void init_console_backbuffer(LoaderStruct* loaderStruct) {
-    size_t backbuffer_size      = loaderStruct->fb_width * loaderStruct->fb_height * 4;
+    size_t backbuffer_size      = loaderStruct->fb_stride * loaderStruct->fb_height * 4;
     size_t backbuffer_num_pages = (backbuffer_size + 4095) / 4096;
 
     uint8_t* backbuffer = (uint8_t*)vm_context_alloc_pages(VM_KERNEL_CONTEXT, ALLOCATOR_REGION_KERNEL_HEAP, backbuffer_num_pages);

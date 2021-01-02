@@ -336,10 +336,12 @@ EFI_STATUS prepare_framebuffer(struct LoaderState* state) {
 
     size_t width  = gop->Mode->Info->HorizontalResolution;
     size_t height = gop->Mode->Info->VerticalResolution;
+    size_t stride = gop->Mode->Info->PixelsPerScanLine;
     ptr_t  fb     = (uint8_t*)gop->Mode->FrameBufferBase;
 
     state->loaderStruct->fb_width    = width;
     state->loaderStruct->fb_height   = height;
+    state->loaderStruct->fb_stride   = stride;
     state->loaderStruct->fb_location = fb;
     state->loaderStruct->fb_bpp      = 4;
 

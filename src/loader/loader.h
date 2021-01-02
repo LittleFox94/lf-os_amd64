@@ -20,7 +20,7 @@ typedef struct {
     //! Location of framebuffer as physical address
     ptr_t fb_location;
 
-    //! Width of the framebuffer in pixels
+    //! Width of the framebuffer in visible pixels
     uint16_t fb_width;
 
     //! Height of the framebuffer in pixels
@@ -31,8 +31,9 @@ typedef struct {
 
     //! reserved location
     uint8_t  fb_reserved1;
-    //! reserved location
-    uint16_t fb_reserved2;
+
+    //! Pixels per scanline (including invisible pixels)
+    uint16_t fb_stride;
 
     //! Number of memory descriptors
     uint64_t num_mem_desc;
