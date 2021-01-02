@@ -99,9 +99,12 @@ void log_append(char level, char* component, char* message) {
 
     if(LOG_COM0) {
         for(size_t i = msg_start; i < msg_end-1; ++i) {
+            while((inb(0x3F8 + 5) & 0x20) == 0) {}
             outb(0x3F8, log_last->messages[i]);
         }
-        outb(0x3F8, '\r'); // UEFI uses CR LF, at least OVMF does .. be consistent at least
+        while((inb(0x3F8 + 5) & 0x20) == 0) {}
+        outb(0x3F8, '\r');
+        while((inb(0x3F8 + 5) & 0x20) == 0) {}
         outb(0x3F8, '\n');
     }
 
