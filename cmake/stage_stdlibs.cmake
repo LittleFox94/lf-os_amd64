@@ -1,17 +1,34 @@
-set(CMAKE_C_FLAGS "-nostdlib")
-set(CMAKE_CXX_FLAGS "-nostdlib")
-add_subdirectory(src/userspace/libpthread)
-
+cmake_minimum_required(VERSION 3.10)
 include(ExternalProject)
 
 ExternalProject_Add(
-    "libc++abi"
-    DEPENDS "pthread"
+    "compiler-rt"
     CMAKE_CACHE_ARGS
         "-DCMAKE_TOOLCHAIN_FILE:STRING=${toolchain}/etc/cmake.toolchain"
-        "-DCMAKE_INSTALL_PREFIX:STRING=${toolchain}"
-        "-DCMAKE_C_FLAGS:STRING=${CMAKE_C_FLAGS}"
-        "-DCMAKE_CXX_FLAGS:STRING=${CMAKE_CXX_FLAGS}"
+        "-DCMAKE_INSTALL_PREFIX:STRING=${CMAKE_BINARY_DIR}/stdlibs/lib/clang/12.0.0"
+        "-DCMAKE_C_FLAGS:STRING=${CMAKE_C_FLAGS} -nostdlib"
+        "-DCMAKE_CXX_FLAGS:STRING=${CMAKE_CXX_FLAGS} -nostdlib"
+        "-DCOMPILER_RT_DEFAULT_TARGET_ONLY:BOOL=ON"
+        "-DCOMPILER_RT_ENABLE_SHARED:STRING=OFF"
+        "-DCOMPILER_RT_USE_LIBCXX:STRING=ON"
+        "-DCOMPILER_RT_CRT_USE_EH_FRAME_REGISTRY:STRING=OFF"
+        "-DCOMPILER_RT_EXCLUDE_ATOMIC_BUILTIN:STRING=OFF"
+    SOURCE_DIR
+        "${CMAKE_SOURCE_DIR}/src/llvm/compiler-rt"
+    USES_TERMINAL_CONFIGURE ON
+    USES_TERMINAL_BUILD     ON
+    USES_TERMINAL_INSTALL   ON
+    BUILD_ALWAYS            ON
+)
+
+ExternalProject_Add(
+    "libc++abi"
+    DEPENDS "compiler-rt"
+    CMAKE_CACHE_ARGS
+        "-DCMAKE_TOOLCHAIN_FILE:STRING=${toolchain}/etc/cmake.toolchain"
+        "-DCMAKE_INSTALL_PREFIX:STRING=${CMAKE_BINARY_DIR}/stdlibs"
+        "-DCMAKE_C_FLAGS:STRING=${CMAKE_C_FLAGS} -nostdlib"
+        "-DCMAKE_CXX_FLAGS:STRING=${CMAKE_CXX_FLAGS} -nostdlib"
         "-DLIBCXXABI_ENABLE_THREADS:STRING=Off"
         "-DLIBCXXABI_USE_COMPILER_RT:STRING=On"
         "-DLIBCXXABI_ENABLE_SHARED:STRING=Off"
@@ -31,9 +48,9 @@ ExternalProject_Add(
     DEPENDS "libc++abi"
     CMAKE_CACHE_ARGS
         "-DCMAKE_TOOLCHAIN_FILE:STRING=${toolchain}/etc/cmake.toolchain"
-        "-DCMAKE_INSTALL_PREFIX:STRING=${toolchain}"
-        "-DCMAKE_C_FLAGS:STRING=${CMAKE_C_FLAGS}"
-        "-DCMAKE_CXX_FLAGS:STRING=${CMAKE_CXX_FLAGS}"
+        "-DCMAKE_INSTALL_PREFIX:STRING=${CMAKE_BINARY_DIR}/stdlibs"
+        "-DCMAKE_C_FLAGS:STRING=${CMAKE_C_FLAGS} -nostdlib"
+        "-DCMAKE_CXX_FLAGS:STRING=${CMAKE_CXX_FLAGS} -nostdlib"
         "-DLIBCXX_ENABLE_THREADS:STRING=On"
         "-DLIBCXX_ENABLE_MONOTONIC_CLOCK:STRING=On"
         "-DLIBCXX_ENABLE_FILESYSTEM:STRING=Off"
@@ -51,3 +68,5 @@ ExternalProject_Add(
     USES_TERMINAL_INSTALL   ON
     BUILD_ALWAYS            ON
 )
+
+install(DIRECTORY ${CMAKE_BINARY_DIR}/stdlibs DESTINATION ${toolchain})

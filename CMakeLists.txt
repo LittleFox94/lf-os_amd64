@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project("LF OS" NONE)
+project("lf_os" NONE)
 
 # This is a multi-stage CMake build.
 # Since when does CMake support multi-stage builds you may ask. Answer: it does not.
@@ -38,7 +38,7 @@ set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 -DDEBUG")
 set(stage "root" CACHE STRING "Current build stage (you want to start with root)")
 
 if(${stage} STREQUAL "root")
-    set(all_stages toolchain libc lowlevel stdlibs userspace)
+    set(all_stages toolchain libc stdlibs lowlevel userspace)
     include(ExternalProject)
 
     foreach(s IN LISTS all_stages)
@@ -49,6 +49,8 @@ if(${stage} STREQUAL "root")
         set(inner_cmake_args
             "-DCMAKE_INSTALL_PREFIX:STRING=${CMAKE_BINARY_DIR}/shared"
             "-DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}"
+            "-DCMAKE_C_COMPILER_LAUNCHER:STRING=${CMAKE_C_COMPILER_LAUNCHER}"
+            "-DCMAKE_CXX_COMPILER_LAUNCHER:STRING=${CMAKE_CXX_COMPILER_LAUNCHER}"
             "-Dstage:STRING=${s}"
             ${tcf}
         )

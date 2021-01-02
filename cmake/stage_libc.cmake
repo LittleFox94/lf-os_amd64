@@ -24,6 +24,11 @@ ExternalProject_Add(
         "CFLAGS_FOR_TARGET=${CMAKE_C_FLAGS} -flto"
         "LDFLAGS_FOR_TARGET=${CMAKE_LINKER_FLAGS}"
     BUILD_ALWAYS ON
+    STEP_TARGETS install
 )
+
+add_subdirectory(src/userspace/libpthread)
+add_dependencies(pthread newlib-install)
+target_include_directories(pthread PRIVATE ${CMAKE_BINARY_DIR}/install/x86_64-pc-lf_os/include)
 
 install(DIRECTORY ${CMAKE_BINARY_DIR}/install/x86_64-pc-lf_os/ DESTINATION ${toolchain})

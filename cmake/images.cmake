@@ -22,13 +22,17 @@ install(PROGRAMS util/osprobe RENAME 20lfos           DESTINATION /usr/lib/os-pr
 
 install(DIRECTORY ${toolchain}/ DESTINATION /opt/lf_os USE_SOURCE_PERMISSIONS COMPONENT toolchain)
 
+set(toolchain_bak ${toolchain})
+
+set(toolchain /opt/lf_os)
 configure_file(cmake/cmake.toolchain.in cmake.toolchain @ONLY)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/cmake.toolchain DESTINATION /opt/lf_os/etc                                               COMPONENT toolchain)
-install(FILES cmake/cmake.platform                        DESTINATION /opt/lf_os/share/cmake/Modules/Platform RENAME "LF-OS.cmake" COMPONENT toolchain)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/cmake.toolchain DESTINATION ${toolchain}/etc                                               COMPONENT toolchain)
+install(FILES cmake/cmake.platform                        DESTINATION ${toolchain}/share/cmake/Modules/Platform RENAME "LF-OS.cmake" COMPONENT toolchain)
+
+set(toolchain ${toolchain_bak})
 
 set(CPACK_PACKAGE_CONTACT "Mara Sophie Grosch <littlefox@lf-net.org>")
 set(CPACK_PACKAGE_HOMEPAGE "https://praios.lf-net.org/littlefox/lf-os_amd64")
-set(CPACK_PACKAGE_INSTALL_DIRECTORY /opt/lf_os)
 
 set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE amd64)
 set(CPACK_DEBIAN_PACKAGE_CONTROL_STRICT_PERMISSION ON)
