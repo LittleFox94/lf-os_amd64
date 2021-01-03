@@ -64,6 +64,7 @@ reload_cs:
 .type   _interrupt_handler_common, @function
 _interrupt_handler_common:
     cli
+
     __pusha
     mov  %rsp, %rdi
     call interrupt_handler
@@ -77,7 +78,6 @@ _interrupt_handler_common:
 .global _syscall_handler
 .type   _syscall_handler, @function
 _syscall_handler:
-    cli
     mov %rsp, %rbx
     swapgs
     mov %gs:0, %rsp
@@ -107,7 +107,6 @@ _syscall_handler:
 
     swapgs
     mov %rbx, %rsp
-    sti
     sysretq
 
 # interrupt vectors

@@ -141,6 +141,7 @@ void init_sc() {
 
     write_msr(0xC0000081, 0x001B000800000000);
     write_msr(0xC0000082, (ptr_t)_syscall_handler);
+    write_msr(0xC0000084, 0x200); // disable interrupts on syscall
     write_msr(0xC0000102, (ptr_t)(&cpu0));
 }
 
@@ -262,6 +263,7 @@ void init_gdt() {
     asm("ltr %%ax"::"a"(6 << 3));
 }
 
+__attribute__ ((force_align_arg_pointer))
 cpu_state* interrupt_handler(cpu_state* cpu) {
     scheduler_process_save(cpu);
 
@@ -303,6 +305,7 @@ cpu_state* interrupt_handler(cpu_state* cpu) {
     return new_cpu;
 }
 
+__attribute__ ((force_align_arg_pointer))
 cpu_state* syscall_handler(cpu_state* cpu) {
     scheduler_process_save(cpu);
     sc_handle(cpu);

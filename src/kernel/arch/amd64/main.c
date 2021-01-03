@@ -32,6 +32,7 @@ void init_mm(LoaderStruct* loaderStruct);
 void init_symbols(LoaderStruct* loaderStruct);
 void init_init(LoaderStruct* loaderStruct);
 
+__attribute__ ((force_align_arg_pointer))
 void main(void* loaderData) {
     logd("kernel", "Hello world!");
     LoaderStruct* loaderStruct = (LoaderStruct*)loaderData;
