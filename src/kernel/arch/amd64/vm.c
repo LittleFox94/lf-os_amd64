@@ -238,6 +238,7 @@ void init_vm() {
     for(int i = 256; i < 512; ++i) {
         if(!VM_KERNEL_CONTEXT->entries[i].present) {
             void* page = vm_page_alloc(PageUsageKernel|PageUsagePagingStructure, PageSize4KiB);
+            memset(page + ALLOCATOR_REGION_DIRECT_MAPPING.start, 0, 4*KiB);
             VM_KERNEL_CONTEXT->entries[i].next_base = (ptr_t)page >> 12;
             VM_KERNEL_CONTEXT->entries[i].present   = 1;
             VM_KERNEL_CONTEXT->entries[i].huge      = 0;
@@ -246,6 +247,7 @@ void init_vm() {
     }
 
     logd("vm", "reserved kernel PML4 entries");
+    logw("vm", "Skipping lots of code because not completed");
     return;
 
     uint16_t pml4_idx = 0;
