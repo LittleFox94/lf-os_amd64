@@ -5,7 +5,7 @@ ExternalProject_Add(
     "compiler-rt"
     CMAKE_CACHE_ARGS
         "-DCMAKE_TOOLCHAIN_FILE:STRING=${toolchain}/etc/cmake.toolchain"
-        "-DCMAKE_INSTALL_PREFIX:STRING=${CMAKE_BINARY_DIR}/stdlibs/lib/clang/12.0.0"
+        "-DCMAKE_INSTALL_PREFIX:STRING=${toolchain}/lib/clang/12.0.0"
         "-DCMAKE_C_FLAGS:STRING=${CMAKE_C_FLAGS} -nostdlib"
         "-DCMAKE_CXX_FLAGS:STRING=${CMAKE_CXX_FLAGS} -nostdlib"
         "-DCOMPILER_RT_DEFAULT_TARGET_ONLY:BOOL=ON"
@@ -26,7 +26,7 @@ ExternalProject_Add(
     DEPENDS "compiler-rt"
     CMAKE_CACHE_ARGS
         "-DCMAKE_TOOLCHAIN_FILE:STRING=${toolchain}/etc/cmake.toolchain"
-        "-DCMAKE_INSTALL_PREFIX:STRING=${CMAKE_BINARY_DIR}/stdlibs"
+        "-DCMAKE_INSTALL_PREFIX:STRING=${toolchain}"
         "-DCMAKE_C_FLAGS:STRING=${CMAKE_C_FLAGS} -nostdlib"
         "-DCMAKE_CXX_FLAGS:STRING=${CMAKE_CXX_FLAGS} -nostdlib"
         "-DLIBCXXABI_ENABLE_THREADS:STRING=Off"
@@ -48,7 +48,7 @@ ExternalProject_Add(
     DEPENDS "libc++abi"
     CMAKE_CACHE_ARGS
         "-DCMAKE_TOOLCHAIN_FILE:STRING=${toolchain}/etc/cmake.toolchain"
-        "-DCMAKE_INSTALL_PREFIX:STRING=${CMAKE_BINARY_DIR}/stdlibs"
+        "-DCMAKE_INSTALL_PREFIX:STRING=${toolchain}"
         "-DCMAKE_C_FLAGS:STRING=${CMAKE_C_FLAGS} -nostdlib"
         "-DCMAKE_CXX_FLAGS:STRING=${CMAKE_CXX_FLAGS} -nostdlib"
         "-DLIBCXX_ENABLE_THREADS:STRING=On"
@@ -69,4 +69,4 @@ ExternalProject_Add(
     BUILD_ALWAYS            ON
 )
 
-install(DIRECTORY ${CMAKE_BINARY_DIR}/stdlibs DESTINATION ${toolchain})
+install(CODE "") # nothing to install
