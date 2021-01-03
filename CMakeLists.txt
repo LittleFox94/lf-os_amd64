@@ -42,7 +42,12 @@ if(${stage} STREQUAL "root")
     include(ExternalProject)
 
     foreach(s IN LISTS all_stages)
-        if(NOT s STREQUAL "toolchain")
+        if(s STREQUAL "toolchain")
+            set(tcf
+                "-DCMAKE_C_COMPILER:STRING=${CMAKE_C_COMPILER}"
+                "-DCMAKE_CXX_COMPILER:STRING=${CMAKE_CXX_COMPILER}"
+            )
+        else()
             set(tcf "-DCMAKE_TOOLCHAIN_FILE:STRING=${toolchain}/etc/cmake.toolchain")
         endif()
 
