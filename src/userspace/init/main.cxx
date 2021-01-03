@@ -1,7 +1,5 @@
-#include <QtWidgets/QApplication>
-
+#include <iostream>
 int main(int argc, char* argv[]) {
-    QApplication app(argc, argv);
-    app.aboutQt();
-    return app.exec();
+    std::cerr << "Hello world from userspace!" << std::endl;
+    return 0;
 }
