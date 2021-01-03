@@ -20,6 +20,7 @@ build:
   script:
   - cmake -DCMAKE_BUILD_TYPE=Release -B build -S .
   - make -C build -j$(nproc) hd.img
+  - cpack -G DEB --config build/CPackConfig.cmake
   after_script:
   - mv build/hd.img hd.img
   variables:
@@ -30,6 +31,7 @@ build:
   artifacts:
     paths:
     - hd.img
+    - "*.deb"
 
 pages:
   stage: pages

@@ -1,3 +1,6 @@
 doc/doxygen
 /toolchain
 /build
+*.deb
+/_CPack_Packages
+
