@@ -10,6 +10,7 @@ typedef struct tpa tpa_t;
  * Allocate and initialize a new Thin Provisioned Array
  *
  * \param allocator Allocator function to use
+ * \param deallocator Deallocator function to use
  * \param entry_size Size of each entry
  * \param page_size Size of each data page
  * \param tpa Pointer to a memory region to use as tpa, 0 to alloc internally

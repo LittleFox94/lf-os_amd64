@@ -23,6 +23,7 @@ struct SymbolData {
 
 struct SymbolData* bluescreen_symbols = 0;
 
+// \cond panic_functions
 void _panic_message(const char* message, uint64_t rbp, bool rbp_given) {
     fbconsole_clear(0, 0, 0);
     logf("panic", "An error occured and LF OS has to be halted. More info below:");
@@ -78,19 +79,25 @@ void _panic_message(const char* message, uint64_t rbp, bool rbp_given) {
         }
     }
 }
+// \endcond
 
 void panic() {
+    // \cond panic_functions
     panic_message("Unknown error");
+    // \endcond
 }
 
 void panic_message(const char* message) {
+    // \cond panic_functions
     _panic_message(message, 0, false);
     while(1) {
         asm("hlt");
     }
+    // \endcond
 }
 
 void panic_cpu(const cpu_state* cpu) {
+    // \cond panic_functions
     const char* exceptions[] = {
         "Division by zero",
         "Debug",
@@ -186,6 +193,7 @@ void panic_cpu(const cpu_state* cpu) {
     while(1) {
         asm("hlt");
     }
+    // \endcond
 }
 
 void bluescreen_load_symbols(void* elf, elf_section_header_t* symtab, elf_section_header_t* strtab) {
