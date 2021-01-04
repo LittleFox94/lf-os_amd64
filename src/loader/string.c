@@ -1,10 +1,15 @@
+#include <efi.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <efi.h>
+#include <string.h>
 
 static bool uart_out = false;
 static EFI_SYSTEM_TABLE* st;
 EFI_BOOT_SERVICES* BS;
+
+static EFI_GUID gVendorLFOSGuid = {
+    0x54a97f1c, 0x4828, 0x4bb0, { 0xaa, 0xa6, 0x95, 0x84, 0x5e, 0x2d, 0xb2, 0xee }
+};
 
 static void outb(uint16_t port, uint8_t data) {
     asm("outb %0, %1"::"a"(data), "d"(port));
@@ -23,12 +28,25 @@ static int is_transmit_empty() {
 static void conwrite(CHAR16* s) {
     st->ConOut->OutputString(st->ConOut, s);
 
-    if(uart_out) {
-        do {
-            while (is_transmit_empty() == 0) { }
-            outb(0x3F8, *s);
-        } while(*(++s));
+#ifndef DEBUG
+    if(!uart_out) {
+        return;
     }
+#endif
+
+    size_t len = wcslen(s);
+    char* msg  = malloc(len + 1);
+    wcstombs(msg, len);
+
+    if(uart_out) {
+        uart_write(msg, len);
+    }
+
+#ifdef DEBUG
+    st->RuntimeServices->SetVariable(L"LFOS_LOG", &gVendorLFOSGuid, 0x47, len, msg);
+#endif
+
+    free(msg);
 }
 
 void* memset(void* s, int c, size_t n) {
@@ -225,4 +243,7 @@ void init_stdlib(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE* system_table) {
     }
 
     wprintf(L"UART output enabled: %b\n", uart_out);
+
+    // always clear log, not only in debug builds
+    st->RuntimeServices->SetVariable(L"LFOS_LOG", &gVendorLFOSGuid, 0x47, 0, 0);
 }
