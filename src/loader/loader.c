@@ -540,10 +540,8 @@ EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE* system_table) {
     );
 
 #if defined(DEBUG)
-    wprintf(L"Debug build!\n");
-
     if(sizeof(vm_table_t) != 4096) {
-        wprintf(L"\nCOMPILING ERROR sizeof(vm_table_t) = %u\n", sizeof(vm_table_t));
+        wprintf(L"\nCOMPILATION ERROR sizeof(vm_table_t) = %u\n", sizeof(vm_table_t));
         return EFI_ABORTED;
     }
 #endif

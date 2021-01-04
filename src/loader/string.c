@@ -1,7 +1,7 @@
-#include <efi.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
+#include <efi.h>
 
 static bool uart_out = false;
 static EFI_SYSTEM_TABLE* st;
@@ -25,26 +25,29 @@ static int is_transmit_empty() {
    return inb(0x3F8 + 5) & 0x20;
 }
 
+static void uart_write(char* msg, size_t len) {
+    for(size_t i = 0; i < len; ++i) {
+        while(!is_transmit_empty()) { }
+        outb(0x3F8, msg[i]);
+    }
+}
+
 static void conwrite(CHAR16* s) {
     st->ConOut->OutputString(st->ConOut, s);
 
-#ifndef DEBUG
-    if(!uart_out) {
-        return;
-    }
-#endif
-
     size_t len = wcslen(s);
     char* msg  = malloc(len + 1);
-    wcstombs(msg, len);
+    len = wcstombs(msg, s, len);
 
-    if(uart_out) {
-        uart_write(msg, len);
-    }
+    if(len > 1 && len != (size_t)-1) {
+        if(uart_out) {
+            uart_write(msg, len - 1);
+        }
 
-#ifdef DEBUG
-    st->RuntimeServices->SetVariable(L"LFOS_LOG", &gVendorLFOSGuid, 0x47, len, msg);
+#if defined(DEBUG)
+        st->RuntimeServices->SetVariable(L"LFOS_LOG", &gVendorLFOSGuid, 0x47, len - 1, msg);
 #endif
+    }
 
     free(msg);
 }
@@ -78,6 +81,28 @@ int wcscmp(const CHAR16* s1, const CHAR16* s2) {
     }
 
     return *(s2 + i) - *(s1 + i);
+}
+
+size_t wcstombs(char* dest, const CHAR16* src, size_t n) {
+    size_t len = wcslen(src);
+    size_t i;
+    for(i = 0; i < len && i < n; ++i) {
+        CHAR16 c = src[i];
+
+        if(c > 127) {
+            return (size_t)-1;
+        }
+
+        if(dest) {
+            dest[i] = c;
+        }
+    }
+
+    if(i < n - 1) {
+        dest[i++] = 0;
+    }
+
+    return i;
 }
 
 void* malloc(size_t size) {
@@ -231,6 +256,9 @@ void init_stdlib(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE* system_table) {
     BS = st->BootServices;
     st->ConOut->ClearScreen(st->ConOut);
 
+    // always clear log, not only in debug builds
+    st->RuntimeServices->SetVariable(L"LFOS_LOG", &gVendorLFOSGuid, 0x7, 0, 0);
+
     if(wcscmp(st->FirmwareVendor, L"EDK II") != 0) {
         uart_out = true;
 
@@ -244,6 +272,7 @@ void init_stdlib(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE* system_table) {
 
     wprintf(L"UART output enabled: %b\n", uart_out);
 
-    // always clear log, not only in debug builds
-    st->RuntimeServices->SetVariable(L"LFOS_LOG", &gVendorLFOSGuid, 0x47, 0, 0);
+#if defined(DEBUG)
+    wprintf(L"Debug build, will log to EFI variable\n");
+#endif
 }
