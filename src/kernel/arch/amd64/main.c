@@ -1,6 +1,6 @@
 #include <config.h>
 
-#include "../../../loader/loader.h"
+#include <loader.h>
 
 #include <bluescreen.h>
 #include <mm.h>
@@ -15,6 +15,7 @@
 #include <pit.h>
 #include <slab.h>
 #include <log.h>
+#include <efi.h>
 
 char* LAST_INIT_STEP;
 extern char build_id[];
@@ -56,6 +57,11 @@ void main(void* loaderData) {
     INIT_STEP(
         "Initialized framebuffer console backbuffer",
         init_console_backbuffer(loaderStruct);
+    )
+
+    INIT_STEP(
+        "Initialized UEFI runtime services",
+        init_efi(loaderStruct);
     )
 
     INIT_STEP(
@@ -131,17 +137,24 @@ void init_mm(LoaderStruct* loaderStruct) {
     mm_bootstrap(slab_alloc(scratchpad_allocator));
 
     uint64_t pages_free = 0;
+    uint64_t pages_firmware = 0;
 
     for(size_t i = 0; i < loaderStruct->num_mem_desc; ++i) {
         MemoryRegion* desc = memoryRegions + i;
 
-        if(desc->flags & MEMORY_REGION_FREE) {
+        if(desc->flags & MEMORY_REGION_USABLE) {
             pages_free += desc->num_pages;
             mm_mark_physical_pages(desc->start_address, desc->num_pages, MM_FREE);
         }
+        else if(desc->flags & MEMORY_REGION_FIRMWARE) {
+            pages_firmware += desc->num_pages;
+        }
     }
 
-    logi("mm", "%u pages (%B) free", pages_free, pages_free * 4096);
+    logi("mm", "%u pages (%B) free, %u (%B) firmware runtime memory",
+        pages_free,     pages_free * 4096,
+        pages_firmware, pages_firmware* 4096
+    );
 }
 
 void init_symbols(LoaderStruct* loaderStruct) {

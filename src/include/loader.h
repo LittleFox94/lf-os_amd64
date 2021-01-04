@@ -5,7 +5,9 @@
 
 static const uint64_t LFOS_LOADER_SIGNATURE = 0x17a15174545c8b4f;
 
-#define MEMORY_REGION_FREE 1ULL
+#define MEMORY_REGION_USABLE        1ULL
+#define MEMORY_REGION_FIRMWARE      2ULL
+#define MEMORY_REGION_CODE          4ULL
 
 //! Main interface between loader and kernel
 typedef struct {
@@ -40,6 +42,9 @@ typedef struct {
 
     //! Number of loaded files
     uint64_t num_files;
+
+    //! Firmware info data, e.g. EFI_SYSTEM_TABLE on UEFI
+    ptr_t firmware_info;
 }__attribute__((packed)) LoaderStruct;
 
 //! Describes a single memory region

@@ -6,9 +6,9 @@
 #include <protocol/efi-lip.h>
 #include <protocol/efi-gop.h>
 
+#include <loader.h>
 #include <config.h>
 
-#include "loader.h"
 #include "vm.h"
 #include "elf.h"
 #include "string.h"
@@ -39,9 +39,14 @@ struct LoaderState {
     size_t   kernelSize;
     uint64_t kernelEntry;
 
-    uint64_t mapKey;
-    ptr_t    memoryMapLocation;
-    size_t   memoryMapEntryCount;
+    uint64_t      mapKey;
+    MemoryRegion* memoryMapLocation;
+    size_t        memoryMapEntryCount;
+
+    EFI_MEMORY_DESCRIPTOR* efiMemoryMap;
+    size_t                 efiMemoryMapSize;
+    size_t                 efiMemoryMapEntrySize;
+    uint32_t               efiMemoryMapEntryVersion;
 
     struct LoaderFileDescriptor* fileDescriptors;
 
@@ -240,10 +245,7 @@ EFI_STATUS load_files(uint16_t* path, struct LoaderState* state) {
 }
 
 EFI_STATUS retrieve_memory_map(struct LoaderState* state) {
-    size_t descriptor_size      = 0;
-    uint32_t descriptor_version = 0;
-    size_t efi_memory_map_size  = 128;
-    size_t lfos_memory_map_size = 128;
+    state->efiMemoryMapSize  = 512;
     int completed;
 
     EFI_STATUS status;
@@ -251,11 +253,10 @@ EFI_STATUS retrieve_memory_map(struct LoaderState* state) {
     do {
         completed = 1;
 
-        MemoryRegion* regionBuffer        = malloc(lfos_memory_map_size * sizeof(MemoryRegion));
-        EFI_MEMORY_DESCRIPTOR* memory_map = malloc(efi_memory_map_size);
+        EFI_MEMORY_DESCRIPTOR* memory_map = malloc(state->efiMemoryMapSize);
 
         do {
-            status = BS->GetMemoryMap(&efi_memory_map_size, memory_map, &state->mapKey, &descriptor_size, &descriptor_version);
+            status = BS->GetMemoryMap(&state->efiMemoryMapSize, memory_map, &state->mapKey, &state->efiMemoryMapEntrySize, &state->efiMemoryMapEntryVersion);
 
             if(status & EFI_ERR) {
                 if(status != EFI_BUFFER_TOO_SMALL) {
@@ -263,22 +264,37 @@ EFI_STATUS retrieve_memory_map(struct LoaderState* state) {
                     return status;
                 }
                 else {
-                    free(memory_map);
-                    memory_map = malloc(efi_memory_map_size);
+                    memory_map = realloc(memory_map, state->efiMemoryMapSize);
+                    state->mapKey = 0;
                 }
             }
         } while(status == EFI_BUFFER_TOO_SMALL);
 
-        uint64_t pages_free         = 0;
-        size_t   lfos_mem_map_index = 0;
+        MemoryRegion* regionBuffer = allocate_from_loader_scratchpad(state, (state->efiMemoryMapSize / state->efiMemoryMapEntrySize) * sizeof(MemoryRegion), PAGE_SIZE);
+
+        size_t   lfos_mem_map_index  = 0;
         EFI_MEMORY_DESCRIPTOR* desc = memory_map;
 
-        while((void*)desc < (void*)memory_map + efi_memory_map_size) {
+        while((void*)desc < (void*)memory_map + state->efiMemoryMapSize) {
+            uint64_t flags = 0;
             if(desc->Type == EfiConventionalMemory) {
-                pages_free += desc->NumberOfPages;
+                flags = MEMORY_REGION_USABLE;
+            }
+            else if(desc->Attribute & EFI_MEMORY_RUNTIME) {
+                flags = MEMORY_REGION_FIRMWARE;
 
+                if((desc->Attribute & EFI_MEMORY_XP) == 0) {
+                    flags |= MEMORY_REGION_CODE;
+                }
+            }
+
+            if(flags) {
                 if(lfos_mem_map_index > 0) {
-                    if(regionBuffer[lfos_mem_map_index-1].start_address + (regionBuffer[lfos_mem_map_index-1].num_pages * PAGE_SIZE) == (ptr_t)desc->PhysicalStart) {
+                    // merge with previous region if following directly after and flags match
+                    if(
+                        regionBuffer[lfos_mem_map_index-1].start_address + (regionBuffer[lfos_mem_map_index-1].num_pages * PAGE_SIZE) == (ptr_t)desc->PhysicalStart &&
+                        regionBuffer[lfos_mem_map_index-1].flags == flags
+                    ) {
                         regionBuffer[lfos_mem_map_index-1].num_pages += desc->NumberOfPages;
                         continue;
                     }
@@ -286,30 +302,27 @@ EFI_STATUS retrieve_memory_map(struct LoaderState* state) {
 
                 regionBuffer[lfos_mem_map_index].start_address = (ptr_t)desc->PhysicalStart;
                 regionBuffer[lfos_mem_map_index].num_pages     = desc->NumberOfPages;
-                regionBuffer[lfos_mem_map_index].flags         = MEMORY_REGION_FREE;
+                regionBuffer[lfos_mem_map_index].flags         = flags;
 
                 ++lfos_mem_map_index;
 
-                if(lfos_mem_map_index >= lfos_memory_map_size) {
+                if(lfos_mem_map_index >= state->efiMemoryMapSize / state->efiMemoryMapEntrySize) {
                     completed = 0;
                     break;
                 }
             }
 
-            desc = (void*)desc + descriptor_size;
+            desc = (void*)desc + state->efiMemoryMapEntrySize;
         }
 
         if(completed) {
             state->memoryMapLocation          = regionBuffer;
             state->memoryMapEntryCount        = lfos_mem_map_index;
             state->loaderStruct->num_mem_desc = lfos_mem_map_index;
+            state->efiMemoryMap               = (EFI_MEMORY_DESCRIPTOR*)memory_map;
             return EFI_SUCCESS;
         }
-        else {
-            free(regionBuffer);
-        }
     } while(!completed);
-
 
     return EFI_SUCCESS;
 }
@@ -407,7 +420,7 @@ void __attribute__((optnone)) jump_kernel(
     while(1);
 }
 
-EFI_STATUS initialize_virtual_memory(struct LoaderState* state) {
+void initialize_virtual_memory(struct LoaderState* state, EFI_SYSTEM_TABLE* system_table) {
     const ptr_t higherHalf = (ptr_t)0xFFFF800000000000;
 
     vm_table_t* pml4 = allocate_from_loader_scratchpad(state, sizeof(vm_table_t), PAGE_SIZE);
@@ -450,23 +463,50 @@ EFI_STATUS initialize_virtual_memory(struct LoaderState* state) {
         filesStart += PAGE_SIZE;
     }
 
+    // Remap UEFI runtime memory
+    for(size_t i = 0; i < state->efiMemoryMapSize / state->efiMemoryMapEntrySize; ++i) {
+        EFI_MEMORY_DESCRIPTOR* desc = (EFI_MEMORY_DESCRIPTOR*)((void*)state->efiMemoryMap + (i * state->efiMemoryMapEntrySize));
+
+        if(desc->Attribute & EFI_MEMORY_RUNTIME) {
+            desc->VirtualStart = (EFI_VIRTUAL_ADDRESS)filesStart;
+
+            for(size_t j = 0; j < desc->NumberOfPages; ++j) {
+                map_page(state, pml4, filesStart, (ptr_t)desc->PhysicalStart + (j * PAGE_SIZE));
+                filesStart += PAGE_SIZE;
+            }
+        }
+    }
+
+    system_table->RuntimeServices->SetVirtualAddressMap(state->efiMemoryMapSize, state->efiMemoryMapEntrySize, state->efiMemoryMapEntryVersion, state->efiMemoryMap);
+
+    // prepare final loaderStuct, memory map and files location
     ptr_t loaderStructsArea = allocate_from_loader_scratchpad(state,
+        system_table->Hdr.HeaderSize +
         state->loaderStruct->size                           +
         state->memoryMapEntryCount * sizeof(MemoryRegion)   +
         state->loaderStruct->num_files * sizeof(FileDescriptor),
         4096
     );
 
-    memcpy(loaderStructsArea, state->loaderStruct, state->loaderStruct->size);
-    memcpy(loaderStructsArea + state->loaderStruct->size, state->memoryMapLocation, state->memoryMapEntryCount * sizeof(MemoryRegion));
 
-    LoaderStruct* loaderStructFinal = filesStart;
-    for(size_t i = 0; i < state->loaderStruct->size; i += PAGE_SIZE) {
-        map_page(state, pml4, (ptr_t)(loaderStructFinal) + i, loaderStructsArea + i);
+    memcpy(loaderStructsArea,
+            system_table, system_table->Hdr.HeaderSize);
+    state->loaderStruct->firmware_info = loaderStructsArea;
+
+    memcpy(loaderStructsArea + system_table->Hdr.HeaderSize,
+            state->loaderStruct, state->loaderStruct->size);
+    memcpy(loaderStructsArea + system_table->Hdr.HeaderSize + state->loaderStruct->size,
+            state->memoryMapLocation, state->memoryMapEntryCount * sizeof(MemoryRegion));
+
+    LoaderStruct* loaderStructFinal = filesStart + system_table->Hdr.HeaderSize;
+    for(size_t i = 0; i < state->loaderStruct->size + system_table->Hdr.HeaderSize; i += PAGE_SIZE) {
+        map_page(state, pml4, (ptr_t)(filesStart) + i, loaderStructsArea + i);
         filesStart += PAGE_SIZE;
     }
 
-    FileDescriptor* fileDescriptors = (FileDescriptor*)(loaderStructsArea + state->loaderStruct->size +
+    FileDescriptor* fileDescriptors = (FileDescriptor*)(loaderStructsArea +
+                                                        system_table->Hdr.HeaderSize +
+                                                        state->loaderStruct->size +
                                                         state->memoryMapEntryCount * sizeof(MemoryRegion));
 
     for(size_t i = 0; i < state->loaderStruct->num_files; ++i) {
@@ -492,9 +532,8 @@ EFI_STATUS initialize_virtual_memory(struct LoaderState* state) {
 
     asm volatile("mov %0, %%cr3"::"r"(pml4));
 
+    asm("outb %0, %1"::"a"((uint8_t)10), "d"((uint16_t)0x3F8));
     jump_kernel(loaderStructFinal, kernelStart, state->kernelEntry);
-
-    return EFI_SUCCESS;
 }
 
 EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE* system_table) {
@@ -514,13 +553,14 @@ EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE* system_table) {
     state.scratchpad  = malloc(16 * MB);
     memset(state.scratchpad, 0, 16 * MB);
 
-    state.loaderScratchpadSize = 2 * MB;
+    state.loaderScratchpadSize = 4 * MB;
     state.loaderScratchpadFree = state.loaderScratchpad
                                = malloc(state.loaderScratchpadSize);
 
-    state.loaderStruct            = allocate_from_loader_scratchpad(&state, sizeof(LoaderStruct), PAGE_SIZE);
-    state.loaderStruct->signature = LFOS_LOADER_SIGNATURE;
-    state.loaderStruct->size      = sizeof(LoaderStruct);
+    state.loaderStruct                = allocate_from_loader_scratchpad(&state, sizeof(LoaderStruct), PAGE_SIZE);
+    state.loaderStruct->signature     = LFOS_LOADER_SIGNATURE;
+    state.loaderStruct->size          = sizeof(LoaderStruct);
+    state.loaderStruct->firmware_info = system_table;
 
     wprintf(
         L"LF OS amd64 uefi loader (%u bytes at 0x%x).\n\n",
@@ -560,24 +600,28 @@ EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE* system_table) {
         return status;
     }
 
-    wprintf(L"Preparing memory map ... (this is the last message from the loader)\n");
-    status = retrieve_memory_map(&state);
-    if(status != EFI_SUCCESS) {
-        wprintf(L" error: %d\n", status);
-        return status;
+    unsigned int try_counter = 3;
+
+    wprintf(L"Preparing memory map and exiting boot services ...");
+
+    while(--try_counter) {
+        if(retrieve_memory_map(&state) != EFI_SUCCESS) {
+            continue;
+        }
+
+        status = BS->ExitBootServices(image_handle, state.mapKey);
+
+        if(status == EFI_SUCCESS) {
+            asm volatile("cli");
+            break;
+        }
     }
 
-    asm volatile("cli");
-    status = BS->ExitBootServices(image_handle, state.mapKey);
     if(status != EFI_SUCCESS) {
-        wprintf(L" error: %d\n", status);
-        return status;
+        wprintf(L" ExitBootServices failed: %d\n", status);
+        while(1);
     }
 
-    status = initialize_virtual_memory(&state);
-    if(status != EFI_SUCCESS) {
-        return status;
-    }
-
-    while(1);
+    initialize_virtual_memory(&state, system_table);
+    return EFI_ABORTED; // will never get here
 }

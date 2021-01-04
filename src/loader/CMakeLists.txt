@@ -16,7 +16,8 @@ configure_file(config.h.in config.h)
 target_include_directories(loader PRIVATE
     "${PROJECT_BINARY_DIR}"
     "${PROJECT_SOURCE_DIR}"
-    "${PROJECT_SOURCE_DIR}/efi"
+    "${PROJECT_SOURCE_DIR}/../include"
+    "${PROJECT_SOURCE_DIR}/../include/efi"
 )
 
 target_compile_options(loader PRIVATE

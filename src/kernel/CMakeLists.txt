@@ -12,6 +12,7 @@ add_custom_command(
 
 add_executable(kernel
     condvar.c   condvar.h
+    efi.c       efi.h
     elf.c       elf.h
     fbconsole.c fbconsole.h
     log.c       log.h
@@ -37,6 +38,7 @@ target_include_directories(kernel PUBLIC
     "${PROJECT_SOURCE_DIR}"
     "${PROJECT_SOURCE_DIR}/arch/${architecture}"
     "${PROJECT_SOURCE_DIR}/../include"
+    "${PROJECT_SOURCE_DIR}/../include/efi"
 )
 
 target_compile_options(kernel PRIVATE

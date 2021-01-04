@@ -1,6 +1,7 @@
 #include "string.h"
 #include "stdbool.h"
 #include "stdint.h"
+#include "stddef.h"
 
 int strcmp(const char* a, const char* b) {
     while(*a && *b && *a == *b) { a++; b++; }
@@ -30,6 +31,18 @@ char* strncpy(char* dest, const char* src, size_t n) {
     }
 
     return dest;
+}
+
+size_t wcslen(const wchar_t* str) {
+    if(!str) return 0;
+
+    size_t i = 0;
+
+    while(*(str + i)) {
+        ++i;
+    }
+
+    return i;
 }
 
 void memset32(uint32_t* dest, uint32_t c, size_t size) {
@@ -62,6 +75,16 @@ int sputs(char* buffer, int buffer_size, char* string, int length) {
 
     for(i = 0; i < length && i < buffer_size; ++i) {
         buffer[i] = string[i];
+    }
+
+    return i;
+}
+
+int sputls(char* buffer, int buffer_size, wchar_t* string, int length) {
+    int i;
+
+    for(i = 0; i < length && i < buffer_size; ++i) {
+        buffer[i] = (char)string[i]; // XXX: we only support ASCII code points in wchar_t
     }
 
     return i;
@@ -154,12 +177,14 @@ int kvsnprintf(char* buffer, int buffer_size, const char* format, va_list args) 
     bool placeholder     = false;
     char placeholderChar = ' ';
     int minLength        = 0;
+    char lengthModifier  = 0; // store length in bytes
 
     while((c = *format++) && i < buffer_size) {
         if(c == '%') {
             placeholder     = true;
             placeholderChar = ' ';
             minLength       = 0;
+            lengthModifier  = 0;
             continue;
         }
 
@@ -171,6 +196,9 @@ int kvsnprintf(char* buffer, int buffer_size, const char* format, va_list args) 
             else if(c >= '0' && c <= '9') {
                 minLength *= 10;
                 minLength += c - '0';
+            }
+            else if(c == 'l') {
+                lengthModifier = 16;
             }
             else {
                 char argBuffer[256];
@@ -196,9 +224,19 @@ int kvsnprintf(char* buffer, int buffer_size, const char* format, va_list args) 
                         length = sputbytes(argBuffer, 256, va_arg(args, long));
                         break;
                     case 's':
-                        {
-                            char* arg = va_arg(args, char*);
-                            length = sputs(argBuffer, 256, arg, strlen(arg));
+                        switch(lengthModifier) {
+                            case 0:
+                                {
+                                    char* sarg = va_arg(args, char*);
+                                    length = sputs(argBuffer, 256, sarg, strlen(sarg));
+                                }
+                                break;
+                            case 16:
+                                {
+                                    wchar_t* lsarg = va_arg(args, wchar_t*);
+                                    length = sputls(argBuffer, 256, lsarg, wcslen(lsarg));
+                                }
+                                break;
                         }
                         break;
                     default:

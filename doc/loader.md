@@ -33,6 +33,8 @@ has to be a valid ELF executable file interpreted by the loader when everything 
 * Kernel (from harddisk)
   - the central part of LF OS
 * framebuffer
+* firmware data
+  - EFI\_SYSTEM\_TABLE + all UEFI data and code
 * Loader struct (generated)
   - format defined in loader.h
 * n loaded files described in Loader struct
