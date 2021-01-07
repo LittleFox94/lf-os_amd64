@@ -1,3 +1,5 @@
+<img align="right" height="100" src="LF OS.svg">
+
 # LF OS
 
 This is the 5th(?) attempt at writing an operating system from scratch, where "attempt" means: starting from zero.
