@@ -15,7 +15,10 @@ add_custom_target(hd.img
     COMMAND ${mcopy}   -i hd.img@@1M -sbnmv ${CMAKE_BINARY_DIR}/shared/* ::/
 )
 
-add_custom_target(hd.img.xz COMMAND $(xz) -k ${CMAKE_BINARY_DIR}/hd.img)
+add_custom_target(hd.img.xz
+    DEPENDS hd.img
+    COMMAND ${xz} -k ${CMAKE_BINARY_DIR}/hd.img
+)
 
 set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME main)
 
