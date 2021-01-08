@@ -8,14 +8,14 @@ set(QEMU_FLAGS -bios ${ovmf_firmware} -drive format=raw,file=hd.img,if=none,id=b
 
 add_custom_target(debug
     COMMAND ${qemu} ${QEMU_FLAGS} --daemonize -S
-    COMMAND ${gdb}
+    COMMAND ${gdb} -ix ${CMAKE_SOURCE_DIR}/.gdbinit
     DEPENDS hd.img .gdbinit
     USES_TERMINAL
 )
 
 add_custom_target(debug-kvm
     COMMAND ${kvm} ${QEMU_FLAGS} --daemonize -S
-    COMMAND ${gdb}
+    COMMAND ${gdb} -ix ${CMAKE_SOURCE_DIR}/.gdbinit
     DEPENDS hd.img .gdbinit
     USES_TERMINAL
 )
