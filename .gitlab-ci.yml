@@ -20,9 +20,7 @@ build:
   script:
   - cmake -DCMAKE_BUILD_TYPE=Release -B build -S .
   - make -C build -j$(nproc) hd.img.xz package
-  after_script:
-  - mv build/hd.img.xz .
-  - mv build/*.deb  .
+  - mv build/hd.img.xz build/*.deb .
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
   cache:
