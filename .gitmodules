@@ -8,4 +8,4 @@
 	branch = lf-os
 [submodule "src/loader/efi"]
 	path = src/include/efi
-	url = https://github.com/yoppeh/efi.git
+	url = https://github.com/LittleFox94/efi.git
