@@ -19,7 +19,7 @@ build:
   interruptible: true
   script:
   - cmake -DCMAKE_BUILD_TYPE=Release -B build -S .
-  - make -C build -j$(nproc) hd.img.xz packages
+  - make -C build -j$(nproc) hd.img.xz package
   after_script:
   - mv build/hd.img.xz .
   - mv build/*.deb  .
