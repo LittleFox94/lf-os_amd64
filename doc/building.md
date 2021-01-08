@@ -2,38 +2,39 @@
 
 This is a short guide about building LF OS and running it in qemu.
 
-The build system of LF OS is simply based around make. There are some Makefiles with some (or more) targets,
-mostly with correct dependencies\*. You'll need some tools for building, though.
+The build system of LF OS is based on cmake, so you'll need this. Dependencies are worked out automatically and
+this seems to work fine. CMake will tell you when it needs something you don't have, if not, please file a bug.
 
-(\*: *known missing: dependencies on header files*)
+LF OS can only be built out-of-tree, which is actually enforced by LLVM but good practice anyway.
 
-Do not forget to also checkout the submodules!
+**Beware**: compiling LF OS involves compiling a LLVM toolchain, which is a very time and space consuming process.
 
 
 ## Required tools
 
-You need `clang`, `ld.lld`, and `make` at a minimum. This will allow to build the kernel and programs. The
-compilers and linker must be able to generate ELF files. You also need `gcc` and `gnu-efi` to build the loader.
+To compile the toolchain and LF OS components, you need cmake, a C- and C++-Compiler, anything cmake can generate configs for (e.g. make or ninja).
 
-To produce disk images, you'll also need `dosfstools`, `mtools`, `genisoimage` and `gdisk`.
+To produce disk images, you'll also need `mtools`, `gdisk` and `xz`.
 
-For QEMU you also need `OVMF` firmware for qemu in `/usr/share/ovmf/OVMF.fd`.
-
-A nice list of packages to install on debian is the `Dockerfile.ci` which generates images used by the CI system.
+For QEMU you also need `OVMF` firmware installed.
 
 
-## Noteworthy make targets
 
-Kernel (`src/kernel/arch/amd64/kernel`) and init (`src/init/init`), The LF OS loader `src/loader/loader.efi`
-and disk images (`runnable-image`, `lf-os.iso`).
+## Noteworthy targets
 
-**Beware:** `hd.img` generates an **empty** disk images. `runnable-image` is used to make that usable.
+* `hd.img` and `hd.img.xz` - generates hard disk images to use with qemu or dump on an USB stick
+* `run`, `run-kvm`, `debug`, `debug-kvm` run in qemu (optionally with kvm acceleration) and optionally attach a debugger
+  - debugging with kvm acceleration only supports hardware breakpoints (`hbreak`)
+* `package` - generates debian packages for LF OS and the toolchain (-dev)
+* `test` - runs some unit tests
 
 
-## Running, debugging, testing
+## Full example
 
-There are some tests requiring the compilers and linkers and make. You can run them with `make test`.
+```
+git clone https://praios.lf-net.org/littlefox/lf-os_amd64.git
+cd lf-os_amd64 && mkdir build && cd build
+cmake -G UNIX\ Makefiles .. && make -j$(nproc) run
+```
 
-To compile everything and run qemu use either `make run` or `make run-kvm` (the later using KVM hardware
-virtual machines). To start and attach gdb use `make debug` (loader, kernel and init are loaded as symbol files
-automatically - loader address might be incorrect as it is dynamically set by the firmware).
+This will clone the repository to your computer and start an out-of-tree build of LF OS. It will generate a disk image and run it with qemu.
