@@ -19,10 +19,10 @@ build:
   interruptible: true
   script:
   - cmake -DCMAKE_BUILD_TYPE=Release -B build -S .
-  - make -C build -j$(nproc) hd.img
-  - cpack -G DEB --config build/CPackConfig.cmake
+  - make -C build -j$(nproc) hd.img.xz packages
   after_script:
-  - mv build/hd.img hd.img
+  - mv build/hd.img.xz .
+  - mv build/*.deb  .
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
   cache:
@@ -30,7 +30,7 @@ build:
     - build
   artifacts:
     paths:
-    - hd.img
+    - hd.img.xz
     - "*.deb"
 
 pages:

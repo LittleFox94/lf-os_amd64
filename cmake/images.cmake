@@ -1,4 +1,5 @@
 set(image_size_hd 256 CACHE STRING "hd.img size")
+find_program(xz      NAMES xz      DOC "xz compression tool")
 find_program(dd      NAMES dd      DOC "dd program to create disk images")
 find_program(sgdisk  NAMES sgdisk  DOC "sgdisk program for manipulating GPT on disk images")
 find_program(mformat NAMES mformat DOC "mformat program for creating MS-DOS file systems on disk images")
@@ -13,6 +14,8 @@ add_custom_target(hd.img
     COMMAND ${mformat} -i hd.img@@1M -F -L ${boot_fs_sectors}
     COMMAND ${mcopy}   -i hd.img@@1M -sbnmv ${CMAKE_BINARY_DIR}/shared/* ::/
 )
+
+add_custom_target(hd.img.xz COMMAND $(xz) -k ${CMAKE_BINARY_DIR}/hd.img)
 
 set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME main)
 
@@ -33,6 +36,8 @@ set(toolchain ${toolchain_bak})
 
 set(CPACK_PACKAGE_CONTACT "Mara Sophie Grosch <littlefox@lf-net.org>")
 set(CPACK_PACKAGE_HOMEPAGE "https://praios.lf-net.org/littlefox/lf-os_amd64")
+set(CPACK_GENERATOR        "DEB")
+set(CPACK_SOURCE_GENERATOR "")
 
 set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE amd64)
 set(CPACK_DEBIAN_PACKAGE_CONTROL_STRICT_PERMISSION ON)
