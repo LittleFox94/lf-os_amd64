@@ -67,7 +67,7 @@ targets - the latter one catching more errors (alignment issues, uninitialized m
 
 Github pull requests are accepted, as are diffs sent by email to me (look in `git log` for my address) or you
 creating an account on my Gitlab instance and create a merge request there. You can also send me a link to your
-repo, asking me to merge it - a real merge request \^\^
+repo, asking me to merge it - a real merge request ^^
 
 
 ## Perks of contributing (and a danger)
@@ -75,4 +75,4 @@ repo, asking me to merge it - a real merge request \^\^
 You will forever be in the `git log` of the project (**beware**: this could also be a bad thing for you).
 
 After something you made is accepted into the main development branch, you can send me a physical address to send
-you some [stickers](https://twitter.com/0x0a\_fox/status/1264228960348577792) ([in natural habitat](https://twitter.com/0x0a_fox/status/1275065796834680833/photo/1)) - as long as I have some \^\^'
+you some [stickers](https://twitter.com/0x0a\_fox/status/1264228960348577792) ([in natural habitat](https://twitter.com/0x0a_fox/status/1275065796834680833/photo/1)) - as long as I have some ^^'
