@@ -14,6 +14,7 @@ set(toolchain "${CMAKE_SOURCE_DIR}/toolchain" CACHE PATH   "LF OS toolchain")
 
 set(kernel_log_max_buffer "4*1024*1024" CACHE STRING "Max size of buffer storing log messages")
 set(kernel_log_com0       "true"        CACHE STRING "Log messages to platform first serial port")
+set(kernel_log_efi        "true"        CACHE STRING "Log messages to EFI firmware variables to be persisted through reboots")
 
 set(loader_lfos_path      "LFOS" CACHE STRING "Where shall the loader search for kernel and other files")
 
@@ -23,11 +24,13 @@ set(lfos_vars
 
     kernel_log_max_buffer
     kernel_log_com0
+    kernel_log_efi
     loader_lfos_path
 )
 
 # CMake settings for LF OS
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake" CACHE PATH "CMake module path for LF OS" FORCE)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(CMAKE_C_FLAGS         "-Wno-gnu-folding-constant")
 set(CMAKE_C_FLAGS_DEBUG   "-g -O0 -DDEBUG")

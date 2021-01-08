@@ -488,11 +488,10 @@ void initialize_virtual_memory(struct LoaderState* state, EFI_SYSTEM_TABLE* syst
         4096
     );
 
+    state->loaderStruct->firmware_info = filesStart;
 
     memcpy(loaderStructsArea,
             system_table, system_table->Hdr.HeaderSize);
-    state->loaderStruct->firmware_info = loaderStructsArea;
-
     memcpy(loaderStructsArea + system_table->Hdr.HeaderSize,
             state->loaderStruct, state->loaderStruct->size);
     memcpy(loaderStructsArea + system_table->Hdr.HeaderSize + state->loaderStruct->size,

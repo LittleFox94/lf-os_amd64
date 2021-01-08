@@ -13,3 +13,6 @@
 
 // Shall we log to COM0?
 #define LOG_COM0 @kernel_log_com0@
+
+// shall we log to EFI variables?
+#define LOG_EFI @kernel_log_efi@

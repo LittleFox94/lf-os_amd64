@@ -6,6 +6,7 @@
 #include <log.h>
 #include <vm.h>
 #include <scheduler.h>
+#include <efi.h>
 
 const int logging_page_size = 4080;
 
@@ -106,6 +107,10 @@ void log_append(char level, char* component, char* message) {
         outb(0x3F8, '\r');
         while((inb(0x3F8 + 5) & 0x20) == 0) {}
         outb(0x3F8, '\n');
+    }
+
+    if(LOG_EFI) {
+        efi_append_log(log_last->messages + msg_start);
     }
 
     ++log_count;

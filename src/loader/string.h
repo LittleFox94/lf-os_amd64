@@ -17,6 +17,7 @@ void  free(void* ptr);
 int wprintf(const CHAR16* format, ...);
 
 void init_stdlib(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE* system_table);
+
 extern EFI_BOOT_SERVICES* BS;
 
 #endif
