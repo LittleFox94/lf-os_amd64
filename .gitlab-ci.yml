@@ -30,6 +30,7 @@ build:
     paths:
     - hd.img.xz
     - "*.deb"
+    - toolchain/include/kernel/syscalls.h
 
 pages:
   stage: pages
@@ -42,3 +43,5 @@ pages:
     - public
   only:
   - master
+  dependencies:
+  - build
