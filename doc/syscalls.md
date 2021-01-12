@@ -6,6 +6,20 @@
 
 "obsolete docs found /o\" -- Mara Sophie Grosch, 2019-10-09
 
+
+## Using syscalls
+
+When compiling the toolchain, the userspace side of the syscalls is generated automatically.
+
+```c
+#include <kernel/syscalls.h>
+```
+
+See toolchain/include/kernel/syscalls.h for a list of syscalls and their arguments.
+
+
+## Implementation of syscalls
+
 Syscalls in LF OS are defined in `src/syscalls.yml`. This YAML file is the data file for the code generator
 `src/syscall-generator.pl` (which needs `YAML` installed via i.e. CPAN) which generates matching userspace
 and kernel space code.
