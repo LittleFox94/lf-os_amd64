@@ -3,7 +3,7 @@
 
 #include <loader.h>
 
-void init_efi(LoaderStruct* loaderStruct);
+void init_efi(struct LoaderStruct* loaderStruct);
 void efi_append_log(char* msg);
 
 #endif

@@ -27,16 +27,15 @@ extern char build_id[];
 
 void nyi();
 void bootstrap_globals();
-void init_console(LoaderStruct* loaderStruct);
+void init_console(struct LoaderStruct* loaderStruct);
 void init_console_backbuffer();
-void init_mm(LoaderStruct* loaderStruct);
-void init_symbols(LoaderStruct* loaderStruct);
-void init_init(LoaderStruct* loaderStruct);
+void init_mm(struct LoaderStruct* loaderStruct);
+void init_symbols(struct LoaderStruct* loaderStruct);
+void init_init(struct LoaderStruct* loaderStruct);
 
 __attribute__ ((force_align_arg_pointer))
-void main(void* loaderData) {
+void main(struct LoaderStruct* loaderStruct) {
     logd("kernel", "Hello world!");
-    LoaderStruct* loaderStruct = (LoaderStruct*)loaderData;
 
     bootstrap_globals();
     init_console(loaderStruct);
@@ -113,14 +112,14 @@ void main(void* loaderData) {
     while(1);
 }
 
-void init_console(LoaderStruct* loaderStruct) {
+void init_console(struct LoaderStruct* loaderStruct) {
     fbconsole_init(loaderStruct->fb_width, loaderStruct->fb_height, loaderStruct->fb_stride, (uint8_t*)loaderStruct->fb_location);
 
     #include "../../bootlogo.c"
     fbconsole_blt(lf_os_bootlogo.pixel_data, lf_os_bootlogo.width, lf_os_bootlogo.height, -(lf_os_bootlogo.width + 5), 5);
 }
 
-void init_console_backbuffer(LoaderStruct* loaderStruct) {
+void init_console_backbuffer(struct LoaderStruct* loaderStruct) {
     size_t backbuffer_size      = loaderStruct->fb_stride * loaderStruct->fb_height * 4;
     size_t backbuffer_num_pages = (backbuffer_size + 4095) / 4096;
 
@@ -128,8 +127,8 @@ void init_console_backbuffer(LoaderStruct* loaderStruct) {
     fbconsole_init_backbuffer(backbuffer);
 }
 
-void init_mm(LoaderStruct* loaderStruct) {
-    MemoryRegion* memoryRegions = (MemoryRegion*)((ptr_t)loaderStruct + loaderStruct->size);
+void init_mm(struct LoaderStruct* loaderStruct) {
+    struct MemoryRegion* memoryRegions = (struct MemoryRegion*)((ptr_t)loaderStruct + loaderStruct->size);
 
     SlabHeader* scratchpad_allocator = (SlabHeader*)ALLOCATOR_REGION_SCRATCHPAD.start;
     init_slab(ALLOCATOR_REGION_SCRATCHPAD.start, ALLOCATOR_REGION_SCRATCHPAD.end, 4096);
@@ -140,7 +139,7 @@ void init_mm(LoaderStruct* loaderStruct) {
     uint64_t pages_firmware = 0;
 
     for(size_t i = 0; i < loaderStruct->num_mem_desc; ++i) {
-        MemoryRegion* desc = memoryRegions + i;
+        struct MemoryRegion* desc = memoryRegions + i;
 
         if(desc->flags & MEMORY_REGION_USABLE) {
             pages_free += desc->num_pages;
@@ -157,11 +156,11 @@ void init_mm(LoaderStruct* loaderStruct) {
     );
 }
 
-void init_symbols(LoaderStruct* loaderStruct) {
-    FileDescriptor* fileDescriptors = (FileDescriptor*)((ptr_t)loaderStruct + loaderStruct->size + (loaderStruct->num_mem_desc * sizeof(MemoryRegion)));
+void init_symbols(struct LoaderStruct* loaderStruct) {
+    struct FileDescriptor* fileDescriptors = (struct FileDescriptor*)((ptr_t)loaderStruct + loaderStruct->size + (loaderStruct->num_mem_desc * sizeof(struct MemoryRegion)));
 
     for(size_t i = 0; i < loaderStruct->num_files; ++i) {
-        FileDescriptor* desc = (fileDescriptors + i);
+        struct FileDescriptor* desc = (fileDescriptors + i);
         void*           data = (uint8_t*)((ptr_t)loaderStruct + desc->offset);
 
         if(strcmp(desc->name, "kernel") == 0) {
@@ -175,11 +174,11 @@ void init_symbols(LoaderStruct* loaderStruct) {
     }
 }
 
-void init_init(LoaderStruct* loaderStruct) {
-    FileDescriptor* fileDescriptors = (FileDescriptor*)((ptr_t)loaderStruct + loaderStruct->size + (loaderStruct->num_mem_desc * sizeof(MemoryRegion)));
+void init_init(struct LoaderStruct* loaderStruct) {
+    struct FileDescriptor* fileDescriptors = (struct FileDescriptor*)((ptr_t)loaderStruct + loaderStruct->size + (loaderStruct->num_mem_desc * sizeof(struct MemoryRegion)));
 
     for(size_t i = 0; i < loaderStruct->num_files; ++i) {
-        FileDescriptor* desc = (fileDescriptors + i);
+        struct FileDescriptor* desc = (fileDescriptors + i);
         void*           data = (uint8_t*)((ptr_t)loaderStruct + desc->offset);
 
         if(strcmp(desc->name, "init") == 0) {

@@ -11,7 +11,7 @@ static EFI_GUID gVendorLFOSGuid = {
 
 static EFI_SYSTEM_TABLE* gST = 0;
 
-void init_efi(LoaderStruct* loaderStruct) {
+void init_efi(struct LoaderStruct* loaderStruct) {
     gST = (EFI_SYSTEM_TABLE*)loaderStruct->firmware_info;
     logi("efi", "firmware version %d by %ls", gST->FirmwareRevision, gST->FirmwareVendor);
 

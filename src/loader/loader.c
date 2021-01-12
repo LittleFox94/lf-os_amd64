@@ -29,7 +29,7 @@ struct LoaderFileDescriptor {
 };
 
 struct LoaderState {
-    LoaderStruct* loaderStruct;
+    struct LoaderStruct* loaderStruct;
 
     EFI_LOADED_IMAGE_PROTOCOL* loadedImage;
     ptr_t                      loaderStart;
@@ -39,9 +39,9 @@ struct LoaderState {
     size_t   kernelSize;
     uint64_t kernelEntry;
 
-    uint64_t      mapKey;
-    MemoryRegion* memoryMapLocation;
-    size_t        memoryMapEntryCount;
+    uint64_t             mapKey;
+    struct MemoryRegion* memoryMapLocation;
+    size_t               memoryMapEntryCount;
 
     EFI_MEMORY_DESCRIPTOR* efiMemoryMap;
     size_t                 efiMemoryMapSize;
@@ -270,7 +270,7 @@ EFI_STATUS retrieve_memory_map(struct LoaderState* state) {
             }
         } while(status == EFI_BUFFER_TOO_SMALL);
 
-        MemoryRegion* regionBuffer = allocate_from_loader_scratchpad(state, (state->efiMemoryMapSize / state->efiMemoryMapEntrySize) * sizeof(MemoryRegion), PAGE_SIZE);
+        struct MemoryRegion* regionBuffer = allocate_from_loader_scratchpad(state, (state->efiMemoryMapSize / state->efiMemoryMapEntrySize) * sizeof(struct MemoryRegion), PAGE_SIZE);
 
         size_t   lfos_mem_map_index  = 0;
         EFI_MEMORY_DESCRIPTOR* desc = memory_map;
@@ -401,7 +401,7 @@ void map_page(struct LoaderState* state, vm_table_t* pml4, ptr_t virtual, ptr_t 
 }
 
 void __attribute__((optnone)) jump_kernel(
-    volatile LoaderStruct* loaderStruct,
+    volatile struct LoaderStruct* loaderStruct,
     volatile ptr_t kernel,
     volatile uint64_t entry
 ) {
@@ -483,8 +483,8 @@ void initialize_virtual_memory(struct LoaderState* state, EFI_SYSTEM_TABLE* syst
     ptr_t loaderStructsArea = allocate_from_loader_scratchpad(state,
         system_table->Hdr.HeaderSize +
         state->loaderStruct->size                           +
-        state->memoryMapEntryCount * sizeof(MemoryRegion)   +
-        state->loaderStruct->num_files * sizeof(FileDescriptor),
+        state->memoryMapEntryCount * sizeof(struct MemoryRegion)   +
+        state->loaderStruct->num_files * sizeof(struct FileDescriptor),
         4096
     );
 
@@ -495,18 +495,18 @@ void initialize_virtual_memory(struct LoaderState* state, EFI_SYSTEM_TABLE* syst
     memcpy(loaderStructsArea + system_table->Hdr.HeaderSize,
             state->loaderStruct, state->loaderStruct->size);
     memcpy(loaderStructsArea + system_table->Hdr.HeaderSize + state->loaderStruct->size,
-            state->memoryMapLocation, state->memoryMapEntryCount * sizeof(MemoryRegion));
+            state->memoryMapLocation, state->memoryMapEntryCount * sizeof(struct MemoryRegion));
 
-    LoaderStruct* loaderStructFinal = filesStart + system_table->Hdr.HeaderSize;
+    struct LoaderStruct* loaderStructFinal = filesStart + system_table->Hdr.HeaderSize;
     for(size_t i = 0; i < state->loaderStruct->size + system_table->Hdr.HeaderSize; i += PAGE_SIZE) {
         map_page(state, pml4, (ptr_t)(filesStart) + i, loaderStructsArea + i);
         filesStart += PAGE_SIZE;
     }
 
-    FileDescriptor* fileDescriptors = (FileDescriptor*)(loaderStructsArea +
+    struct FileDescriptor* fileDescriptors = (struct FileDescriptor*)(loaderStructsArea +
                                                         system_table->Hdr.HeaderSize +
                                                         state->loaderStruct->size +
-                                                        state->memoryMapEntryCount * sizeof(MemoryRegion));
+                                                        state->memoryMapEntryCount * sizeof(struct MemoryRegion));
 
     for(size_t i = 0; i < state->loaderStruct->num_files; ++i) {
         memcpy((fileDescriptors + i)->name, (state->fileDescriptors + i)->name, 256);
@@ -556,9 +556,9 @@ EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE* system_table) {
     state.loaderScratchpadFree = state.loaderScratchpad
                                = malloc(state.loaderScratchpadSize);
 
-    state.loaderStruct                = allocate_from_loader_scratchpad(&state, sizeof(LoaderStruct), PAGE_SIZE);
+    state.loaderStruct                = allocate_from_loader_scratchpad(&state, sizeof(struct LoaderStruct), PAGE_SIZE);
     state.loaderStruct->signature     = LFOS_LOADER_SIGNATURE;
-    state.loaderStruct->size          = sizeof(LoaderStruct);
+    state.loaderStruct->size          = sizeof(struct LoaderStruct);
     state.loaderStruct->firmware_info = system_table;
 
     wprintf(
@@ -573,7 +573,7 @@ EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE* system_table) {
         "  scratchpad:        0x%x (%d bytes)\n"
         "  loader scratchpad: 0x%x (%d bytes)\n",
         &state,                 sizeof(state),
-        state.loaderStruct,     sizeof(LoaderStruct),
+        state.loaderStruct,     sizeof(struct LoaderStruct),
         state.scratchpad,       16 * MB,
         state.loaderScratchpad, state.loaderScratchpadSize
     );

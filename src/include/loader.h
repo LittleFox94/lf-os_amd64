@@ -10,7 +10,7 @@ static const uint64_t LFOS_LOADER_SIGNATURE = 0x17a15174545c8b4f;
 #define MEMORY_REGION_CODE          4ULL
 
 //! Main interface between loader and kernel
-typedef struct {
+struct LoaderStruct {
     //! Signature. always 0x17a15174545c8b4f
     uint64_t signature;
 
@@ -45,10 +45,10 @@ typedef struct {
 
     //! Firmware info data, e.g. EFI_SYSTEM_TABLE on UEFI
     ptr_t firmware_info;
-}__attribute__((packed)) LoaderStruct;
+}__attribute__((packed));
 
 //! Describes a single memory region
-typedef struct {
+struct MemoryRegion {
     //! Start of the region as physical address
     ptr_t  start_address;
 
@@ -57,9 +57,9 @@ typedef struct {
 
     //! Flags for the memory region. See MEMORY_REGION_ defines
     uint64_t flags;
-}__attribute__((packed)) MemoryRegion;
+}__attribute__((packed));
 
-typedef struct {
+struct FileDescriptor {
     //! Zero terminated string with the name of the file
     char name[256];
 
@@ -68,6 +68,6 @@ typedef struct {
 
     //! Offset where the file contents are located after LoaderStruct
     uint64_t offset;
-}__attribute__((packed)) FileDescriptor;
+}__attribute__((packed));
 
 #endif
