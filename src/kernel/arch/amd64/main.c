@@ -181,7 +181,7 @@ void init_init(struct LoaderStruct* loaderStruct) {
         struct FileDescriptor* desc = (fileDescriptors + i);
         void*           data = (uint8_t*)((ptr_t)loaderStruct + desc->offset);
 
-        if(strcmp(desc->name, "init") == 0) {
+        if(strcmp(desc->name, "kernel") != 0) {
             struct vm_table* context = vm_context_new();
 
             ptr_t data_start = 0;
@@ -189,7 +189,7 @@ void init_init(struct LoaderStruct* loaderStruct) {
             ptr_t entrypoint = load_elf((ptr_t)data, context, &data_start, &data_end);
 
             if(!entrypoint) {
-                panic_message("Failed to load init");
+                logd("init" "Failed to run '%s'", desc->name);
             }
 
             start_task(context, entrypoint, data_start, data_end);
