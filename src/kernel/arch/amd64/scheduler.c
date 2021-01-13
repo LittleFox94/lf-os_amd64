@@ -1,5 +1,6 @@
 #include <scheduler.h>
 #include <string.h>
+#include <errno.h>
 #include <mm.h>
 #include <sc.h>
 #include <bluescreen.h>
@@ -281,4 +282,8 @@ void sc_handle_memory_sbrk(int64_t inc, ptr_t* data_end) {
 
 void sc_handle_scheduler_yield() {
     // no-op
+}
+
+uint16_t sc_handle_hardware_ioperm(uint16_t from, uint16_t num, bool turn_on) {
+    return EPERM;
 }

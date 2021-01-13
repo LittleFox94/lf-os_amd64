@@ -82,6 +82,28 @@ groups:
       reg:  rdi
       desc: TBD
 
+  - number: 1
+    name: ioperm
+    desc: Request access to I/O ports, this is i386 and amd64 only
+    parameters:
+    - name: from
+      type: uint16_t
+      reg:  rax
+      desc: First port for which access is requested
+    - name: num
+      type: uint16_t
+      reg:  rax
+      desc: Number of ports for which access is requested
+    - name: turn_on
+      type: bool
+      reg:  rax
+      desc: Request (true) or drop (false) access to port
+    returns:
+    - name: error
+      type: uint64_t
+      reg:  rax
+      desc: Error code, zero on success
+
 - number: 3
   name:   locking
   desc:   Mutexes, Semaphores, and co

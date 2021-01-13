@@ -293,7 +293,7 @@ sub render_syscall_decode {
 
             my $ret;
             if($shift > 0) {
-                $ret = "(cpu->k$param->{reg} >> $shift)";
+                $ret = "(cpu->$param->{reg} >> $shift)";
             }
             else {
                 $ret = "cpu->$param->{reg}";
