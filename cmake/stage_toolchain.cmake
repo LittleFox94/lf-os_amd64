@@ -69,6 +69,8 @@ add_custom_target(
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/syscalls.h DESTINATION include/kernel/)
 install(FILES src/include/message_passing.h DESTINATION include/sys/)
 
+install(FILES src/include/arch/${architecture}/io.h DESTINATION include/sys/)
+
 configure_file(cmake/cmake.toolchain.in cmake.toolchain @ONLY)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/cmake.toolchain DESTINATION etc/)
 install(FILES cmake/cmake.platform DESTINATION share/cmake/Modules/Platform RENAME "LF-OS.cmake")

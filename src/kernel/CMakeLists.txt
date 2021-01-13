@@ -39,6 +39,7 @@ target_include_directories(kernel PUBLIC
     "${PROJECT_SOURCE_DIR}/arch/${architecture}"
     "${PROJECT_SOURCE_DIR}/../include"
     "${PROJECT_SOURCE_DIR}/../include/efi"
+    "${PROJECT_SOURCE_DIR}/../include/arch/${architecture}"
 )
 
 target_compile_options(kernel PRIVATE
