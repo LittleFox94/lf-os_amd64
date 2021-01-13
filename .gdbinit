@@ -1,6 +1,8 @@
 set architecture i386:x86-64
 set disassemble-next-line on
 set pagination off
+set history save
+set history remove-duplicates unlimited
 
 target remote :1234
 
