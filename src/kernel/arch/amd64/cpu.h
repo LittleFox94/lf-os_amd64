@@ -30,16 +30,6 @@ typedef struct {
     uint64_t ss;
 } cpu_state;
 
-static inline void outb(uint16_t port, uint8_t data) {
-    asm volatile ("outb %0, %1" : : "a" (data), "Nd" (port));
-}
-
-static inline uint8_t inb(uint16_t port) {
-    uint8_t data;
-    asm volatile ("inb %1, %0" : "=a" (data) : "Nd" (port));
-    return data;
-}
-
 #define DUMP_CPU(cpu)  \
     logd("cpudump", "<-- cut here [CPU DUMP START] ---->"); \
     logd("cpudump", "%3s: 0x%016x %3s: 0x%016x %3s: 0x%016x %7s: 0x%016x", "RAX", cpu->rax, "RBX", cpu->rbx, "RCX", cpu->rcx, "RDX",    cpu->rdx); \

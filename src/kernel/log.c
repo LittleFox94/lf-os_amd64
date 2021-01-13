@@ -7,6 +7,7 @@
 #include <vm.h>
 #include <scheduler.h>
 #include <efi.h>
+#include <io.h>
 
 const int logging_page_size = 4080;
 
