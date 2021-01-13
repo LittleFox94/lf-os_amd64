@@ -64,16 +64,14 @@ struct tss {
     uint16_t iopb_offset;
 }__attribute__((packed));
 
-struct idt_entry _idt[256];
-struct gdt_entry _gdt[8];
-struct tss       _tss = {
+static struct idt_entry _idt[256];
+static struct gdt_entry _gdt[8];
+static struct tss       _tss = {
     ._reserved1 = 0,
     ._reserved2 = 0,
     ._reserved3 = 0,
 };
 
-extern void _setup_idt();
-extern void _setup_gdt();
 extern void sc_handle(cpu_state* cpu);
 
 extern void _syscall_handler();
@@ -128,24 +126,9 @@ extern void idt_entry_45();
 extern void idt_entry_46();
 extern void idt_entry_47();
 
-cpu_local_data cpu0;
+static cpu_local_data cpu0;
 
-void init_sc() {
-    _setup_idt();
-    cpu0.kernel_stack = _tss.ist1;
-
-    asm("mov $0xC0000080, %%rcx\n"
-        "rdmsr\n"
-        "or $1, %%rax\n"
-        "wrmsr":::"rcx","rax");
-
-    write_msr(0xC0000081, 0x001B000800000000);
-    write_msr(0xC0000082, (ptr_t)_syscall_handler);
-    write_msr(0xC0000084, 0x200); // disable interrupts on syscall
-    write_msr(0xC0000102, (ptr_t)(&cpu0));
-}
-
-void _set_idt_entry(int index, ptr_t base) {
+static void _set_idt_entry(int index, ptr_t base) {
     _idt[index].baseLow  = base         & 0xFFFF;
     _idt[index].baseMid  = (base >> 16) & 0xFFFF;
     _idt[index].baseHigh = base  >> 32;
@@ -154,7 +137,7 @@ void _set_idt_entry(int index, ptr_t base) {
     _idt[index].ist      = 1;
 }
 
-void _setup_idt() {
+static void _setup_idt() {
     memset((uint8_t*)_idt, 0, sizeof(_idt));
 
     _set_idt_entry( 0, (ptr_t) idt_entry_0);
@@ -211,6 +194,21 @@ void _setup_idt() {
         .base  = (ptr_t)_idt,
     };
     asm("lidt %0"::"m"(idtp));
+}
+
+void init_sc() {
+    _setup_idt();
+    cpu0.kernel_stack = _tss.ist1;
+
+    asm("mov $0xC0000080, %%rcx\n"
+        "rdmsr\n"
+        "or $1, %%rax\n"
+        "wrmsr":::"rcx","rax");
+
+    write_msr(0xC0000081, 0x001B000800000000);
+    write_msr(0xC0000082, (ptr_t)_syscall_handler);
+    write_msr(0xC0000084, 0x200); // disable interrupts on syscall
+    write_msr(0xC0000102, (ptr_t)(&cpu0));
 }
 
 void init_gdt() {
@@ -318,5 +316,3 @@ cpu_state* syscall_handler(cpu_state* cpu) {
 
     return new_cpu;
 }
-
-cpu_state _sc_cpu_buffer;
