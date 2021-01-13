@@ -30,10 +30,6 @@ typedef struct {
     uint64_t ss;
 } cpu_state;
 
-typedef struct {
-    ptr_t kernel_stack;
-} cpu_local_data;
-
 static inline void outb(uint16_t port, uint8_t data) {
     asm volatile ("outb %0, %1" : : "a" (data), "Nd" (port));
 }

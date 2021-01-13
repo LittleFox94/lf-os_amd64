@@ -64,13 +64,10 @@ struct tss {
     uint16_t iopb_offset;
 }__attribute__((packed));
 
-static struct idt_entry _idt[256];
-static struct gdt_entry _gdt[8];
-static struct tss       _tss = {
-    ._reserved1 = 0,
-    ._reserved2 = 0,
-    ._reserved3 = 0,
-};
+typedef struct {
+    ptr_t      kernel_stack;
+    struct tss tss;
+} cpu_local_data;
 
 extern void sc_handle(cpu_state* cpu);
 
@@ -126,7 +123,85 @@ extern void idt_entry_45();
 extern void idt_entry_46();
 extern void idt_entry_47();
 
-static cpu_local_data cpu0;
+static cpu_local_data*  _cpu0;
+static struct idt_entry _idt[256];
+
+void set_iopb(ptr_t new_iopb) {
+    static ptr_t originalPages[2] = {0, 0};
+
+    ptr_t iopb = (ptr_t)&_cpu0->tss + _cpu0->tss.iopb_offset;
+
+    if(!originalPages[0] && !originalPages[1]) {
+        originalPages[0] = vm_context_get_physical_for_virtual(VM_KERNEL_CONTEXT, iopb);
+        originalPages[1] = vm_context_get_physical_for_virtual(VM_KERNEL_CONTEXT, iopb + 4*KiB);
+    }
+
+    if(!new_iopb) {
+        vm_context_map(vm_current_context(), iopb,         originalPages[0]);
+        vm_context_map(vm_current_context(), iopb + 4*KiB, originalPages[1]);
+    }
+    else {
+        vm_context_map(vm_current_context(), iopb,         new_iopb);
+        vm_context_map(vm_current_context(), iopb + 4*KiB, new_iopb + 4*KiB);
+    }
+}
+
+void init_gdt() {
+    _cpu0 = (cpu_local_data*)vm_context_alloc_pages(VM_KERNEL_CONTEXT, ALLOCATOR_REGION_KERNEL_HEAP, 4);
+    memset(_cpu0, 0, 4*KiB);
+    memset((void*)_cpu0 + 4*KiB, 0xFF, 12*KiB);
+
+    ptr_t kernel_stack = vm_context_alloc_pages(VM_KERNEL_CONTEXT, ALLOCATOR_REGION_KERNEL_HEAP, 1) + 4096;
+
+    _cpu0->tss._reserved1  = 0;
+    _cpu0->tss._reserved2  = 0;
+    _cpu0->tss._reserved3  = 0;
+    _cpu0->tss.iopb_offset = 0x1000 - ((ptr_t)&_cpu0->tss & 0xFFF);
+    _cpu0->tss.ist1 = _cpu0->tss.rsp0 = _cpu0->tss.rsp1 = _cpu0->tss.rsp2 = _cpu0->kernel_stack = kernel_stack;
+
+    static struct gdt_entry gdt[8];
+    memset((uint8_t*)gdt,  0, sizeof(gdt));
+
+    // kernel CS
+    gdt[1].type = GDT_SYSTEM | GDT_PRESENT | GDT_RW | GDT_EXECUTE;
+    gdt[1].size = 0xa0;
+
+    // kernel SS
+    gdt[2].type = GDT_SYSTEM | GDT_PRESENT | GDT_RW;
+    gdt[2].size = 0xa0;
+
+    // user CS (compatibility mode)
+    // XXX: make 32bit descriptor
+    gdt[3].type = GDT_SYSTEM | GDT_PRESENT | GDT_RW | GDT_EXECUTE | GDT_RING3;
+    gdt[3].size = 0xa0;
+
+    // user SS
+    gdt[4].type = GDT_SYSTEM | GDT_PRESENT | GDT_RW | GDT_RING3;
+    gdt[4].size = 0xa0;
+
+    // user CS (long mode)
+    gdt[5].type = GDT_SYSTEM | GDT_PRESENT | GDT_RW | GDT_EXECUTE | GDT_RING3;
+    gdt[5].size = 0xa0;
+
+    // TSS
+    gdt[6].type     = GDT_PRESENT | GDT_ACCESSED | GDT_EXECUTE;
+    gdt[6].limitLow = sizeof(struct tss) + (8*KiB) + 1;
+    gdt[6].baseLow  = ((ptr_t)&_cpu0->tss & 0xFFFF);
+    gdt[6].baseMid  = ((ptr_t)&_cpu0->tss >> 16) & 0xFF;
+    gdt[6].baseHigh = ((ptr_t)&_cpu0->tss >> 24) & 0xFF;
+    gdt[7].type     = 0;
+    gdt[7].limitLow = ((ptr_t)&_cpu0->tss >> 32) & 0xFFFF;
+    gdt[7].baseLow  = ((ptr_t)&_cpu0->tss >> 48) & 0xFFFF;
+
+    struct table_pointer gdtp = {
+        .limit = sizeof(gdt) -1,
+        .base  = (ptr_t)gdt,
+    };
+
+    asm("lgdt %0"::"m"(gdtp));
+    reload_cs();
+    asm("ltr %%ax"::"a"(6 << 3));
+}
 
 static void _set_idt_entry(int index, ptr_t base) {
     _idt[index].baseLow  = base         & 0xFFFF;
@@ -198,7 +273,6 @@ static void _setup_idt() {
 
 void init_sc() {
     _setup_idt();
-    cpu0.kernel_stack = _tss.ist1;
 
     asm("mov $0xC0000080, %%rcx\n"
         "rdmsr\n"
@@ -208,57 +282,7 @@ void init_sc() {
     write_msr(0xC0000081, 0x001B000800000000);
     write_msr(0xC0000082, (ptr_t)_syscall_handler);
     write_msr(0xC0000084, 0x200); // disable interrupts on syscall
-    write_msr(0xC0000102, (ptr_t)(&cpu0));
-}
-
-void init_gdt() {
-    ptr_t kernel_stack = vm_context_alloc_pages(VM_KERNEL_CONTEXT, ALLOCATOR_REGION_KERNEL_HEAP, 1) + 4096;
-    _tss.ist1 = kernel_stack;
-    _tss.rsp0 = kernel_stack;
-    _tss.rsp1 = kernel_stack;
-    _tss.rsp2 = kernel_stack;
-
-    memset((uint8_t*)_gdt,  0, sizeof(_gdt));
-
-    // kernel CS
-    _gdt[1].type = GDT_SYSTEM | GDT_PRESENT | GDT_RW | GDT_EXECUTE;
-    _gdt[1].size = 0xa0;
-
-    // kernel SS
-    _gdt[2].type = GDT_SYSTEM | GDT_PRESENT | GDT_RW;
-    _gdt[2].size = 0xa0;
-
-    // user CS (compatibility mode)
-    // XXX: make 32bit descriptor
-    _gdt[3].type = GDT_SYSTEM | GDT_PRESENT | GDT_RW | GDT_EXECUTE | GDT_RING3;
-    _gdt[3].size = 0xa0;
-
-    // user SS
-    _gdt[4].type = GDT_SYSTEM | GDT_PRESENT | GDT_RW | GDT_RING3;
-    _gdt[4].size = 0xa0;
-
-    // user CS (long mode)
-    _gdt[5].type = GDT_SYSTEM | GDT_PRESENT | GDT_RW | GDT_EXECUTE | GDT_RING3;
-    _gdt[5].size = 0xa0;
-
-    // TSS
-    _gdt[6].type     = GDT_PRESENT | GDT_ACCESSED | GDT_EXECUTE;
-    _gdt[6].limitLow = sizeof(_tss);
-    _gdt[6].baseLow  = ((ptr_t)&_tss & 0xFFFF);
-    _gdt[6].baseMid  = ((ptr_t)&_tss >> 16) & 0xFF;
-    _gdt[6].baseHigh = ((ptr_t)&_tss >> 24) & 0xFF;
-    _gdt[7].type     = 0;
-    _gdt[7].limitLow = ((ptr_t)&_tss >> 32) & 0xFFFF;
-    _gdt[7].baseLow  = ((ptr_t)&_tss >> 48) & 0xFFFF;
-
-    struct table_pointer gdtp = {
-        .limit = sizeof(_gdt) -1,
-        .base  = (ptr_t)_gdt,
-    };
-
-    asm("lgdt %0"::"m"(gdtp));
-    reload_cs();
-    asm("ltr %%ax"::"a"(6 << 3));
+    write_msr(0xC0000102, (ptr_t)(_cpu0));
 }
 
 __attribute__ ((force_align_arg_pointer))

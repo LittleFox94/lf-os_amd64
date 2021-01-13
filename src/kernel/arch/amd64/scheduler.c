@@ -1,6 +1,7 @@
 #include <scheduler.h>
 #include <string.h>
 #include <mm.h>
+#include <sc.h>
 #include <bluescreen.h>
 #include <log.h>
 #include <mutex.h>
@@ -24,6 +25,9 @@ typedef struct {
 
     enum wait_reason waiting_for;
     union wait_data  waiting_data;
+
+    //! Physical address of the first of two IOPB pages, 0 if no IO privilege granted
+    ptr_t iopb;
 } process_t;
 
 volatile pid_t scheduler_current_process = -1;
@@ -75,7 +79,7 @@ void start_task(struct vm_table* context, ptr_t entry, ptr_t data_start, ptr_t d
         panic_message("Tried to start process without entry");
     }
 
-    pid_t pid            = setup_process();
+    pid_t pid          = setup_process();
     process_t* process = &processes[pid];
 
     process->context = context;
@@ -114,6 +118,7 @@ void schedule_next(cpu_state** cpu, struct vm_table** context) {
     }
 
     processes[scheduler_current_process].state = process_state_running;
+    set_iopb(processes[scheduler_current_process].iopb);
     *cpu     = &processes[scheduler_current_process].cpu;
     *context =  processes[scheduler_current_process].context;
 }
