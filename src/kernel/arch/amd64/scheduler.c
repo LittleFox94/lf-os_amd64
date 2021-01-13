@@ -3,6 +3,7 @@
 #include <errno.h>
 #include <mm.h>
 #include <sc.h>
+#include <bitmap.h>
 #include <bluescreen.h>
 #include <log.h>
 #include <mutex.h>
@@ -119,7 +120,6 @@ void schedule_next(cpu_state** cpu, struct vm_table** context) {
     }
 
     processes[scheduler_current_process].state = process_state_running;
-    set_iopb(processes[scheduler_current_process].iopb);
     *cpu     = &processes[scheduler_current_process].cpu;
     *context =  processes[scheduler_current_process].context;
 }
@@ -285,5 +285,44 @@ void sc_handle_scheduler_yield() {
 }
 
 uint16_t sc_handle_hardware_ioperm(uint16_t from, uint16_t num, bool turn_on) {
-    return EPERM;
+    process_t* process = &processes[scheduler_current_process];
+
+    if(!process->iopb) {
+        if(!turn_on) {
+            return 0;
+        }
+
+        process->iopb = (ptr_t)mm_alloc_pages(2);
+        set_iopb(process->context, process->iopb);
+        memset((void*)(ALLOCATOR_REGION_DIRECT_MAPPING.start + process->iopb), 0xFF, 8*KiB);
+    }
+
+    bitmap_t bitmap = (bitmap_t)(ALLOCATOR_REGION_DIRECT_MAPPING.start + process->iopb);
+    for(size_t i = 0; i < num; ++i) {
+        if(turn_on) {
+            bitmap_clear(bitmap, from + i);
+        }
+        else {
+            bitmap_set(bitmap, from + i);
+        }
+    }
+
+    if(!turn_on) {
+        bool some_enabled = false;
+
+        for(size_t i = 0; i < 8*KiB; ++i) {
+            if(((uint8_t*)bitmap)[i] != 0xFF) {
+                some_enabled = true;
+                break;
+            }
+        }
+
+        if(!some_enabled) {
+            mm_mark_physical_pages(process->iopb, 2, MM_FREE);
+            process->iopb = 0;
+            set_iopb(process->context, process->iopb);
+        }
+    }
+
+    return 0;
 }

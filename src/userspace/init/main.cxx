@@ -110,6 +110,9 @@ void hsv_to_rgb (float h, float s, float v, uint8_t *r_r, uint8_t *r_g, uint8_t 
 }
 
 int main(int argc, char* argv[]) {
+    uint64_t error;
+    sc_do_hardware_ioperm(0x3F8, 1, true, &error);
+
     uint32_t* fb;
     uint16_t width, height, stride, colorFormat;
     sc_do_hardware_framebuffer(&fb, &width, &height, &stride, &colorFormat);
@@ -139,6 +142,7 @@ int main(int argc, char* argv[]) {
 
             while(true) {
                 const std::lock_guard<std::mutex> lock(fb_mutex);
+                asm volatile ("outb %0, %1" : : "a" ('a'), "Nd" ((uint16_t)0x3F8));
 
                 hsv_to_rgb(h, s, v, &color[2], &color[1], &color[0]);
 

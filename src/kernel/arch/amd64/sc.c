@@ -126,7 +126,7 @@ extern void idt_entry_47();
 static cpu_local_data*  _cpu0;
 static struct idt_entry _idt[256];
 
-void set_iopb(ptr_t new_iopb) {
+void set_iopb(struct vm_table* context, ptr_t new_iopb) {
     static ptr_t originalPages[2] = {0, 0};
 
     ptr_t iopb = (ptr_t)&_cpu0->tss + _cpu0->tss.iopb_offset;
@@ -137,12 +137,12 @@ void set_iopb(ptr_t new_iopb) {
     }
 
     if(!new_iopb) {
-        vm_context_map(vm_current_context(), iopb,         originalPages[0]);
-        vm_context_map(vm_current_context(), iopb + 4*KiB, originalPages[1]);
+        vm_context_map(context, iopb,         originalPages[0]);
+        vm_context_map(context, iopb + 4*KiB, originalPages[1]);
     }
     else {
-        vm_context_map(vm_current_context(), iopb,         new_iopb);
-        vm_context_map(vm_current_context(), iopb + 4*KiB, new_iopb + 4*KiB);
+        vm_context_map(context, iopb,         new_iopb);
+        vm_context_map(context, iopb + 4*KiB, new_iopb + 4*KiB);
     }
 }
 
