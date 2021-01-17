@@ -192,7 +192,7 @@ void init_init(struct LoaderStruct* loaderStruct) {
                 logd("init" "Failed to run '%s'", desc->name);
             }
 
-            start_task(context, entrypoint, data_start, data_end);
+            start_task(context, entrypoint, data_start, data_end, desc->name);
         }
     }
 }

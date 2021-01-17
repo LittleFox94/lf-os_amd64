@@ -18,6 +18,8 @@ typedef enum {
 } process_state;
 
 typedef struct {
+    char name[1024];
+
     struct vm_table* context;
     cpu_state        cpu;
     process_state    state;
@@ -73,10 +75,12 @@ pid_t setup_process() {
     process->stack.start = ALLOCATOR_REGION_USER_STACK.end;
     process->stack.end   = ALLOCATOR_REGION_USER_STACK.end;
 
+    //process->mq = mq_create(vm_alloc, vm_free);
+
     return pid;
 }
 
-void start_task(struct vm_table* context, ptr_t entry, ptr_t data_start, ptr_t data_end) {
+void start_task(struct vm_table* context, ptr_t entry, ptr_t data_start, ptr_t data_end, const char* name) {
     if(!entry) {
         panic_message("Tried to start process without entry");
     }
@@ -90,6 +94,8 @@ void start_task(struct vm_table* context, ptr_t entry, ptr_t data_start, ptr_t d
 
     process->heap.start = data_start;
     process->heap.end   = data_end;
+
+    strncpy(process->name, name, 1023);
 }
 
 void scheduler_process_save(cpu_state* cpu) {
@@ -131,7 +137,7 @@ void scheduler_process_cleanup(pid_t pid) {
 void scheduler_kill_current(enum kill_reason reason) {
     processes[scheduler_current_process].state     = process_state_killed;
     processes[scheduler_current_process].exit_code = (int)reason;
-    logd("scheduler", "killed PID %d (reason: %d)", scheduler_current_process, (int)reason);
+    logd("scheduler", "'%s' (PID %d) killed for reason: %d)", processes[scheduler_current_process].name, scheduler_current_process, (int)reason);
 
     scheduler_process_cleanup(scheduler_current_process);
 }
@@ -139,7 +145,7 @@ void scheduler_kill_current(enum kill_reason reason) {
 void sc_handle_scheduler_exit(uint64_t exit_code) {
     processes[scheduler_current_process].state     = process_state_exited;
     processes[scheduler_current_process].exit_code = exit_code;
-    logd("scheduler", "PID %d exited (status: %d)", scheduler_current_process, exit_code);
+    logd("scheduler", "'%s' (PID %d) exited (status: %d)", processes[scheduler_current_process].name, scheduler_current_process, exit_code);
 
     scheduler_process_cleanup(scheduler_current_process);
 }
@@ -214,7 +220,7 @@ bool scheduler_handle_pf(ptr_t fault_address, uint64_t error_code) {
         return true;
     }
 
-    logw("scheduler", "Not handling page fault for %d at 0x%x (RIP: 0x%x, error 0x%x)", scheduler_current_process, fault_address, processes[scheduler_current_process].cpu.rip, error_code);
+    logw("scheduler", "Not handling page fault for %s (PID %d) at 0x%x (RIP: 0x%x, error 0x%x)", processes[scheduler_current_process].name, scheduler_current_process, fault_address, processes[scheduler_current_process].cpu.rip, error_code);
 
     return false;
 }
