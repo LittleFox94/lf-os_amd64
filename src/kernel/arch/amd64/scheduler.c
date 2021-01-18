@@ -330,6 +330,4 @@ void sc_handle_hardware_ioperm(uint16_t from, uint16_t num, bool turn_on, uint16
             set_iopb(process->context, process->iopb);
         }
     }
-
-    return 0;
 }
