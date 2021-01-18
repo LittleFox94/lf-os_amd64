@@ -290,12 +290,13 @@ void sc_handle_scheduler_yield() {
     // no-op
 }
 
-uint16_t sc_handle_hardware_ioperm(uint16_t from, uint16_t num, bool turn_on) {
+void sc_handle_hardware_ioperm(uint16_t from, uint16_t num, bool turn_on, uint16_t* error) {
+    *error = 0;
     process_t* process = &processes[scheduler_current_process];
 
     if(!process->iopb) {
         if(!turn_on) {
-            return 0;
+            return;
         }
 
         process->iopb = (ptr_t)mm_alloc_pages(2);
