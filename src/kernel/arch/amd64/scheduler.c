@@ -8,6 +8,7 @@
 #include <log.h>
 #include <mutex.h>
 #include <mq.h>
+#include <signal.h>
 
 typedef enum {
     process_state_empty = 0,
@@ -142,15 +143,19 @@ void scheduler_process_cleanup(pid_t pid) {
         process_t* parent = &processes[processes[pid].parent];
 
         if(parent->state != process_state_empty) {
-            struct Message signal = {
-                .size                    = sizeof(struct Message),
-                .user_size               = sizeof(uint16_t),
-                .sender                  = -1,
-                .type                    = MT_Signal,
-                .user_data.Signal.signal = 17,
-            };
+            size_t user_size = sizeof(struct SignalUserData);
+            size_t size      = sizeof(struct Message) + user_size;
 
-            mq_push(parent->mq, &signal);
+            struct Message* signal = vm_alloc(size);
+            signal->size                    = size;
+            signal->user_size               = user_size,
+            signal->sender                  = -1,
+            signal->type                    = MT_Signal,
+            signal->user_data.Signal.signal = SIGCHLD,
+
+            mq_push(parent->mq, signal);
+
+            vm_free(signal);
         }
     }
 }

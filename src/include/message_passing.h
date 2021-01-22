@@ -20,12 +20,13 @@ struct Message {
 
         MT_IO,
         MT_Signal,
+        MT_HardwareInterrupt,
 
         MT_UserDefined = 1024,
     } type;
 
     union {
-        struct {
+        struct IOUserData {
             //! File descriptor this data is for
             int  fd;
 
@@ -33,10 +34,14 @@ struct Message {
             char data[0];
         } IO;
 
-        struct {
+        struct SignalUserData {
             //! Signal identifier
             uint16_t signal;
         } Signal;
+
+        struct HardwareInterruptUserData {
+            uint16_t interrupt;
+        } HardwareInterrupt;
 
         char raw[0];
     } user_data;
