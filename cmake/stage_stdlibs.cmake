@@ -4,6 +4,7 @@ include(ExternalProject)
 ExternalProject_Add(
     "compiler-rt"
     CMAKE_CACHE_ARGS
+        "-DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}"
         "-DCMAKE_TOOLCHAIN_FILE:STRING=${toolchain}/etc/cmake.toolchain"
         "-DCMAKE_INSTALL_PREFIX:STRING=${toolchain}/lib/clang/12.0.0"
         "-DCMAKE_C_FLAGS:STRING=${CMAKE_C_FLAGS} -nostdlib"
@@ -25,6 +26,7 @@ ExternalProject_Add(
     "libc++abi"
     DEPENDS "compiler-rt"
     CMAKE_CACHE_ARGS
+        "-DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}"
         "-DCMAKE_TOOLCHAIN_FILE:STRING=${toolchain}/etc/cmake.toolchain"
         "-DCMAKE_INSTALL_PREFIX:STRING=${toolchain}"
         "-DCMAKE_C_FLAGS:STRING=${CMAKE_C_FLAGS} -nostdlib"
@@ -47,6 +49,7 @@ ExternalProject_Add(
     "libc++"
     DEPENDS "libc++abi"
     CMAKE_CACHE_ARGS
+        "-DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}"
         "-DCMAKE_TOOLCHAIN_FILE:STRING=${toolchain}/etc/cmake.toolchain"
         "-DCMAKE_INSTALL_PREFIX:STRING=${toolchain}"
         "-DCMAKE_C_FLAGS:STRING=${CMAKE_C_FLAGS} -nostdlib"
