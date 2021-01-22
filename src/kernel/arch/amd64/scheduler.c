@@ -181,6 +181,7 @@ void sc_handle_scheduler_clone(bool share_memory, ptr_t entry, pid_t* newPid) {
     }
 
     process_t* process = &processes[pid];
+    strncpy(process->name, processes[scheduler_current_process].name, 1023);
 
     // new memory context ...
     struct vm_table* context = vm_context_new();
