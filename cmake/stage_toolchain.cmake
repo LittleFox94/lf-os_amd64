@@ -66,7 +66,10 @@ add_custom_target(
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
 )
 
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/syscalls.h DESTINATION include/kernel/)
+install(FILES
+    ${CMAKE_CURRENT_BINARY_DIR}/syscalls.h
+    ${CMAKE_SOURCE_DIR}/src/include/errno.h
+    DESTINATION include/kernel/)
 install(FILES src/include/message_passing.h DESTINATION include/sys/)
 
 install(FILES src/include/arch/${architecture}/io.h DESTINATION include/sys/)
