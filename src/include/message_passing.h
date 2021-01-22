@@ -3,10 +3,6 @@
 
 #include <stdint.h>
 
-#ifdef __cplusplus
-namespace LF_OS {
-#endif
-
 struct Message {
     //! Size of the message, including metadata
     size_t size;
@@ -19,6 +15,9 @@ struct Message {
 
     //! Type of the message
     enum {
+        //! Invalid message, only size is valid
+        MT_Invalid,
+
         MT_IO,
         MT_Signal,
 
@@ -41,10 +40,6 @@ struct Message {
 
         char raw[0];
     } user_data;
-};
-
-#ifdef __cplusplus
-}
-#endif
+}__attribute__((packed));
 
 #endif

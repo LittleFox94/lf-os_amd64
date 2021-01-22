@@ -6,21 +6,13 @@
 #include <stdbool.h>
 #include <message_passing.h>
 
-struct MessageQueue {
-    //! Maximum number of items in the queue after which mq_push will return false
-    size_t max_items;
+void init_mq(allocator_t alloc, deallocator_t dealloc);
 
-    //! Maximum number of bytes in non-popped messsages in the queue after which mq_push will return false
-    size_t max_bytes;
+uint64_t mq_create(allocator_t* alloc, deallocator_t* dealloc);
+void mq_destroy(uint64_t mq);
 
-    //! don't touch this!
-    uint8_t _implData[128]; // XXX: yes this is ugly
-};
-
-void mq_create(struct MessageQueue* mq, allocator_t* alloc, deallocator_t* dealloc);
-
-bool mq_push(struct MessageQueue* mq, struct Message* message);
-struct Message* mq_pop(struct MessageQueue* mq);
-struct Message* mq_peek(struct MessageQueue* mq);
+uint64_t mq_push(uint64_t mq, struct Message* message);
+uint64_t mq_pop(uint64_t mq,  struct Message* message);
+uint64_t mq_peek(uint64_t mq, struct Message* message);
 
 #endif

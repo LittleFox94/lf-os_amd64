@@ -13,6 +13,7 @@ enum kill_reason {
 enum wait_reason {
     wait_reason_mutex,
     wait_reason_condvar,
+    wait_reason_message,
 };
 
 extern volatile pid_t scheduler_current_process;
@@ -23,6 +24,7 @@ extern volatile pid_t scheduler_current_process;
 union wait_data {
     mutex_t   mutex;
     condvar_t condvar;
+    uint64_t  message_queue;
 };
 
 void init_scheduler();

@@ -7,6 +7,7 @@
 #include <bluescreen.h>
 #include <log.h>
 #include <mutex.h>
+#include <mq.h>
 
 typedef enum {
     process_state_empty = 0,
@@ -20,15 +21,18 @@ typedef enum {
 typedef struct {
     char name[1024];
 
-    struct vm_table* context;
-    cpu_state        cpu;
-    process_state    state;
-    region_t         heap;
-    region_t         stack;
-    uint8_t          exit_code;
+    pid_t         parent;
+    uint8_t       exit_code;
+    process_state state;
 
     enum wait_reason waiting_for;
     union wait_data  waiting_data;
+
+    region_t         heap;
+    region_t         stack;
+    uint64_t         mq;
+    struct vm_table* context;
+    cpu_state        cpu;
 
     //! Physical address of the first of two IOPB pages, 0 if no IO privilege granted
     ptr_t iopb;
@@ -75,7 +79,7 @@ pid_t setup_process() {
     process->stack.start = ALLOCATOR_REGION_USER_STACK.end;
     process->stack.end   = ALLOCATOR_REGION_USER_STACK.end;
 
-    //process->mq = mq_create(vm_alloc, vm_free);
+    process->mq = mq_create(vm_alloc, vm_free);
 
     return pid;
 }
@@ -88,6 +92,7 @@ void start_task(struct vm_table* context, ptr_t entry, ptr_t data_start, ptr_t d
     pid_t pid          = setup_process();
     process_t* process = &processes[pid];
 
+    process->parent  = -1;
     process->context = context;
     process->cpu.rip = entry;
     process->cpu.rsp = ALLOCATOR_REGION_USER_STACK.end;
@@ -132,6 +137,22 @@ void schedule_next(cpu_state** cpu, struct vm_table** context) {
 
 void scheduler_process_cleanup(pid_t pid) {
     mutex_unlock_holder(pid);
+
+    if(processes[pid].parent >= 0) {
+        process_t* parent = &processes[processes[pid].parent];
+
+        if(parent->state != process_state_empty) {
+            struct Message signal = {
+                .size                    = sizeof(struct Message),
+                .user_size               = sizeof(uint16_t),
+                .sender                  = -1,
+                .type                    = MT_Signal,
+                .user_data.Signal.signal = 17,
+            };
+
+            mq_push(parent->mq, &signal);
+        }
+    }
 }
 
 void scheduler_kill_current(enum kill_reason reason) {
@@ -204,6 +225,8 @@ void sc_handle_scheduler_clone(bool share_memory, ptr_t entry, pid_t* newPid) {
     // copy cpu state
     memcpy(&process->cpu, &processes[scheduler_current_process].cpu, sizeof(cpu_state));
     process->cpu.rax = 0;
+
+    process->parent = scheduler_current_process;
 }
 
 bool scheduler_handle_pf(ptr_t fault_address, uint64_t error_code) {
@@ -252,6 +275,11 @@ void scheduler_waitable_done(enum wait_reason reason, union wait_data data, size
                     break;
                 case wait_reason_condvar:
                     if(p->waiting_data.condvar == data.condvar && max_amount--) {
+                        p->state = process_state_runnable;
+                    }
+                    break;
+                case wait_reason_message:
+                    if(p->waiting_data.message_queue == data.message_queue) {
                         p->state = process_state_runnable;
                     }
                     break;
@@ -329,5 +357,63 @@ void sc_handle_hardware_ioperm(uint16_t from, uint16_t num, bool turn_on, uint16
             process->iopb = 0;
             set_iopb(process->context, process->iopb);
         }
+    }
+}
+
+void sc_handle_ipc_mq_create(bool global_read, bool global_write, size_t msg_limit, size_t data_limit, uint64_t* mq, uint64_t* error) {
+    *error = 0;
+}
+
+void sc_handle_ipc_mq_destroy(uint64_t mq, uint64_t* error) {
+    *error = 0;
+}
+
+void sc_handle_ipc_mq_poll(uint64_t mq, bool wait, struct Message* msg, uint64_t* error) {
+    if(!mq) {
+        mq = processes[scheduler_current_process].mq;
+    }
+
+    struct Message peeked = { .size = sizeof(struct Message) };
+    *error = mq_peek(mq, &peeked);
+
+    if(*error == ENOMSG) {
+        if(wait) {
+            union wait_data data;
+            data.message_queue = mq;
+            scheduler_wait_for(scheduler_current_process, wait_reason_message, data);
+            // this makes the syscall return EAGAIN as soon as a message is available,
+            // making the process poll again and then receive the message.
+            // TODO: implement a way to deliver syscall results when a process is
+            //       scheduled the next time, so we don't have to poll twice
+            *error = EAGAIN;
+            return;
+        }
+    }
+    else if(*error == EMSGSIZE) {
+        if(peeked.size > msg->size) {
+            msg->size = peeked.size;
+            return;
+        }
+    }
+
+    *error = mq_pop(mq, msg);
+}
+
+void sc_handle_ipc_mq_send(uint64_t mq, pid_t pid, struct Message* msg, uint64_t* error) {
+    msg->sender = scheduler_current_process;
+
+    if(!mq) {
+        if(pid) {
+            if(pid < MAX_PROCS && processes[pid].state != process_state_empty) {
+                mq = processes[pid].mq;
+            }
+        }
+        else {
+            mq = processes[scheduler_current_process].mq;
+        }
+    }
+
+    if(mq) {
+        *error = mq_push(mq, msg);
     }
 }

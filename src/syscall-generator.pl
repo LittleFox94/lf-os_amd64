@@ -50,20 +50,20 @@ my %TYPES = (
         length => 64,
         signed => 1,
     },
+
     pid_t => {
         length => 64,
         signed => 1,
+    },
+    size_t => {
+        length => 64,
+        signed => 0,
     },
 
     bool => {
         length => 1,
         signed => 0,
     },
-
-    'void*' => {
-        length => 64,
-        signed => 0,
-    }
 );
 
 my %reg_to_inline_asm = (
@@ -97,13 +97,18 @@ print $outfh <<EOF;
 EOF
 
 if($mode eq 'kernel') {
-    print $outfh "#include <scheduler.h>\n\n";
-    print $outfh "#include <bluescreen.h>\n\n";
+    print $outfh <<EOF;
+#include <scheduler.h>
+#include <bluescreen.h>
+#include <mq.h>
+
+EOF
 }
 else {
-    print $outfh <<EOF
+    print $outfh <<EOF;
 #include <sys/types.h>
 #include <stdint.h>
+#include <sys/message_passing.h>
 
 EOF
 }
@@ -111,7 +116,7 @@ EOF
 sub type_data {
     my ($type) = @_;
 
-    if($type =~ /^[a-zA-Z_][a-zA-Z0-9_]+\*$/) {
+    if($type =~ /^(?:(?:struct|enum)\s)?[a-zA-Z_][a-zA-Z0-9_]+\*$/) {
         return {
             length => 64,
             signed => 0,
@@ -159,7 +164,7 @@ sub render_syscall_func {
                 die("Cannot allocate $total bits on a single register (max 64)\n");
             }
 
-            print $outfh "    volatile uint64_t $reg = ";
+            print $outfh "    uint64_t $reg = ";
 
             my $bits_before = 0;
             for my $param ($pregs{$reg}->@*) {
@@ -194,7 +199,7 @@ sub render_syscall_func {
         die "Group number overflow!\n"   if($group->{number} > 0xFF);
         die "Syscall number overflow!\n" if($syscall->{number} > 0xFFFFFF);
 
-        print $outfh "    volatile uint64_t rdx = (($group->{number} & 0xFF) << 24) | ($syscall->{number} & 0xFFFFFF);\n";
+        print $outfh "    uint64_t rdx = (($group->{number} & 0xFF) << 24) | ($syscall->{number} & 0xFFFFFF);\n";
 
         my %rregs;
         for my $arg ($syscall->{returns}->@*) {
@@ -203,16 +208,16 @@ sub render_syscall_func {
 
         for my $reg (keys %rregs) {
             if(!$pregs{$reg}) {
-                print $outfh "    volatile uint64_t $reg;\n";
+                print $outfh "    uint64_t $reg;\n";
             }
         }
 
-        print $outfh "\n    asm volatile(\"syscall\":";
+        print $outfh "\n    asm(\"syscall\":";
         print $outfh join(', ', map { '"=' . $reg_to_inline_asm{$_} . "\"($_)" } keys %rregs);
         print $outfh ':';
         print $outfh join(', ', map { '"' . $reg_to_inline_asm{$_} . "\"($_)" } (keys %pregs, 'rdx'));
         print $outfh ':';
-        print $outfh '"rbx", "rcx", "r11"';
+        print $outfh '"rbx", "rcx", "r11", "memory"';
         print $outfh ");\n\n";
 
         for my $reg (keys %rregs) {

@@ -16,6 +16,7 @@
 #include <slab.h>
 #include <log.h>
 #include <efi.h>
+#include <mq.h>
 
 char* LAST_INIT_STEP;
 extern char build_id[];
@@ -72,6 +73,11 @@ void main(struct LoaderStruct* loaderStruct) {
         "Initialized mutex subsystem",
         init_mutex();
         init_condvar();
+    )
+
+    INIT_STEP(
+        "Initialized message queue subsystem",
+        init_mq(vm_alloc, vm_free);
     )
 
     INIT_STEP(

@@ -223,6 +223,98 @@ groups:
       type: uint64_t
       reg:  rdi
 
+- number: 4
+  name:  ipc
+  desc:  Interprocess-communication
+  syscalls:
+  - number: 0
+    name:   mq_create
+    desc:   create a new message queue
+    parameters:
+    - name: global_read
+      desc: Allow other processes to read from this queue
+      type: bool
+      reg:  rax
+    - name: global_write
+      desc: Allow other processes to write to this queue
+      type: bool
+      reg:  rax
+    - name: message_limit
+      type: size_t
+      desc: Max count of messages to store in the queue
+      reg:  rdi
+    - name: data_limit
+      type: size_t
+      desc: Max amount of data to store in the queue
+      reg:  rsi
+    returns:
+    - name: mq
+      desc: Unique identifier for the new queue
+      type: uint64_t
+      reg:  rax
+    - name: error
+      desc: error code, zero if success
+      type: uint64_t
+      reg:  rdi
+
+  - number: 1
+    name:   mq_destroy
+    desc:   Destroy a given message queue
+    parameters:
+    - name: mq
+      type: uint64_t
+      desc: ID of the message queue to destroy
+      reg:  rax
+    returns:
+    - name: error
+      desc: error code, zero if success
+      type: uint64_t
+      reg:  rax
+
+  - number: 2
+    name:   mq_poll
+    desc:   Retrieve message from given queue
+    parameters:
+    - name: queue
+      desc: Message queue ID, 0 is process queue
+      type: uint64_t
+      reg:  rax
+    - name: wait
+      desc: Wait for a message to be available
+      type: bool
+      reg:  rdi
+    - name: message
+      desc: Pointer where to store the message, has to be allocated with enough storage
+      type: struct Message*
+      reg:  rsi
+    returns:
+    - name: error
+      desc: Error code, 0 on success
+      reg:  rax
+      type: uint64_t
+
+  - number: 3
+    name:   mq_send
+    desc:   Send message to given queue
+    parameters:
+    - name: queue
+      desc: Message queue ID, 0 is process queue
+      type: uint64_t
+      reg:  rax
+    - name: process
+      desc: Recipient process, to send messages to other processes process queue
+      type: uint64_t
+      reg:  rdi
+    - name: message
+      desc: Pointer to message from queue
+      type: struct Message*
+      reg:  rsi
+    returns:
+    - name: error
+      desc: Error code, 0 if success
+      type: uint64_t
+      reg:  rax
+
 - number: 255
   name:   debug
   desc:   Debugging syscalls (simple text output, logging, ...)
