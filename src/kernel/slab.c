@@ -31,6 +31,7 @@ ptr_t slab_alloc(SlabHeader* slab) {
     }
 
     panic_message("Out of entries in slab allocator");
+    return 0;
 }
 
 void slab_free(SlabHeader* slab, ptr_t mem) {
