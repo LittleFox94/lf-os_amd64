@@ -12,4 +12,6 @@ __attribute__ ((visibility ("default"))) void testmain(TestUtils* t) {
 
     SlabIndexType idx2 = slab_index(slab, memory + 2048);
     t->eq_size_t(1,             idx2,   "correct index returned");
+
+    free((void*)memory);
 }

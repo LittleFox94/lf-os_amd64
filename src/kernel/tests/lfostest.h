@@ -21,6 +21,10 @@ typedef uint64_t ptr_t;
     testFunctionT(uint8_t, ne) \
     testFunctionT(uint8_t, lt) \
     testFunctionT(uint8_t, gt) \
+    testFunctionT(uint64_t, eq) \
+    testFunctionT(uint64_t, ne) \
+    testFunctionT(uint64_t, lt) \
+    testFunctionT(uint64_t, gt) \
     testFunctionT(ptr_t, eq) \
     testFunctionT(ptr_t, ne) \
     testFunctionT(bool, eq) \
