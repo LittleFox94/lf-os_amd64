@@ -162,5 +162,40 @@ int main(int argc, char* argv[]) {
 
     fb_mutex.unlock();
 
+    if(!fork()) {
+        return 1;
+    }
+
+    uint64_t error;
+    size_t size = sizeof(struct Message);
+    struct Message* msg = (struct Message*)malloc(size);
+    msg->size = size;
+    do {
+        sc_do_ipc_mq_poll(0, true, msg, &error);
+
+        if(error == EMSGSIZE) {
+            size = msg->size;
+            free(msg);
+            msg = (struct Message*)malloc(size);
+            msg->size = size;
+            error = EAGAIN;
+        }
+    } while(error == EAGAIN);
+
+    if(error) {
+        std::cout << "Received error: " << error << std::endl;
+    }
+    else {
+        switch(msg->type) {
+            case Message::MT_Signal:
+                std::cout << "Signal " << msg->user_data.Signal.signal << std::endl;
+                break;
+            default:
+                std::cout << "Received message with type " << (int)msg->type
+                          << " and size " << msg->size << std::endl;
+                break;
+        }
+    }
+
     return EXIT_SUCCESS;
 }
