@@ -17,7 +17,7 @@ int pthread_mutex_destroy (pthread_mutex_t *mutex) {
     return e;
 }
 
-int __pthread_ensure_mutex(pthread_mutex_t* mutex) {
+static int __pthread_ensure_mutex(pthread_mutex_t* mutex) {
     if(!*mutex) {
         return pthread_mutex_init(mutex, 0);
     }
