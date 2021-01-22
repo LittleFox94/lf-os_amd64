@@ -13,19 +13,37 @@ int pthread_cond_init (pthread_cond_t *condvar, const pthread_condattr_t *attrib
 
 int pthread_cond_destroy (pthread_cond_t *condvar) {
     uint64_t e = 0;
-    sc_do_locking_destroy_condvar((uint64_t)condvar, &e);
+    sc_do_locking_destroy_condvar(*condvar, &e);
     return e;
+}
+
+static int __pthread_ensure_condvar(pthread_cond_t* condvar) {
+    if(!*condvar) {
+        return pthread_cond_init(condvar, 0);
+    }
+
+    return 0;
 }
 
 int pthread_cond_signal (pthread_cond_t *condvar) {
     uint64_t e = 0;
-    sc_do_locking_signal_condvar((uint64_t)condvar, 1, &e); // XXX: check if amount = 1 is correct with POSIX.1c
+
+    if((e = __pthread_ensure_condvar(condvar))) {
+        return e;
+    }
+
+    sc_do_locking_signal_condvar(*condvar, 1, &e); // XXX: check if amount = 1 is correct with POSIX.1c
     return e;
 }
 
 int pthread_cond_broadcast (pthread_cond_t *condvar) {
     uint64_t e = 0;
-    sc_do_locking_signal_condvar((uint64_t)condvar, 0, &e);
+
+    if((e = __pthread_ensure_condvar(condvar))) {
+        return e;
+    }
+
+    sc_do_locking_signal_condvar(*condvar, 0, &e);
     return e;
 }
 
@@ -36,7 +54,11 @@ int pthread_cond_wait (pthread_cond_t *cond, pthread_mutex_t *mutex) {
         return e;
     }
 
-    sc_do_locking_wait_condvar((uint64_t)cond, 0, &e);
+    if((e = __pthread_ensure_condvar(cond))) {
+        return e;
+    }
+
+    sc_do_locking_wait_condvar(*cond, 0, &e);
     if(e) {
         return e;
     }

@@ -71,6 +71,7 @@ void main(struct LoaderStruct* loaderStruct) {
     INIT_STEP(
         "Initialized mutex subsystem",
         init_mutex();
+        init_condvar();
     )
 
     INIT_STEP(
