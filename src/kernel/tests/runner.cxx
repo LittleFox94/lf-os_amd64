@@ -22,7 +22,7 @@ int main(int argc, char* argv[]) {
     TestUtils utils;
 #define testFunctionT(type, name) utils.name ## _ ## type = [](type expected, type actual, const char* message) { \
     bool r = name ## _ ## type ## Impl(expected, actual); \
-    std::cerr << "\e[38;5;" << (r ? "2mok " : "1mnok") << "  " << message << std::endl; \
+    std::cerr << "\e[38;5;" << (r ? "2mok " : "1mnok") << "  " << message << " (" << (uint64_t)expected << " " #name " " << (uint64_t)actual << ")" << std::endl; \
     if(!r) result = false; \
 };
     TEST_FUNCTIONS
