@@ -8,14 +8,24 @@
 #ifndef __ATA_H__
 #define __ATA_H__
 
-#define __ATA_DR            0x170        // DATA Register
-#define __ATA_ERFR          0x171        // Error/Feature Register
-#define __ATA_SCR           0x172        // Sector Count Register
-#define __ATA_SNR           0x173        // Sector Number Register (LBA low)
-#define __ATA_CLR           0x174        // Cylinder low / LMA mid
-#define __ATA_CHR           0x175        // cylinder high / LMA high
-#define __ATA_DHR           0x176        // drive/head Register
-#define __ATA_SRCR          0x177        // Status/Command Register
+#define __ATA_DISK_ID_INTERNAL_ATAPI 4
+#define __ATA_DISK_ID_INTERNAL_SATA 3
+#define __ATA_DISK_ID_INTERNAL_ATA 2
+#define __ATA_DISK_ID_INTERNAL_NON_ATA 1
+
+#define __ATA_DISK_ID_STR_NON_ATA "non ata"
+#define __ATA_DISK_ID_STR_SATA "sata"
+#define __ATA_DISK_ID_STR_ATAPI "atapi"
+#define __ATA_DISK_ID_STR_ATA "ata"
+
+#define __ATA_DATA(x)       (x)          // DATA Register
+#define __ATA_ERR(x)        (x + 1)      // Error/Feature Register
+#define __ATA_SECTOR_CNT(x) (x + 2)      // Sector Count Register
+#define __ATA_SECTOR_NUM(x) (x + 3)      // Sector Number Register (LBA low)
+#define __ATA_CYL_LO(x)     (x + 4)      // Cylinder low / LMA mid
+#define __ATA_CYL_HI(x)     (x + 5)      // cylinder high / LMA high
+#define __ATA_DRIVE_HEAD(x) (x + 6)      // drive/head Register
+#define __ATA_STAT(x)       (x + 7)      // Status/Command Register
 
 #define __ATA_ASDCR         0x3F6        // Alternate Status 
                                          // & DevICe Control Register
@@ -56,6 +66,9 @@
 #define __ATA_DAR_WG        0x40         // Write Gate (0 when write active)
 #define __ATA_DAR_RSVD      0x80         // Reserved
 
+#define __ATA_DISK_ID_SATA  0x3c3c
+#define __ATA_DISK_ID_ATAPI 0x14eb
+
 /**
  * Helper macro to allow easy access to NOPs for few hundred-thousand
  * nanosecond delays needed by some ATA related operations.
@@ -64,7 +77,19 @@
  * not to touch this seemingly useless bit of code.
  *
  */
-#define NOP() (asm volatile("nop":::"memory");
+#define NOP() (asm volatile("nop;"))
+
+/**
+ * Function declarations here
+ */
+
+/**
+ * This function allows user to manually trigger ata reset. This can be 
+ * useful eg. in case of crashed and/or buggy disk.
+ *
+ * \param port short Is a port to IO-base for device to reset.
+ */
+void ata_sw_reset(short port);
 
 
 #endif  /* __ATA_H__ */
