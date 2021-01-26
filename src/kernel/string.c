@@ -70,6 +70,26 @@ void* memcpy(void* dest, void const* source, size_t size) {
     return dest;
 }
 
+int memcmp(const void* a, const void* b, size_t n) {
+    while(*(uint8_t*)a && *(uint8_t*)b && *(uint8_t*)a == *(uint8_t*)b) { a++; b++; }
+    return *(uint8_t*)a - *(uint8_t*)b;
+}
+
+void* memmove(void* dest, const void* src, size_t n) {
+    if(src > dest) {
+        for(size_t i = 0; i < n; ++i) {
+            ((uint8_t*)dest)[i]  = ((uint8_t*)src)[i];
+        }
+    }
+    else {
+        for(size_t i = n - 1; i >= 0; --i) {
+            ((uint8_t*)dest)[i]  = ((uint8_t*)src)[i];
+        }
+    }
+
+    return dest;
+}
+
 int sputs(char* buffer, int buffer_size, char* string, int length) {
     int i;
 
@@ -160,7 +180,7 @@ int sputbytes(char* buffer, int buffer_size, int64_t number) {
     }
 
     len += sputi(buffer + len, buffer_size, number, 10);
-    
+
     if(prefix && len < buffer_size) {
         buffer[len++] = prefixes[prefix];
         buffer[len++] = 'i';

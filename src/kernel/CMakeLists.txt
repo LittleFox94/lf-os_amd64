@@ -21,6 +21,7 @@ add_executable(kernel
     slab.c      slab.h
     string.c    string.h
     tpa.c       tpa.h
+    flexarray.c flexarray.h
     mq.c        mq.h
     version.c
                 allocator.h

@@ -104,6 +104,28 @@ groups:
       reg:  rax
       desc: Error code, zero on success
 
+  - number: 2
+    name: interrupt_notify
+    desc: Request to be notified of hardware interrupts or cancel notifications
+    parameters:
+    - name: interrupt
+      type: uint8_t
+      desc: Number of the interrupt to be notified for
+      reg:  rax
+    - name: notify
+      type: bool
+      desc: Add notification (true) or cancel (false)
+      reg:  rax
+    - name: queue
+      type: uint64_t
+      desc: Message queue to send notifications to
+      reg:  rdi
+    returns:
+    - name: error
+      type: uint64_t
+      desc: Error code, 0 if success
+      reg:  rax
+
 - number: 3
   name:   locking
   desc:   Mutexes, Semaphores, and co

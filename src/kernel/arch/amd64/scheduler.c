@@ -366,6 +366,26 @@ void sc_handle_hardware_ioperm(uint16_t from, uint16_t num, bool turn_on, uint16
     }
 }
 
+void sc_handle_hardware_interrupt_notify(uint8_t interrupt, bool enable, uint64_t mq, uint64_t* error) {
+    if(interrupt > 16) {
+        *error = ENOENT;
+        return;
+    }
+
+    if(!mq) {
+        mq = processes[scheduler_current_process].mq;
+    }
+
+    if(enable) {
+        interrupt_add_queue(interrupt, mq);
+    }
+    else {
+        interrupt_del_queue(interrupt, mq);
+    }
+
+    *error = 0;
+}
+
 void sc_handle_ipc_mq_create(bool global_read, bool global_write, size_t msg_limit, size_t data_limit, uint64_t* mq, uint64_t* error) {
     *error = 0;
 }

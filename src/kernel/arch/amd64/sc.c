@@ -7,6 +7,8 @@
 #include "pic.h"
 #include "bluescreen.h"
 #include "vm.h"
+#include "mq.h"
+#include "flexarray.h"
 
 #define GDT_ACCESSED   0x01
 #define GDT_RW         0x02
@@ -126,6 +128,8 @@ extern void idt_entry_47();
 static cpu_local_data*  _cpu0;
 static struct idt_entry _idt[256];
 
+static flexarray_t interrupt_queues[16] = { 0 };
+
 void set_iopb(struct vm_table* context, ptr_t new_iopb) {
     static ptr_t originalPages[2] = {0, 0};
 
@@ -201,6 +205,26 @@ void init_gdt() {
     asm("lgdt %0"::"m"(gdtp));
     reload_cs();
     asm("ltr %%ax"::"a"(6 << 3));
+}
+
+void interrupt_add_queue(uint8_t interrupt, uint64_t mq) {
+    flexarray_t array;
+
+    if(!(array = interrupt_queues[interrupt])) {
+        array = new_flexarray(sizeof(uint64_t), 0, vm_alloc, vm_free);
+        interrupt_queues[interrupt] = array;
+    }
+
+    flexarray_append(array, &mq);
+}
+
+void interrupt_del_queue(uint8_t interrupt, uint64_t mq) {
+    flexarray_t array;
+    uint64_t idx;
+
+    if((array = interrupt_queues[interrupt]) && (idx = flexarray_find(array, &mq)) != -1) {
+        flexarray_remove(array, idx);
+    }
 }
 
 static void _set_idt_entry(int index, ptr_t base) {
@@ -317,6 +341,28 @@ cpu_state* interrupt_handler(cpu_state* cpu) {
     }
     else if(cpu->interrupt >= 32 && cpu->interrupt < 48) {
         pic_set_handled(cpu->interrupt);
+
+        uint8_t irq = cpu->interrupt - 0x20;
+        if(interrupt_queues[irq]) {
+            size_t len             = flexarray_length(interrupt_queues[irq]);
+            const uint64_t* queues = (uint64_t*)flexarray_getall(interrupt_queues[irq]);
+
+            size_t user_size    = sizeof(struct HardwareInterruptUserData);
+            size_t size         = sizeof(struct Message) + user_size;
+            struct Message* msg = vm_alloc(size);
+
+            msg->size                                  = size;
+            msg->user_size                             = user_size;
+            msg->type                                  = MT_HardwareInterrupt;
+            msg->sender                                = -1;
+            msg->user_data.HardwareInterrupt.interrupt = irq;
+
+            for(size_t i = 0; i < len; ++i) {
+                mq_push(queues[i], msg);
+            }
+
+            vm_free(msg);
+        }
     }
 
     cpu_state*  new_cpu;
