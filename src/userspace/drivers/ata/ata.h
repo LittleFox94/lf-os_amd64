@@ -66,18 +66,13 @@
 #define __ATA_DAR_WG        0x40         // Write Gate (0 when write active)
 #define __ATA_DAR_RSVD      0x80         // Reserved
 
-#define __ATA_DISK_ID_SATA  0x3c3c
-#define __ATA_DISK_ID_ATAPI 0x14eb
+#define __ATA_DISK_ID_SATA  0x3c3c       // lba mid/low if sata disk
+#define __ATA_DISK_ID_ATAPI 0x14eb       // lba mid/low if atapi disk
 
-/**
- * Helper macro to allow easy access to NOPs for few hundred-thousand
- * nanosecond delays needed by some ATA related operations.
- *
- * This is defined as volatile & 'memory' so that compilers realize
- * not to touch this seemingly useless bit of code.
- *
- */
-#define NOP() (asm volatile("nop;"))
+/* Some useful command bytes */
+#define __ATA_CMD_CFLUSH    0xE7         // Cache flush
+#define __ATA_CMD_DD        0x90         // used for non-std disk detect
+#define __ATA_CMD_IDENTIFY  0xEC         // used for std disk detect
 
 /**
  * Function declarations here
