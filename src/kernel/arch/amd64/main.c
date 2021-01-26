@@ -29,7 +29,7 @@ extern char build_id[];
 void nyi();
 void bootstrap_globals();
 void init_console(struct LoaderStruct* loaderStruct);
-void init_console_backbuffer();
+void init_console_backbuffer(struct LoaderStruct* loaderStruct);
 void init_mm(struct LoaderStruct* loaderStruct);
 void init_symbols(struct LoaderStruct* loaderStruct);
 void init_init(struct LoaderStruct* loaderStruct);
