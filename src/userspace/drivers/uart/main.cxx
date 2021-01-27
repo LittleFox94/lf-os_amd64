@@ -3,11 +3,12 @@
 #include <kernel/syscalls.h>
 #include <sys/io.h>
 
-static const uint16_t base_port = 0x3f8;
+const uint16_t base_port = 0x3f8;
 
-static inline void wait_transmitter_empty() {
-    size_t size         = sizeof(struct Message) + sizeof(uint16_t);
-    struct Message* msg = (struct Message*)malloc(size);
+void wait_transmitter_empty() {
+    size_t size  = sizeof(Message) + sizeof(Message::UserData::HardwareInterruptUserData);
+    Message* msg = (Message*)malloc(size);
+    memset(msg, 0, size);
     msg->size = size;
 
     uint64_t error;
@@ -19,7 +20,13 @@ static inline void wait_transmitter_empty() {
         (error == 0 && msg->type != Message::MT_HardwareInterrupt)
     );
 
-    std::cerr << "Received IRQ " << msg->user_data.HardwareInterrupt.interrupt << " in process" << std::endl;
+    if(error) {
+        std::cerr << "Received error on message poll: " << error << std::endl;
+
+        if(error == EMSGSIZE) {
+            std::cerr << "Received size " << msg->size << ", tried " << size << std::endl;
+        }
+    }
 
     free(msg);
 }

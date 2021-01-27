@@ -25,7 +25,7 @@ struct Message {
         MT_UserDefined = 1024,
     } type;
 
-    union {
+    union UserData {
         struct IOUserData {
             //! File descriptor this data is for
             int  fd;

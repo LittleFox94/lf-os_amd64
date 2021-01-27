@@ -402,24 +402,28 @@ void sc_handle_ipc_mq_poll(uint64_t mq, bool wait, struct Message* msg, uint64_t
     struct Message peeked = { .size = sizeof(struct Message) };
     *error = mq_peek(mq, &peeked);
 
-    if(*error == ENOMSG) {
-        if(wait) {
-            union wait_data data;
-            data.message_queue = mq;
-            scheduler_wait_for(scheduler_current_process, wait_reason_message, data);
-            // this makes the syscall return EAGAIN as soon as a message is available,
-            // making the process poll again and then receive the message.
-            // TODO: implement a way to deliver syscall results when a process is
-            //       scheduled the next time, so we don't have to poll twice
-            *error = EAGAIN;
-            return;
-        }
+    if(*error == ENOMSG && wait) {
+        union wait_data data;
+        data.message_queue = mq;
+        scheduler_wait_for(scheduler_current_process, wait_reason_message, data);
+        // this makes the syscall return EAGAIN as soon as a message is available,
+        // making the process poll again and then receive the message.
+        // TODO: implement a way to deliver syscall results when a process is
+        //       scheduled the next time, so we don't have to poll twice
+        *error = EAGAIN;
     }
     else if(*error == EMSGSIZE) {
         if(peeked.size > msg->size) {
             msg->size = peeked.size;
-            return;
+            msg->type = MT_Invalid;
         }
+        else {
+            *error = 0;
+        }
+    }
+
+    if(*error) {
+        return;
     }
 
     *error = mq_pop(mq, msg);

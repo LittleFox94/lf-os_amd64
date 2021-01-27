@@ -137,12 +137,12 @@ uint64_t mq_push(uint64_t mq, struct Message* message) {
     }
 
     if((
-         data->max_bytes ||
-         data->max_items
-       ) &&
+         data->max_bytes &&
+         data->bytes + message->size >= data->max_bytes
+       ) ||
        (
-         data->bytes + message->size >= data->max_bytes ||
-         data->items                 >= data->max_items
+         data->max_items &&
+         data->items >= data->max_items
        )
     ) {
         return ENOMEM;
@@ -177,7 +177,7 @@ uint64_t mq_push(uint64_t mq, struct Message* message) {
 
 uint64_t mq_pop(uint64_t mq, struct Message* msg) {
     uint64_t error;
-    if((error = mq_peek(mq, msg)) != 0) {
+    if((error = mq_peek(mq, msg))) {
         return error;
     }
 
@@ -222,6 +222,7 @@ uint64_t mq_peek(uint64_t mq, struct Message* msg) {
     }
     else {
         msg->size = msg_in_page->size;
+        msg->type = MT_Invalid;
         return EMSGSIZE;
     }
 }
