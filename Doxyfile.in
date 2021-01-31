@@ -881,8 +881,10 @@ FILE_PATTERNS          = *.c \
                          *.h \
                          *tiny-stl/include/std/* \
                          *tiny-stl/include/helpers/tinystl/* \
+                         *include/9p/* \
                          *.inc \
                          *.md
+EXTENSION_MAPPING = no_extension=C++
 
 # The RECURSIVE tag can be used to specify whether or not subdirectories should
 # be searched for input files as well.
@@ -1038,7 +1040,7 @@ INLINE_SOURCES         = NO
 # Fortran comments will always remain visible.
 # The default value is: YES.
 
-STRIP_CODE_COMMENTS    = YES
+STRIP_CODE_COMMENTS    = NO
 
 # If the REFERENCED_BY_RELATION tag is set to YES then for each documented
 # entity all documented functions referencing it will be listed.

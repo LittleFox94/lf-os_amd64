@@ -1,0 +1,22 @@
+// vim: ft=cpp
+#pragma once
+
+#include <9p/connection>
+
+namespace lib9p {
+    class FileSystem :
+        public Connection::AttachHandler,
+               Connection::StatHandler,
+               Connection::ClunkHandler,
+               Connection::ReadHandler,
+               Connection::WalkHandler,
+               Connection::OpenHandler
+    {
+        public:
+            virtual ~FileSystem();
+
+            virtual void clunk(Connection*, const Qid&);
+        protected:
+            void setAsHandler(Connection* conn);
+    };
+}

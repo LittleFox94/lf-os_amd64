@@ -1,0 +1,277 @@
+// vim: ft=cpp
+#pragma once
+
+#include <vector>
+#include <string>
+#include <tuple>
+#include <cassert>
+#include <stdint.h>
+
+#include <9p/wireutils>
+#include <9p/stat>
+#include <9p/qid>
+
+namespace lib9p {
+    class MessageWithFid {
+        public:
+            virtual uint32_t getFid() const = 0;
+    };
+
+    class Message {
+        public:
+            enum Type {
+                Tversion   = 100,       Rversion   = 101,
+                Tauth      = 102,       Rauth      = 103,
+                Tattach    = 104,       Rattach    = 105,
+                /* Terror is invalid */ Rerror     = 107,
+                Tflush     = 108,       Rflush     = 109,
+                Twalk      = 110,       Rwalk      = 111,
+                Topen      = 112,       Ropen      = 113,
+                Tcreate    = 114,       Rcreate    = 115,
+                Tread      = 116,       Rread      = 117,
+                Twrite     = 118,       Rwrite     = 119,
+                Tclunk     = 120,       Rclunk     = 121,
+                Tremove    = 122,       Rremove    = 123,
+                Tstat      = 124,       Rstat      = 125,
+                Twstat     = 126,       Rwstat     = 127,
+            };
+
+            static const uint16_t NoTag = ~(uint16_t)0;
+            static const uint32_t NoFid = ~(uint32_t)0;
+
+            static Message* decode(std::istream& data);
+            virtual void encode(std::ostream& data) const = 0;
+
+            Message(Type type) :
+                _type(type) { }
+
+            Message(Type type, uint16_t tag) :
+                _type(type),
+                _tag(tag) { }
+
+            virtual ~Message()               { }
+
+            Type     getType() const      { return _type; }
+            uint16_t getTag()  const      { return _tag; }
+            void     setTag(uint16_t tag) { _tag = tag; }
+
+        protected:
+            Type     _type;
+            uint16_t _tag;
+    };
+
+    template<class I, enum Message::Type T, typename... D>
+    class MessageImpl: public Message {
+        public:
+            MessageImpl(const D&... data)
+                : Message(T),
+                  _data(std::tuple<const D&...>(data...)) {
+            }
+
+            MessageImpl(std::istream& encoded)
+                : Message(T, WireUtils::read<uint16_t>(encoded)),
+                  _data(WireUtils::decode<D...>(encoded)) {
+            }
+
+            virtual void encode(std::ostream& data) const {
+                std::ostringstream body;
+                WireUtils::write((uint8_t)_type, body);
+                WireUtils::write(_tag, body);
+
+                std::apply([&body](auto... d) { (WireUtils::write(d, body), ...); }, _data);
+
+                const std::string& str = body.str();
+                WireUtils::write((uint32_t)str.length() + 4, data);
+
+                data << str;
+            }
+
+        protected:
+            std::tuple<D...> _data;
+    };
+
+    class Tauth: public MessageImpl<Tauth, Message::Tauth, uint32_t, std::string, std::string> {
+        using MessageImpl::MessageImpl;
+        public:
+            uint32_t           getAFid()  const { return std::get<0>(_data); }
+            const std::string& getUName() const { return std::get<1>(_data); }
+            const std::string& getAName() const { return std::get<2>(_data); }
+    };
+
+    class Rauth: public MessageImpl<Rauth, Message::Rauth, Qid> {
+        using MessageImpl::MessageImpl;
+        public:
+            const Qid& getAQid() const { return std::get<0>(_data); }
+    };
+
+    class Tattach: public MessageImpl<Tattach, Message::Tattach, uint32_t, uint32_t, std::string, std::string>,
+                   public MessageWithFid {
+        using MessageImpl::MessageImpl;
+        public:
+            virtual uint32_t           getFid()   const { return std::get<0>(_data); }
+                    uint32_t           getAFid()  const { return std::get<1>(_data); }
+                    const std::string& getUName() const { return std::get<2>(_data); }
+                    const std::string& getAName() const { return std::get<3>(_data); }
+    };
+
+    class Rattach: public MessageImpl<Rattach, Message::Rattach, Qid> {
+        using MessageImpl::MessageImpl;
+        public:
+            const Qid& getQid() const { return std::get<0>(_data); }
+    };
+
+    class Tclunk: public MessageImpl<Tclunk, Message::Tclunk, uint32_t>,
+                  public MessageWithFid {
+        using MessageImpl::MessageImpl;
+        public:
+            virtual uint32_t getFid() const { return std::get<0>(_data); }
+    };
+
+    class Rclunk: public MessageImpl<Rclunk, Message::Rclunk> {
+        using MessageImpl::MessageImpl;
+    };
+
+    class Rerror: public MessageImpl<Rerror, Message::Rerror, const std::string> {
+        using MessageImpl::MessageImpl;
+        public:
+            std::string getEname() const { return std::get<0>(_data); }
+    };
+
+    class Tflush: public MessageImpl<Tflush, Message::Tflush, uint32_t, uint32_t> {
+        using MessageImpl::MessageImpl;
+        public:
+            uint32_t getOldTag() const { return std::get<0>(_data); }
+    };
+
+    class Rflush: public MessageImpl<Rflush, Message::Rflush> {
+        using MessageImpl::MessageImpl;
+    };
+
+    class Topen: public MessageImpl<Topen, Message::Topen, uint32_t, uint8_t>,
+                 public MessageWithFid {
+        using MessageImpl::MessageImpl;
+        public:
+            virtual uint32_t getFid()  const { return std::get<0>(_data); }
+                    uint32_t getMode() const { return std::get<1>(_data); }
+    };
+
+    class Ropen: public MessageImpl<Ropen, Message::Ropen, Qid, uint32_t> {
+        using MessageImpl::MessageImpl;
+        public:
+            const Qid& getQid()  const { return std::get<0>(_data); }
+            uint32_t getIOUnit() const { return std::get<1>(_data); }
+    };
+
+    class Tcreate: public MessageImpl<Tcreate, Message::Tcreate, uint32_t, std::string, uint32_t, uint8_t>,
+                   public MessageWithFid {
+        using MessageImpl::MessageImpl;
+        public:
+            virtual uint32_t     getFid()  const { return std::get<0>(_data); }
+            const   std::string& getName() const { return std::get<1>(_data); }
+                    uint32_t     getPerm() const { return std::get<2>(_data); }
+                    uint32_t     getMode() const { return std::get<3>(_data); }
+    };
+
+    class Rcreate: public MessageImpl<Rcreate, Message::Rcreate, Qid, uint32_t> {
+        using MessageImpl::MessageImpl;
+        public:
+            const Qid& getQid()  const { return std::get<0>(_data); }
+            uint32_t getIOUnit() const { return std::get<1>(_data); }
+    };
+
+    class Tread: public MessageImpl<Tread, Message::Tread, uint32_t, uint64_t, uint32_t>,
+                 public MessageWithFid {
+        using MessageImpl::MessageImpl;
+        public:
+            virtual uint32_t getFid()    const { return std::get<0>(_data); }
+                    uint64_t getOffset() const { return std::get<1>(_data); }
+                    uint32_t getCount()  const { return std::get<2>(_data); }
+    };
+
+    class Rread: public MessageImpl<Rread, Message::Rread, std::basic_string<uint8_t>> {
+        using MessageImpl::MessageImpl;
+        public:
+            const std::basic_string<uint8_t>& getData() const { return std::get<0>(_data); }
+    };
+
+    class Twrite: public MessageImpl<Twrite, Message::Twrite, uint32_t, uint64_t, std::basic_string<uint8_t>>,
+                  public MessageWithFid {
+        using MessageImpl::MessageImpl;
+        public:
+            virtual uint32_t                    getFid()    const { return std::get<0>(_data); }
+                    uint64_t                    getOffset() const { return std::get<1>(_data); }
+            const   std::basic_string<uint8_t>& getData()   const { return std::get<2>(_data); }
+    };
+
+    class Rwrite: public MessageImpl<Rwrite, Message::Rwrite, uint32_t> {
+        using MessageImpl::MessageImpl;
+        public:
+            uint32_t getCount()  const { return std::get<0>(_data); }
+    };
+
+    class Tremove: public MessageImpl<Tremove, Message::Tremove, uint32_t>,
+                   public MessageWithFid {
+        using MessageImpl::MessageImpl;
+        public:
+            virtual uint32_t getFid() const { return std::get<0>(_data); }
+    };
+
+    class Rremove: public MessageImpl<Rremove, Message::Rremove> {
+        using MessageImpl::MessageImpl;
+    };
+
+    class Tstat: public MessageImpl<Tstat, Message::Tstat, uint32_t>,
+                 public MessageWithFid {
+        using MessageImpl::MessageImpl;
+        public:
+            virtual uint32_t getFid() const { return std::get<0>(_data); }
+    };
+
+    class Rstat: public MessageImpl<Rstat, Message::Rstat, Stat> {
+        using MessageImpl::MessageImpl;
+        public:
+            const Stat& getStat() const { return std::get<0>(_data); }
+    };
+
+    class Twstat: public MessageImpl<Twstat, Message::Twstat, uint32_t, Stat>,
+                  public MessageWithFid {
+        using MessageImpl::MessageImpl;
+        public:
+            virtual uint32_t getFid()  const { return std::get<0>(_data); }
+            const   Stat&    getStat() const { return std::get<1>(_data); }
+    };
+
+    class Rwstat: public MessageImpl<Rwstat, Message::Rwstat> {
+        using MessageImpl::MessageImpl;
+    };
+
+    class Tversion: public MessageImpl<Tversion, Message::Tversion, uint32_t, std::string> {
+        using MessageImpl::MessageImpl;
+        public:
+            uint32_t           getMsize()   const { return std::get<0>(_data); }
+            const std::string& getVersion() const { return std::get<1>(_data); }
+    };
+
+    class Rversion: public MessageImpl<Rversion, Message::Rversion, uint32_t, std::string> {
+        using MessageImpl::MessageImpl;
+        public:
+            uint32_t           getMsize()   const { return std::get<0>(_data); }
+            const std::string& getVersion() const { return std::get<1>(_data); }
+    };
+
+    class Twalk: public MessageImpl<Twalk, Message::Twalk, uint32_t, uint32_t, std::vector<std::string>>,
+                 public MessageWithFid {
+        using MessageImpl::MessageImpl;
+        public:
+            virtual uint32_t                  getFid()    const { return std::get<0>(_data); }
+                    uint32_t                  getNewFid() const { return std::get<1>(_data); }
+            const   std::vector<std::string>& getWNames() const { return std::get<2>(_data); }
+    };
+
+    class Rwalk: public MessageImpl<Rwalk, Message::Rwalk, std::vector<Qid>> {
+        using MessageImpl::MessageImpl;
+        public:
+            const std::vector<Qid>& getWQid() const { return std::get<0>(_data); }
+    };
+}
+

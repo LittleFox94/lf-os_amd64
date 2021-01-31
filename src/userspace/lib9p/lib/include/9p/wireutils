@@ -1,0 +1,43 @@
+// vim: ft=cpp
+#pragma once
+
+#include <vector>
+#include <string>
+#include <tuple>
+#include <sstream>
+
+#include <9p/stat>
+#include <9p/qid>
+
+namespace lib9p { namespace WireUtils {
+    template<typename T>
+    T read(std::istream& data);
+
+    template<> uint8_t                    read(std::istream& data);
+    template<> uint16_t                   read(std::istream& data);
+    template<> uint32_t                   read(std::istream& data);
+    template<> uint64_t                   read(std::istream& data);
+    template<> std::string                read(std::istream& data);
+    template<> std::string const          read(std::istream& data);
+    template<> std::vector<std::string>   read(std::istream& data);
+    template<> Stat                       read(std::istream& data);
+    template<> Qid                        read(std::istream& data);
+    template<> std::vector<Qid>           read(std::istream& data);
+    template<> std::basic_string<uint8_t> read(std::istream& data);
+
+    void write(uint8_t val,                               std::ostream& data);
+    void write(uint16_t val,                              std::ostream& data);
+    void write(uint32_t val,                              std::ostream& data);
+    void write(uint64_t val,                              std::ostream& data);
+    void write(const std::string val,                     std::ostream& data);
+    void write(const std::vector<std::string> val,        std::ostream& data);
+    void write(const Stat stat,                           std::ostream& data);
+    void write(const Qid qid,                             std::ostream& data);
+    void write(const std::vector<Qid> qids,               std::ostream& data);
+    void write(const std::basic_string_view<uint8_t> val, std::ostream& data);
+
+    template<typename ...T>
+    std::tuple<T...> decode(std::istream& data) {
+        return std::tuple<T...>{read<T>(data)...};
+    }
+} }

@@ -15,7 +15,7 @@ include(config)
 set(staging_shared_install ON)
 include(staging)
 
-set(stages lowlevel userspace)
+set(stages lowlevel userspace initramfs)
 
 if(NOT lf_os_sysroot_external)
     list(PREPEND stages sysroot libc stdlibs)
@@ -31,5 +31,5 @@ if(${current_stage} STREQUAL "root")
     include(helper_targets)
     include(tests)
 
-    add_dependencies(hd.img stage_userspace)
+    add_dependencies(hd.img stage_initramfs)
 endif()

@@ -1,0 +1,68 @@
+// vim: ft=cpp
+#pragma once
+
+#include <string>
+#include <sstream>
+#include <stdint.h>
+
+namespace lib9p {
+    using namespace std::string_literals;
+
+    // A QID defines a file, unique qid means same file
+    // consists of type, version and path (inode like number, unique on hierarchy/fs)
+    class Qid {
+        public:
+            enum Type {
+                QTFILE    = 0x00,
+                QTLINK    = 0x01,
+                QTSYMLINK = 0x02,
+                QTTMP     = 0x04,
+                QTAUTH    = 0x08,
+                QTMOUNT   = 0x10,
+                QTEXCL    = 0x20,
+                QTAPPEND  = 0x40,
+                QTDIR     = 0x80,
+            };
+
+            Qid() { }
+
+            Qid(Type type, uint32_t version, uint64_t path)
+                : _type(type), _version(version), _path(path) {
+            }
+
+            Qid(std::istream& data);
+
+            const bool operator==(const Qid& b) const;
+            const bool operator!=(const Qid& b) const;
+
+            void encode(std::ostream& data) const;
+
+            Type type()        const { return _type; }
+            uint32_t version() const { return _version; }
+            uint64_t path()    const { return _path; }
+
+            operator std::string() const {
+                return "{"s + std::to_string(_type)    + ", "s
+                            + std::to_string(_version) + ", "s
+                            + std::to_string(_path)    + "}"s;
+            }
+
+        private:
+            Type _type;
+            uint32_t _version;
+            uint64_t _path;
+    };
+}
+
+namespace std {
+    template<> struct hash<lib9p::Qid>
+    {
+        std::size_t operator()(lib9p::Qid const& qid) const noexcept {
+            std::size_t a = qid.path();
+            std::size_t b = (static_cast<size_t>(qid.type()) << 32)
+                          | qid.version();
+
+            return a ^ b;
+        }
+    };
+}

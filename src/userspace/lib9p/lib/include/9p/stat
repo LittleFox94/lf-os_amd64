@@ -1,0 +1,63 @@
+// vim: ft=cpp
+#pragma once
+
+#include <string>
+#include <sstream>
+#include <stdint.h>
+
+#include <9p/qid>
+
+namespace lib9p {
+    class Stat {
+        public:
+            Stat() { }
+            Stat(
+                uint16_t type, uint32_t dev,
+                const Qid& qid,
+                uint32_t mode,
+                uint32_t atime, uint32_t mtime,
+                uint64_t length,
+                const std::string& name,
+                const std::string& uid, const std::string& gid, const std::string& muid
+            ) : _type(type), _dev(dev),
+                  _qid(qid),
+                  _mode(mode),
+                  _atime(atime), _mtime(mtime),
+                  _length(length),
+                  _name(name),
+                  _uid(uid), _gid(gid), _muid(muid) {
+            }
+
+            Stat(std::istream& data);
+
+            void encode(std::ostream& data) const;
+
+            const bool operator==(const Stat& b) const;
+            const bool operator!=(const Stat& b) const;
+
+            uint16_t   getType()         const { return _type; }
+            uint32_t   getDev()          const { return _dev; }
+            const Qid& getQid()          const { return _qid; }
+            uint32_t   getMode()         const { return _mode; }
+            uint32_t   getAtime()        const { return _atime; }
+            uint32_t   getMtime()        const { return _mtime; }
+            uint64_t   getLength()       const { return _length; }
+            const std::string& getName() const { return _name; }
+            const std::string& getUid()  const { return _uid; }
+            const std::string& getGid()  const { return _gid; }
+            const std::string& getMUid() const { return _muid; }
+
+        private:
+            uint16_t _type;
+            uint32_t _dev;
+            Qid      _qid;
+            uint32_t _mode;
+            uint32_t _atime;
+            uint32_t _mtime;
+            uint64_t _length;
+            std::string _name;
+            std::string _uid;
+            std::string _gid;
+            std::string _muid;
+    };
+}

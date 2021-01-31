@@ -1,0 +1,38 @@
+// vim: ft=cpp
+#pragma once
+
+#include <9p/message>
+#include <9p/connection>
+
+namespace lib9p {
+    class ConnectionHandler {
+        public:
+            virtual void newConnection(Connection* conn) = 0;
+    };
+
+    class ResponseHandler {
+        public:
+            virtual void handle9pResponse(const Message* msg) = 0;
+    };
+
+    class Transport {
+        public:
+            virtual ~Transport();
+            virtual void loop() = 0;
+            virtual void writeMessage(const Message* msg, void* transportArg = nullptr) = 0;
+
+            void setResponseHandler(ResponseHandler* handler) {
+                this->_responseHandler = handler;
+            }
+
+        protected:
+            Transport(ConnectionHandler* connectionHandler)
+                : _connectionHandler(connectionHandler) {
+            }
+
+            Transport() {}
+
+            ConnectionHandler* _connectionHandler;
+            ResponseHandler*   _responseHandler;
+    };
+}

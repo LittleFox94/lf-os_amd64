@@ -1,0 +1,57 @@
+// vim: ft=cpp
+#pragma once
+
+#include <stdexcept>
+#include <string>
+
+#include <9p/qid>
+
+namespace lib9p {
+    using namespace std::string_literals;
+
+    class Exception: public std::runtime_error {
+        protected:
+            Exception(const char* what)
+                : std::runtime_error(what) {
+            }
+    };
+
+    //! might be thrown by servers where qids are only valid until clunked
+    class ClunkedQidReused: public Exception {
+        public:
+            ClunkedQidReused(const Qid& qid)
+                : Exception(("qid "s + static_cast<std::string>(qid) + " reused after clunk"s).c_str()) {
+            }
+    };
+
+    class FIDInUse: public Exception {
+        public:
+            FIDInUse()
+                : Exception("fid already in use") {
+            }
+    };
+
+    class NotImplemented: public Exception {
+        public:
+            NotImplemented()
+                : Exception("Function not implemented") {
+            }
+    };
+
+    class UnknownFID: public Exception {
+        public:
+            UnknownFID()
+                : Exception("fid unknown or out of range") {
+            }
+    };
+
+    class QidTypeError: public Exception {
+        public:
+            QidTypeError(const Qid::Type expected, const Qid::Type actual)
+                : Exception(("unexpected qid type "s
+                          + std::to_string(static_cast<uint8_t>(actual))
+                          + ", expected "s
+                          + std::to_string(static_cast<uint8_t>(expected))).c_str()) {
+            }
+    };
+}

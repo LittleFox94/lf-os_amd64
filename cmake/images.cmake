@@ -51,11 +51,9 @@ function(make_bootable_image destination)
     )
 endfunction()
 
-set(package_userspace ${build_userspace})
-list(TRANSFORM package_userspace PREPEND shared/userspace/)
 make_bootable_image(
     hd.img
-    ${package_userspace}
+    shared/initramfs/initramfs
 )
 
 install(FILES ${CMAKE_BINARY_DIR}/shared/loader/loader.efi   DESTINATION boot/efi/EFI/LFOS RENAME BOOTX64.EFI)

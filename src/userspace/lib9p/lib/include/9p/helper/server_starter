@@ -1,0 +1,33 @@
+// vim: ft=cpp
+#pragma once
+
+#include <stdint.h>
+#include <string>
+#include <unordered_map>
+
+#include <9p/connection>
+#include <9p/transport>
+#include <9p/helper/filesystem>
+
+namespace lib9p {
+    class ServerStarter : public ConnectionHandler, Connection::AttachHandler {
+        public:
+#if __LF_OS__
+            ServerStarter(uint64_t message_queue = 0, bool registerService = false);
+#else
+            ServerStarter(uint16_t port);
+#endif
+            ~ServerStarter();
+
+            void addFileSystem(std::string name, FileSystem* fs);
+
+            void newConnection(Connection* conn);
+
+            void loop();
+
+            virtual Qid attach(Connection* conn, std::string user, std::string fs);
+        private:
+            Transport*                                   _transport;
+            std::unordered_map<std::string, FileSystem*> _filesystems;
+    };
+}

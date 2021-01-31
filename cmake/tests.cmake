@@ -7,9 +7,10 @@ if(${BUILD_TESTING})
     add_subdirectory(src/kernel/tests)
     add_subdirectory(src/lib/tiny-stl)
     add_subdirectory(src/userspace/liblfos)
+    add_subdirectory(src/userspace/lib9p)
 
     add_custom_target(runtime-tests)
-    add_custom_target(tests DEPENDS test-kernel runtime-tests test-tinystl test-liblfos)
+    add_custom_target(tests DEPENDS test-kernel runtime-tests test-tinystl test-liblfos test-lib9p)
 
     file(GLOB_RECURSE runtime_tests RELATIVE ${CMAKE_SOURCE_DIR}/src/runtime-tests/ CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/src/runtime-tests/*.cxx)
 

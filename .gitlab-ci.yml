@@ -225,6 +225,7 @@ unittest:
       - build/runtime-test_*.xml
       - build/tinystl_tests.xml
       - build/liblfos_tests.xml
+      - build/lib9p_tests.xml
       coverage_report:
         coverage_format: cobertura
         path: build/coverage.xml

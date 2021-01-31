@@ -1,0 +1,75 @@
+// vim: ft=cpp
+#pragma once
+
+#include <9p/message>
+#include <9p/qid>
+#include <9p/stat>
+
+#include <unordered_map>
+#include <functional>
+
+namespace lib9p {
+    class Transport;
+
+    class Connection {
+        public:
+            class AttachHandler { public: virtual Qid                        attach(Connection* conn, std::string user, std::string fs) = 0; };
+            class StatHandler   { public: virtual Stat                       stat(Connection*   conn, const Qid& qid) = 0; };
+            class ClunkHandler  { public: virtual void                       clunk(Connection*  conn, const Qid& qid) = 0; };
+            class ReadHandler   { public: virtual std::basic_string<uint8_t> read(Connection*   conn, const Qid& qid, uint64_t off, uint32_t count) = 0; };
+            class WalkHandler   { public: virtual std::vector<Qid>           walk(Connection*   conn, std::vector<std::string>& names, const Qid& start) = 0; };
+            class OpenHandler   { public: virtual uint32_t                   open(Connection*   conn, const Qid& qid, uint8_t mode) = 0; };
+
+            Connection(Transport* transport, void* transportArg)
+                : _transport(transport), _transportArg(transportArg) {
+            }
+
+            void push(Message* msg);
+
+            void onAttach(AttachHandler* handler) {
+                _attachHandler = handler;
+            }
+
+            void onStat(StatHandler* handler) {
+                _statHandler = handler;
+            }
+
+            void onWalk(WalkHandler* handler) {
+                _walkHandler = handler;
+            }
+
+            void onRead(ReadHandler* handler) {
+                _readHandler = handler;
+            }
+
+            void onClunk(ClunkHandler* handler) {
+                _clunkHandler = handler;
+            }
+
+            void onOpen(OpenHandler* handler) {
+                _openHandler = handler;
+            }
+
+            uint32_t maxMessageSize() {
+                return _maxMessageSize;
+            }
+
+        private:
+            Transport* _transport;
+            void*      _transportArg;
+
+            std::string _version;
+            uint32_t    _maxMessageSize;
+
+            AttachHandler* _attachHandler = nullptr;
+            StatHandler*   _statHandler   = nullptr;
+            WalkHandler*   _walkHandler   = nullptr;
+            ReadHandler*   _readHandler   = nullptr;
+            ClunkHandler*  _clunkHandler  = nullptr;
+            OpenHandler*   _openHandler   = nullptr;
+
+            std::unordered_map<uint32_t, Qid> _fids;
+
+            void respond(Message* msg, Message* original);
+    };
+}

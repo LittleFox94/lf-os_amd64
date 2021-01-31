@@ -1,0 +1,45 @@
+// vim: ft=cpp
+#pragma once
+
+#include <9p/transport>
+
+#include <stdint.h>
+#include <unordered_map>
+
+#include <sys/message_passing.h>
+
+namespace lib9p {
+    class LFOSTransport: public Transport {
+        public:
+            LFOSTransport(int message_queue, ConnectionHandler* handler)
+                : Transport(handler), _queue(message_queue) {
+            }
+
+            LFOSTransport(int message_queue)
+                : Transport(), _queue(message_queue) {
+                discoverService();
+            }
+
+            virtual void loop();
+            virtual void writeMessage(const Message* msg, void* transportArg);
+
+            static void send(pid_t pid, uint64_t send_mq, uint64_t recv_mq, const Message& msg);
+            Message* decode(::Message* msg);
+
+            void discoverService();
+            void setAnswerServiceDiscovery(bool enable) { _answerServiceDiscovery = enable; }
+
+        protected:
+            std::unordered_map<pid_t, Connection*> _connections;
+
+        private:
+            struct TransportArgument {
+                pid_t    recipient_pid;
+                uint64_t queue_id;
+            };
+
+            uint64_t          _queue;
+            TransportArgument _clientTransportArg;
+            bool              _answerServiceDiscovery;
+    };
+}

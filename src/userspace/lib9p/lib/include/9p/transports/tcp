@@ -1,0 +1,35 @@
+// vim: ft=cpp
+#pragma once
+
+#include <9p/transport>
+
+#include <stdint.h>
+#include <unordered_map>
+
+namespace lib9p {
+    class TCPTransport: public Transport {
+        public:
+            virtual void writeMessage(const Message* msg, void* transportArg);
+
+        protected:
+            TCPTransport(ConnectionHandler* handler)
+                : Transport(handler) {
+            }
+
+            TCPTransport()
+                : Transport() {
+            }
+
+            std::unordered_map<int, std::string> _buffers;
+            std::unordered_map<int, Connection*> _connections;
+    };
+
+    class TCPServerTransport: public TCPTransport {
+        public:
+            TCPServerTransport(uint16_t port, ConnectionHandler* handler);
+            virtual void loop();
+
+        private:
+            int _fd;
+    };
+}
