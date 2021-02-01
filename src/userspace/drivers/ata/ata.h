@@ -84,7 +84,11 @@
  *
  * \param port short Is a port to IO-base for device to reset.
  */
-void ata_sw_reset(short port);
+inline void ata_sw_reset(short port);
 
+/**
+ * Find disks & (eventually) return their statuses & port bases.
+ */
+int detect_ata_disks(void);
 
 #endif  /* __ATA_H__ */
