@@ -246,7 +246,7 @@ char *ata_get_disk_str_by_id(int id) {
 }
 
 /* TODO: doc, eventually. I hope., yes. */
-int detect_ata_disks(void) {
+void detect_ata_disks(struct ata_disk_stat *ata_disk_stat_arr) {
     uint64_t stat = 0;
     int ports[] = {0x1f0, 0x170, 0x1e8, 0x168};
     int ret;
@@ -263,6 +263,13 @@ int detect_ata_disks(void) {
         }
 
         printf("ATA Disk detect for device 0x%x: ", ports[i]);
+
+        /* Populate ata disk status array */
+        if (ret != -1) {
+            ata_disk_stat_arr[i].port      = ports[i];
+            ata_disk_stat_arr[i].status    = ret;
+        }
+
         switch (ret) {
             case(-1):
                 printf("failed! Bus floats.\n");
@@ -271,7 +278,7 @@ int detect_ata_disks(void) {
                 printf("disk not attached\n");
                 break;
             default:
-                printf("%s disk detected\n", ata_get_disk_str_by_id(ret));
+                printf("%s disk detected\n", ata_get_disk_str_by_id(ret)); 
                 break;
         }
     }
