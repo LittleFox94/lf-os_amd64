@@ -245,7 +245,7 @@ char *ata_get_disk_str_by_id(int id) {
     }
 }
 
-/* TODO: doc */
+/* TODO: doc, eventually. I hope. */
 int detect_ata_disks(void) {
     uint64_t stat = 0;
     int ports[] = {0x1f0, 0x170, 0x1e8, 0x168};
