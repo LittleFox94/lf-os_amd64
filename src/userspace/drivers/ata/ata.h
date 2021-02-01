@@ -12,6 +12,7 @@
 #define __ATA_DISK_ID_INTERNAL_SATA 3
 #define __ATA_DISK_ID_INTERNAL_ATA 2
 #define __ATA_DISK_ID_INTERNAL_NON_ATA 1
+#define __ATA_DISK_ID_INTERNAL_NOT_DISK 0
 
 #define __ATA_DISK_ID_STR_NON_ATA "non ata"
 #define __ATA_DISK_ID_STR_SATA "sata"
@@ -79,6 +80,17 @@
  */
 
 /**
+ * Helper struct to contain ATA disks & statuses
+ *
+ * short port Is port to ata device
+ * int status Is status of disk, using __ATA_DISK_ID_INTERNAL_ATA_XXX.
+ */
+struct ata_disk_stat {
+    short port;
+    int status;
+};
+
+/**
  * This function allows user to manually trigger ata reset. This can be 
  * useful eg. in case of crashed and/or buggy disk.
  *
@@ -89,6 +101,6 @@ inline void ata_sw_reset(short port);
 /**
  * Find disks & (eventually) return their statuses & port bases.
  */
-int detect_ata_disks(void);
+void detect_ata_disks(struct ata_disk_stat *ata_disk_stat_array);
 
 #endif  /* __ATA_H__ */
