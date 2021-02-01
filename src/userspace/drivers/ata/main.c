@@ -20,7 +20,6 @@
 int main() {
     detect_ata_disks();
 
-    do {} while (1);
 }
 
 
