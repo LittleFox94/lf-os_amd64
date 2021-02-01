@@ -17,9 +17,12 @@
 
 #include "ata.h"
 
-int main() {
-    detect_ata_disks();
+struct ata_disk_stat ata_disk_stat_array[3];
 
+int main() {
+    detect_ata_disks((struct ata_disk_stat_array *)ata_disk_stat_array);
+
+    do {} while (1);
 }
 
 
