@@ -8,27 +8,6 @@ project("lf_os" NONE)
 # logic.
 # The stages are in cmake/stage_$n.cmake
 
-# LF OS build settings
-set(architecture "amd64"                      CACHE STRING "Architecture to build for (only amd64 for now)")
-set(toolchain "${CMAKE_SOURCE_DIR}/toolchain" CACHE PATH   "LF OS toolchain")
-
-set(kernel_log_max_buffer "4*1024*1024" CACHE STRING "Max size of buffer storing log messages")
-set(kernel_log_com0       "true"        CACHE STRING "Log messages to platform first serial port")
-set(kernel_log_efi        "true"        CACHE STRING "Log messages to EFI firmware variables to be persisted through reboots")
-
-set(loader_lfos_path      "LFOS" CACHE STRING "Where shall the loader search for kernel and other files")
-
-set(lfos_vars
-    architeture
-    toolchain
-
-    kernel_log_max_buffer
-    kernel_log_com0
-    kernel_log_efi
-    loader_lfos_path
-)
-
-# CMake settings for LF OS
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake" CACHE PATH "CMake module path for LF OS" FORCE)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -41,6 +20,13 @@ set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 -DDEBUG")
 set(stage "root" CACHE STRING "Current build stage (you want to start with root)")
 
 if(${stage} STREQUAL "root")
+    function(lfos_config name default desc)
+        set("${name}" "${default}" CACHE STRING "${desc}")
+        set(lfos_vars ${lfos_vars} ${name} PARENT_SCOPE)
+    endfunction()
+
+    include(config)
+
     set(all_stages toolchain libc stdlibs lowlevel userspace)
     include(ExternalProject)
 
