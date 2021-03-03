@@ -9,14 +9,14 @@ typedef struct tpa tpa_t;
 /**
  * Allocate and initialize a new Thin Provisioned Array
  *
- * \param allocator Allocator function to use
- * \param deallocator Deallocator function to use
+ * \param alloc Allocator function to use
+ * \param dealloc Deallocator function to use
  * \param entry_size Size of each entry
  * \param page_size Size of each data page
  * \param tpa Pointer to a memory region to use as tpa, 0 to alloc internally
  * \returns A new TPA to use
  */
-tpa_t* tpa_new(allocator_t* allocator, deallocator_t* deallocator, uint64_t entry_size, uint64_t page_size, tpa_t* tpa);
+tpa_t* tpa_new(allocator_t* alloc, deallocator_t* dealloc, uint64_t entry_size, uint64_t page_size, tpa_t* tpa);
 
 /**
  * Deallocate every data in use by the given TPA And the TPA itself
@@ -74,7 +74,7 @@ size_t tpa_entries(tpa_t* tpa);
  * Returns the next non-empty element after cur
  *
  * \remarks Has to iterate through the pages to get the page to the cur idx
- * \param tba The TPA
+ * \param tpa The TPA
  * \param cur The current index
  * \returns The next non-empty element index after cur. Special case: returns 0 when nothing found, you
  *          are expected to check if the returned value is larger than cur to check if something was found.
