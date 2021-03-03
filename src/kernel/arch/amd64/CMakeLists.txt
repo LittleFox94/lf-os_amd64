@@ -3,7 +3,6 @@ target_sources(kernel PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/gdt.S
     ${CMAKE_CURRENT_SOURCE_DIR}/init.S
     ${CMAKE_CURRENT_SOURCE_DIR}/main.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/mm.c
     ${CMAKE_CURRENT_SOURCE_DIR}/msr.c
     ${CMAKE_CURRENT_SOURCE_DIR}/pic.c
     ${CMAKE_CURRENT_SOURCE_DIR}/pit.c

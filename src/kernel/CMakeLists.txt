@@ -15,14 +15,15 @@ add_executable(kernel
     efi.c       efi.h
     elf.c       elf.h
     fbconsole.c fbconsole.h
+    flexarray.c flexarray.h
     log.c       log.h
+    mm.c        mm.h
+    mq.c        mq.h
     mutex.c     mutex.h
     sd.c        sd.h
     slab.c      slab.h
     string.c    string.h
     tpa.c       tpa.h
-    flexarray.c flexarray.h
-    mq.c        mq.h
     version.c
                 allocator.h
                 bitmap.h
