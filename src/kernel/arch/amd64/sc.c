@@ -309,6 +309,17 @@ void init_sc() {
     write_msr(0xC0000102, (ptr_t)(_cpu0));
 }
 
+static cpu_state* schedule_process(cpu_state* old_cpu) {
+    cpu_state*  new_cpu = old_cpu; // for idle task we only change some fields,
+                                   // allocating a new cpu for that is ..
+                                   // correct but slow, so we just reuse the old one
+    struct vm_table* new_context;
+    schedule_next(&new_cpu, &new_context);
+    vm_context_activate(new_context);
+
+    return new_cpu;
+}
+
 __attribute__ ((force_align_arg_pointer))
 cpu_state* interrupt_handler(cpu_state* cpu) {
     scheduler_process_save(cpu);
@@ -370,12 +381,7 @@ cpu_state* interrupt_handler(cpu_state* cpu) {
         }
     }
 
-    cpu_state*  new_cpu;
-    struct vm_table* new_context;
-    schedule_next(&new_cpu, &new_context);
-    vm_context_activate(new_context);
-
-    return new_cpu;
+    return schedule_process(cpu);
 }
 
 __attribute__ ((force_align_arg_pointer))
@@ -384,10 +390,5 @@ cpu_state* syscall_handler(cpu_state* cpu) {
     sc_handle(cpu);
     scheduler_process_save(cpu);
 
-    cpu_state*  new_cpu;
-    struct vm_table* new_context;
-    schedule_next(&new_cpu, &new_context);
-    vm_context_activate(new_context);
-
-    return new_cpu;
+    return schedule_process(cpu);
 }

@@ -80,6 +80,10 @@ void process_dealloc(allocator_t* alloc, void* ptr) {
     processes[alloc->tag].allocatedMemory -= size;
 }
 
+__attribute__((naked)) static void idle_task() {
+    asm("jmp .");
+}
+
 void init_scheduler() {
     memset((uint8_t*)processes, 0, sizeof(process_t) * MAX_PROCS);
 }
@@ -172,7 +176,15 @@ void schedule_next(cpu_state** cpu, struct vm_table** context) {
     }
 
     if(processes[scheduler_current_process].state != process_state_runnable) {
-        panic_message("No more tasks to schedule");
+        *context = VM_KERNEL_CONTEXT;
+        (*cpu)->rip    = (uint64_t)idle_task;
+        (*cpu)->cs     = 0x2B;
+        (*cpu)->ss     = 0x23;
+        (*cpu)->rflags = 0x200;
+
+        scheduler_current_process = -1;
+
+        return;
     }
 
     processes[scheduler_current_process].state = process_state_running;
