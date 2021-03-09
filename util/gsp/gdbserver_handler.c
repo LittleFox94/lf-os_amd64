@@ -273,12 +273,12 @@ void _recv_packet(GDBServerHandler* handler) {
 
 void gdbserver_handler_continue(GDBServerHandler* handler) {
     handler->paused = false;
-    _send_packet(handler, "C ", 2);
+    _send_packet(handler, "c", 1);
 }
 
 void gdbserver_handler_break(GDBServerHandler* handler, uint64_t addr) {
     char buffer[64];
-    size_t len = snprintf(buffer, 64, "Z1 %lx", addr);
+    size_t len = snprintf(buffer, 64, "Z1,%lx,0", addr);
 
     _send_packet(handler, buffer, len);
 }
