@@ -193,82 +193,13 @@ static inline void _send_packet(GDBServerHandler* handler, const char* packet, s
     write(handler->socket, full_packet, len + 4);
 
     char buffer;
-
     do {
         read(handler->socket, &buffer, 1);
     } while(buffer != '+' && buffer != '-');
 
     if(buffer == '-') {
-        fprintf(stderr, "Error reply to packet received\n");
+        fprintf(stderr, "Error reply to packet received");
     }
-}
-
-void _recv_packet(GDBServerHandler* handler) {
-    if(handler->packet_ready) {
-        return;
-    }
-
-    char c;
-
-    if(recv(handler->socket, &c, 1, 0) <= 0) {
-        if(errno != EAGAIN && errno != EWOULDBLOCK) {
-            fprintf(stderr, "Cannot read from socket anymore, exiting\n");
-            exit(-1);
-        } else {
-            return;
-        }
-    }
-    else {
-        if(!handler->packet_started && c == '$') {
-            handler->packet_started = true;
-            handler->packet_len     = 0;
-            return;
-        }
-
-        if(handler->packet_started && c == '#') {
-            handler->packet_checksum     = 0;
-            handler->packet_checksum_ctr = 2;
-            return;
-        }
-
-        if(handler->packet_started && handler->packet_checksum_ctr > 0) {
-            --handler->packet_checksum_ctr;
-
-            char buffer[2] = { c, 0 };
-            int decoded = 0;
-            sscanf(buffer, "%x", &decoded);
-
-            if(handler->packet_checksum_ctr == 1) {
-                handler->packet_checksum = decoded << 4;
-            }
-
-            if(handler->packet_checksum_ctr == 0) {
-                handler->packet_checksum |= decoded;
-
-                uint8_t calculated_checksum = 0;
-                for(size_t i = 0; i < handler->packet_len; ++i) {
-                    calculated_checksum += handler->packet[i];
-                }
-
-                if(handler->packet_checksum != calculated_checksum) {
-                    fprintf(stderr, "Invalid checksum: calculated %02x, got %02x\n", calculated_checksum, handler->packet_checksum);
-                }
-                else {
-                    handler->packet_ready = true;
-                }
-
-                handler->packet_started = false;
-            }
-
-            return;
-        }
-
-        ++handler->packet_len;
-        handler->packet = handler->packet ? realloc(handler->packet, handler->packet_len + 1) : malloc(1);
-        handler->packet[handler->packet_len - 1] = c;
-    }
-
-    return;
 }
 
 void gdbserver_handler_continue(GDBServerHandler* handler) {
@@ -297,54 +228,127 @@ void gdbserver_handler_stop(GDBServerHandler* handler) {
     _send_packet(handler, "k", 1);
 }
 
+void gdbserver_handle_packet(GDBServerHandler* handler) {
+    if(handler->packet[0] == 'T') {
+        handler->paused = true;
+        _send_packet(handler, "g ", 2);
+        handler->waiting_for_regs = 1;
+    }
+    else if(handler->waiting_for_regs && handler->packet_len >= 17 * 16) {
+        char* str = malloc(17);
+        memset(str, 0, 17);
+        memcpy(str, handler->packet + (16 * 16), 16);
+
+        // XXX: this seems not very elegant, but this part works.
+        uint64_t res;
+        sscanf(str, "%lx", &res);
+
+        res = (((res & 0xF000000000000000) >> 60) <<  4) |
+              (((res & 0x0F00000000000000) >> 56) <<  0) |
+              (((res & 0x00F0000000000000) >> 52) << 12) |
+              (((res & 0x000F000000000000) >> 48) <<  8) |
+              (((res & 0x0000F00000000000) >> 44) << 20) |
+              (((res & 0x00000F0000000000) >> 40) << 16) |
+              (((res & 0x000000F000000000) >> 36) << 28) |
+              (((res & 0x0000000F00000000) >> 32) << 24) |
+              (((res & 0x00000000F0000000) >> 28) << 36) |
+              (((res & 0x000000000F000000) >> 24) << 32) |
+              (((res & 0x0000000000F00000) >> 20) << 44) |
+              (((res & 0x00000000000F0000) >> 16) << 40) |
+              (((res & 0x000000000000F000) >> 12) << 52) |
+              (((res & 0x0000000000000F00) >>  8) << 48) |
+              (((res & 0x00000000000000F0) >>  4) << 60) |
+              (((res & 0x000000000000000F) >>  0) << 56);
+
+        handler->address          = res;
+        handler->waiting_for_regs = false;
+    }
+    else {
+        char* str = malloc(handler->packet_len + 1);
+        memset(str, 0, handler->packet_len + 1);
+        strncpy(str, handler->packet, handler->packet_len + 1);
+        fprintf(stderr, "Unknown packet received: \"%s\"\n", str);
+        free(str);
+    }
+
+    handler->packet_ready = false;
+    free(handler->packet);
+    handler->packet = NULL;
+}
+
+void _recv_packet(GDBServerHandler* handler) {
+    if(handler->packet_ready) {
+        return;
+    }
+
+    char buffer[512];
+    ssize_t r = 0;
+
+    fd_set rfds;
+    FD_ZERO(&rfds);
+    FD_SET(handler->socket, &rfds);
+    select(handler->socket + 1, &rfds, NULL, NULL, NULL);
+
+    if((r = recv(handler->socket, buffer, 512, MSG_DONTWAIT)) == 0) {
+        fprintf(stderr, "Cannot read from socket anymore, exiting\n");
+        exit(-1);
+    }
+    else {
+        for(ssize_t i = 0; i < r; ++i) {
+            char c = buffer[i];
+
+            if(!handler->packet_started && c == '$') {
+                handler->packet_started = true;
+                handler->packet_len     = 0;
+                continue;
+            }
+
+            if(handler->packet_started && c == '#') {
+                handler->packet_checksum     = 0;
+                handler->packet_checksum_ctr = 2;
+                continue;
+            }
+
+            if(handler->packet_started && handler->packet_checksum_ctr > 0) {
+                --handler->packet_checksum_ctr;
+
+                char buffer[2] = { c, 0 };
+                int decoded = 0;
+                sscanf(buffer, "%x", &decoded);
+
+                if(handler->packet_checksum_ctr == 1) {
+                    handler->packet_checksum = decoded << 4;
+                }
+
+                if(handler->packet_checksum_ctr == 0) {
+                    handler->packet_checksum |= decoded;
+
+                    uint8_t calculated_checksum = 0;
+                    for(size_t i = 0; i < handler->packet_len; ++i) {
+                        calculated_checksum += handler->packet[i];
+                    }
+
+                    if(handler->packet_checksum != calculated_checksum) {
+                        fprintf(stderr, "Invalid checksum: calculated %02x, got %02x\n", calculated_checksum, handler->packet_checksum);
+                    }
+                    else {
+                        handler->packet_ready = true;
+                        gdbserver_handle_packet(handler);
+                    }
+
+                    handler->packet_started = false;
+                }
+
+                continue;
+            }
+
+            ++handler->packet_len;
+            handler->packet = handler->packet ? realloc(handler->packet, handler->packet_len + 1) : malloc(1);
+            handler->packet[handler->packet_len - 1] = c;
+        }
+    }
+}
+
 void gdbserver_handler_loop(GDBServerHandler* handler) {
     _recv_packet(handler);
-
-    if(handler->packet_len && handler->packet_ready) {
-        if(handler->packet[0] == 'T') {
-            handler->paused = true;
-            _send_packet(handler, "g ", 2);
-            handler->waiting_for_regs = 1;
-        }
-        else if(handler->waiting_for_regs && handler->packet_len >= 17 * 16) {
-            char* str = malloc(17);
-            memset(str, 0, 17);
-            memcpy(str, handler->packet + (16 * 16), 16);
-
-            // XXX: this seems not very elegant, but this part works.
-            uint64_t res;
-            sscanf(str, "%lx", &res);
-
-            res = (((res & 0xF000000000000000) >> 60) <<  4) |
-                  (((res & 0x0F00000000000000) >> 56) <<  0) |
-                  (((res & 0x00F0000000000000) >> 52) << 12) |
-                  (((res & 0x000F000000000000) >> 48) <<  8) |
-                  (((res & 0x0000F00000000000) >> 44) << 20) |
-                  (((res & 0x00000F0000000000) >> 40) << 16) |
-                  (((res & 0x000000F000000000) >> 36) << 28) |
-                  (((res & 0x0000000F00000000) >> 32) << 24) |
-                  (((res & 0x00000000F0000000) >> 28) << 36) |
-                  (((res & 0x000000000F000000) >> 24) << 32) |
-                  (((res & 0x0000000000F00000) >> 20) << 44) |
-                  (((res & 0x00000000000F0000) >> 16) << 40) |
-                  (((res & 0x000000000000F000) >> 12) << 52) |
-                  (((res & 0x0000000000000F00) >>  8) << 48) |
-                  (((res & 0x00000000000000F0) >>  4) << 60) |
-                  (((res & 0x000000000000000F) >>  0) << 56);
-
-            handler->address          = res;
-            handler->waiting_for_regs = false;
-        }
-        else {
-            char* str = malloc(handler->packet_len + 1);
-            memset(str, 0, handler->packet_len + 1);
-            strncpy(str, handler->packet, handler->packet_len + 1);
-            fprintf(stderr, "Unknown packet received: \"%s\"\n", str);
-            free(str);
-        }
-
-        handler->packet_ready = false;
-        free(handler->packet);
-        handler->packet = NULL;
-    }
 }
