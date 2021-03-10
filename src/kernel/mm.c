@@ -29,7 +29,7 @@ void* mm_alloc_pages(uint64_t count) {
             current->count -= count;
             void* ret = (void*)current->start;
 
-            if(current->count > 2) {
+            if(current->count) {
                 current->start += 4096 * count;
             }
             else {
