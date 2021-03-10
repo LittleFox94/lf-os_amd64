@@ -279,7 +279,7 @@ void sc_handle_hardware_framebuffer(ptr_t *fb, uint16_t *width, uint16_t *height
         *stride = fbconsole.stride;
         *colorFormat = 0; // to be specified
 
-        *fb = vm_map_hardware(vm_context_get_physical_for_virtual(VM_KERNEL_CONTEXT, (ptr_t)fbconsole.fb), *stride * *height * 4);
+        *fb = scheduler_map_hardware(vm_context_get_physical_for_virtual(VM_KERNEL_CONTEXT, (ptr_t)fbconsole.fb), *stride * *height * 4);
         fbconsole_clear(0, 0, 0);
         fbconsole_active = false;
 

@@ -39,4 +39,7 @@ void scheduler_kill_current(enum kill_reason kill_reason);
 void scheduler_wait_for(pid_t pid, enum wait_reason reason, union wait_data data);
 void scheduler_waitable_done(enum wait_reason reason, union wait_data data, size_t max_amount);
 
+//! Map a given memory area in the currently running userspace process at a random location
+ptr_t scheduler_map_hardware(ptr_t hw, size_t len);
+
 #endif

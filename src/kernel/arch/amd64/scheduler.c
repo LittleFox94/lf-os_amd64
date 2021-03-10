@@ -31,6 +31,7 @@ typedef struct {
 
     region_t         heap;
     region_t         stack;
+    region_t         hw;
     uint64_t         mq;
     struct vm_table* context;
     cpu_state        cpu;
@@ -79,6 +80,9 @@ pid_t setup_process() {
 
     process->stack.start = ALLOCATOR_REGION_USER_STACK.end;
     process->stack.end   = ALLOCATOR_REGION_USER_STACK.end;
+
+    process->hw.start = ALLOCATOR_REGION_USER_HARDWARE.start;
+    process->hw.end   = ALLOCATOR_REGION_USER_HARDWARE.start;
 
     process->mq = mq_create(vm_alloc, vm_free);
 
@@ -197,6 +201,8 @@ void sc_handle_scheduler_clone(bool share_memory, ptr_t entry, pid_t* newPid) {
     new->heap.end    = old->heap.end;
     new->stack.start = old->stack.start;
     new->stack.end   = old->stack.end;
+    new->hw.start    = old->hw.start;
+    new->hw.end      = old->hw.end;
 
     // .. copy heap ..
     if(!share_memory) {
@@ -210,8 +216,8 @@ void sc_handle_scheduler_clone(bool share_memory, ptr_t entry, pid_t* newPid) {
     vm_copy_range(new->context, old->context, old->stack.start, old->stack.end - old->stack.start);
 
     // .. and remap hardware resources
-    for(ptr_t i = ALLOCATOR_REGION_USER_HARDWARE.start; i < ALLOCATOR_REGION_USER_HARDWARE.end; i += 4096) {
-        ptr_t hw = vm_context_get_physical_for_virtual(processes[scheduler_current_process].context, i);
+    for(ptr_t i = old->hw.start; i < old->hw.end; i += 4096) {
+        ptr_t hw = vm_context_get_physical_for_virtual(old->context, i);
 
         if(hw) {
             vm_context_map(new->context, i, hw);
@@ -442,4 +448,14 @@ void sc_handle_ipc_mq_send(uint64_t mq, pid_t pid, struct Message* msg, uint64_t
     if(mq) {
         *error = mq_push(mq, msg);
     }
+}
+
+ptr_t scheduler_map_hardware(ptr_t hw, size_t len) {
+    ptr_t res = vm_map_hardware(hw, len);
+
+    if(res + len > processes[scheduler_current_process].hw.end) {
+        processes[scheduler_current_process].hw.end = res + len;
+    }
+
+    return res;
 }
