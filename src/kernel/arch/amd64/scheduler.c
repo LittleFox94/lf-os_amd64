@@ -450,6 +450,11 @@ void sc_handle_ipc_mq_send(uint64_t mq, pid_t pid, struct Message* msg, uint64_t
     }
 }
 
+void sc_handle_scheduler_get_pid(bool parent, pid_t* pid) {
+    *pid = parent ? processes[scheduler_current_process].parent
+                  : scheduler_current_process;
+}
+
 ptr_t scheduler_map_hardware(ptr_t hw, size_t len) {
     ptr_t res = vm_map_hardware(hw, len);
 
