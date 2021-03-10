@@ -40,7 +40,9 @@ struct vm_table {
     struct vm_table_entry entries[512];
 }__attribute__((packed));
 
-#define BASE_TO_TABLE(x) ((struct vm_table*)((uint64_t)(vm_direct_mapping_initialized ? ALLOCATOR_REGION_DIRECT_MAPPING.start : 0) + ((uint64_t)x << 12)))
+#define BASE_TO_PHYS(x)          ((void*)(x << 12))
+#define BASE_TO_DIRECT_MAPPED(x) ((vm_direct_mapping_initialized ? ALLOCATOR_REGION_DIRECT_MAPPING.start : 0) + BASE_TO_PHYS(x))
+#define BASE_TO_TABLE(x)         ((struct vm_table*)BASE_TO_DIRECT_MAPPED(x))
 
 #define PML4_INDEX(x) (((x) >> 39) & 0x1FF)
 #define PDP_INDEX(x)  (((x) >> 30) & 0x1FF)
@@ -375,52 +377,35 @@ void vm_context_activate(struct vm_table* context) {
     load_cr3(vm_context_get_physical_for_virtual(VM_KERNEL_CONTEXT, (ptr_t)context));
 }
 
-void vm_context_map(struct vm_table* context, ptr_t virtual, ptr_t physical) {
-    struct vm_table_entry* pml4_entry = &context->entries[PML4_INDEX(virtual)];
+static void vm_ensure_table(struct vm_table* table, uint16_t index) {
+    struct vm_table_entry* entry = &table->entries[index];
 
-    if(!pml4_entry->present) {
-        ptr_t pdp = (ptr_t)(ALLOCATOR_REGION_DIRECT_MAPPING.start + vm_page_alloc(PageUsageKernel|PageUsagePagingStructure, PageSize4KiB));
-        memset((void*)pdp, 0, 4096);
+    if(!entry->present) {
+        ptr_t nt = (ptr_t)(ALLOCATOR_REGION_DIRECT_MAPPING.start + vm_page_alloc(PageUsageKernel|PageUsagePagingStructure, PageSize4KiB));
+        memset((void*)nt, 0, 4096);
 
-        pml4_entry->next_base = (pdp - ALLOCATOR_REGION_DIRECT_MAPPING.start) >> 12;
-        pml4_entry->present   = 1;
-        pml4_entry->writeable = 1;
-        pml4_entry->userspace = 1;
+        entry->next_base = (nt - ALLOCATOR_REGION_DIRECT_MAPPING.start) >> 12;
+        entry->present   = 1;
+        entry->writeable = 1;
+        entry->userspace = 1;
     }
+}
 
-    struct vm_table*       pdp       = BASE_TO_TABLE(pml4_entry->next_base);
-    struct vm_table_entry* pdp_entry = &pdp->entries[PDP_INDEX(virtual)];
+void vm_context_map(struct vm_table* pml4, ptr_t virtual, ptr_t physical) {
+    vm_ensure_table(pml4, PML4_INDEX(virtual));
 
-    if(!pdp_entry->present) {
-        ptr_t pd = (ptr_t)(ALLOCATOR_REGION_DIRECT_MAPPING.start + vm_page_alloc(PageUsageKernel|PageUsagePagingStructure, PageSize4KiB));
-        memset((void*)pd, 0, 4096);
+    struct vm_table* pdp = BASE_TO_TABLE(pml4->entries[PML4_INDEX(virtual)].next_base);
+    vm_ensure_table(pdp, PDP_INDEX(virtual));
 
-        pdp_entry->next_base = (pd - ALLOCATOR_REGION_DIRECT_MAPPING.start) >> 12;
-        pdp_entry->present   = 1;
-        pdp_entry->writeable = 1;
-        pdp_entry->userspace = 1;
-    }
+    struct vm_table* pd = BASE_TO_TABLE(pdp->entries[PDP_INDEX(virtual)].next_base);
+    vm_ensure_table(pd, PD_INDEX(virtual));
 
-    struct vm_table*       pd       = BASE_TO_TABLE(pdp_entry->next_base);
-    struct vm_table_entry* pd_entry = &pd->entries[PD_INDEX(virtual)];
+    struct vm_table* pt = BASE_TO_TABLE(pd->entries[PD_INDEX(virtual)].next_base);
 
-    if(!pd_entry->present) {
-        ptr_t pt = (ptr_t)(ALLOCATOR_REGION_DIRECT_MAPPING.start + vm_page_alloc(PageUsageKernel|PageUsagePagingStructure, PageSize4KiB));
-        memset((void*)pt, 0, 4096);
-
-        pd_entry->next_base = (pt - ALLOCATOR_REGION_DIRECT_MAPPING.start) >> 12;
-        pd_entry->present   = 1;
-        pd_entry->writeable = 1;
-        pd_entry->userspace = 1;
-    }
-
-    struct vm_table*       pt       = BASE_TO_TABLE(pd_entry->next_base);
-    struct vm_table_entry* pt_entry = &pt->entries[PT_INDEX(virtual)];
-
-    pt_entry->next_base = physical >> 12;
-    pt_entry->present   = 1;
-    pt_entry->writeable = 1;
-    pt_entry->userspace = 1;
+    pt->entries[PT_INDEX(virtual)].next_base = physical >> 12;
+    pt->entries[PT_INDEX(virtual)].present   = 1;
+    pt->entries[PT_INDEX(virtual)].writeable = 1;
+    pt->entries[PT_INDEX(virtual)].userspace = 1;
 }
 
 void vm_context_unmap(struct vm_table* context, ptr_t virtual) {
@@ -586,6 +571,106 @@ void vm_copy_page(struct vm_table* dst_ctx, ptr_t dst, struct vm_table* src_ctx,
         } else {
             panic_message("vm_copy_page with same src and dest physical mapping!");
         }
+    }
+}
+
+void vm_copy_range(struct vm_table* dst, struct vm_table* src, ptr_t addr, size_t size) {
+    uint16_t  pml4_l = 0,     pdp_l = 0,      pd_l = 0;
+    struct vm_table      *src_pdp   = 0, *src_pd   = 0, *src_pt   = 0;
+    struct vm_table      *dst_pdp   = 0, *dst_pd   = 0, *dst_pt   = 0;
+
+    for(ptr_t i = addr; i < addr + size; ) {
+        uint16_t pml4_i = PML4_INDEX(i);
+        uint16_t pdp_i  = PDP_INDEX(i);
+        uint16_t pd_i   = PD_INDEX(i);
+        uint16_t pt_i   = PT_INDEX(i);
+
+        if(!src_pdp || pml4_i != pml4_l) {
+            vm_ensure_table(dst, pml4_i);
+            src_pdp = BASE_TO_TABLE(src->entries[pml4_i].next_base);
+            dst_pdp = BASE_TO_TABLE(dst->entries[pml4_i].next_base);
+            pml4_l = pml4_i;
+        }
+
+        if(!src_pdp->entries[pdp_i].present) {
+            i += 1*GiB;
+            continue;
+        }
+
+        // 1 GiB pages
+        if(src_pdp->entries[pdp_i].huge) {
+            if(dst_pdp->entries[pdp_i].present) {
+                // we would have to free downwards
+                panic_message("vm_copy_range/pdp: huge src and dst present is not yet implemented!");
+            }
+
+            if((i % (1*GiB)) != 0) {
+                panic_message("vm_copy_range/pdp: unaligned huge page address!");
+            }
+
+            dst_pdp->entries[pdp_i]           = src_pdp->entries[pdp_i];
+            dst_pdp->entries[pdp_i].next_base = (uint64_t)(mm_alloc_pages(1*GiB/4*KiB)) >> 12;
+            memcpy(BASE_TO_DIRECT_MAPPED(dst_pdp->entries[pdp_i].next_base), BASE_TO_DIRECT_MAPPED(src_pdp->entries[pdp_i].next_base), 1*GiB);
+
+            i += 1*GiB;
+            continue;
+        }
+
+        if(!src_pd || pdp_i != pdp_l) {
+            vm_ensure_table(dst_pdp, pdp_i);
+            src_pd = BASE_TO_TABLE(src_pdp->entries[pdp_i].next_base);
+            dst_pd = BASE_TO_TABLE(dst_pdp->entries[pdp_i].next_base);
+            pdp_l = pdp_i;
+        }
+
+        if(!src_pd->entries[pd_i].present) {
+            i += 2*MiB;
+            continue;
+        }
+
+        // 2 MiB pages
+        if(src_pd->entries[pd_i].huge) {
+            if(dst_pd->entries[pd_i].present) {
+                // we would have to free downwards
+                panic_message("vm_copy_range/pd: huge src and dst present is not yet implemented!");
+            }
+
+            if((i % (2*MiB)) != 0) {
+                panic_message("vm_copy_range/pd: unaligned huge page address!");
+            }
+
+            dst_pd->entries[pd_i]           = src_pd->entries[pd_i];
+            dst_pd->entries[pd_i].next_base = (uint64_t)(mm_alloc_pages(2*MiB/4*KiB)) >> 12;
+            memcpy(BASE_TO_DIRECT_MAPPED(dst_pd->entries[pd_i].next_base), BASE_TO_DIRECT_MAPPED(src_pd->entries[pd_i].next_base), 2*MiB);
+
+            i += 2*MiB;
+            continue;
+        }
+
+        if(!src_pt || pd_i != pd_l) {
+            vm_ensure_table(dst_pd, pd_i);
+            src_pt = BASE_TO_TABLE(src_pd->entries[pd_i].next_base);
+            dst_pt = BASE_TO_TABLE(dst_pd->entries[pd_i].next_base);
+            pd_l = pd_i;
+        }
+
+        if(src_pt->entries[pt_i].present) {
+            // 4 KiB pages
+            if(dst_pt->entries[pt_i].present) {
+                // TODO: ref counter for physical pages, mark as free
+                logw("vm", "vm_copy_range: unmapping page without marking it as free: %x", dst_pt->entries[pt_i].next_base << 12);
+            }
+
+            if((i % (4*KiB)) != 0) {
+                panic_message("vm_copy_range/pt: unaligned page address!");
+            }
+
+            dst_pt->entries[pt_i]           = src_pt->entries[pt_i];
+            dst_pt->entries[pt_i].next_base = (uint64_t)mm_alloc_pages(1) >> 12;
+            memcpy(BASE_TO_DIRECT_MAPPED(dst_pt->entries[pt_i].next_base), BASE_TO_DIRECT_MAPPED(src_pt->entries[pt_i].next_base), 4*KiB);
+        }
+
+        i += 4*KiB;
     }
 }
 

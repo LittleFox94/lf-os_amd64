@@ -66,7 +66,7 @@ ptr_t vm_context_get_physical_for_virtual(struct vm_table* context, ptr_t virtua
 
 ptr_t vm_context_alloc_pages(struct vm_table* context, region_t region, size_t num);
 
-void vm_copy_page(struct vm_table* dst_ctx, ptr_t dst, struct vm_table* src_ctx, ptr_t src);
+void vm_copy_range(struct vm_table* dst_ctx, struct vm_table* src_ctx, ptr_t addr, size_t size);
 
 //! Map a given memory area in the currently running userspace process at a random location
 ptr_t vm_map_hardware(ptr_t hw, size_t len);

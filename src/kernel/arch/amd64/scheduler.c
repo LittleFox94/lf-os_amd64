@@ -177,62 +177,58 @@ void sc_handle_scheduler_exit(uint64_t exit_code) {
 }
 
 void sc_handle_scheduler_clone(bool share_memory, ptr_t entry, pid_t* newPid) {
+    process_t* old = &processes[scheduler_current_process];
+
     // make new process
     pid_t pid = setup_process();
 
     if(pid < 0) {
-        *newPid = -1;
+        *newPid = -ENOMEM;
         return;
     }
 
-    process_t* process = &processes[pid];
-    strncpy(process->name, processes[scheduler_current_process].name, 1023);
+    process_t* new = &processes[pid];
+    strncpy(new->name, old->name, 1023);
 
     // new memory context ...
-    struct vm_table* context = vm_context_new();
-    process->context         = context;
+    new->context = vm_context_new();
+
+    new->heap.start  = old->heap.start;
+    new->heap.end    = old->heap.end;
+    new->stack.start = old->stack.start;
+    new->stack.end   = old->stack.end;
 
     // .. copy heap ..
     if(!share_memory) {
-        for(size_t i = processes[scheduler_current_process].heap.start; i <= processes[scheduler_current_process].heap.end; i += 0x1000) {
-            vm_copy_page(context, (ptr_t)i, processes[scheduler_current_process].context, (ptr_t)i);
-        }
+        vm_copy_range(new->context, old->context, old->heap.start, old->heap.end - old->heap.start);
     }
     else {
         // make heap shared
     }
 
-    process->heap.start = processes[scheduler_current_process].heap.start;
-    process->heap.end   = processes[scheduler_current_process].heap.end;
-
     // .. and stack ..
-    for(size_t i = processes[scheduler_current_process].stack.start; i < processes[scheduler_current_process].stack.end; i += 0x1000) {
-        vm_copy_page(context, (ptr_t)i, processes[scheduler_current_process].context, (ptr_t)i);
-    }
-
-    process->stack.start = processes[scheduler_current_process].stack.start;
-    process->stack.end   = processes[scheduler_current_process].stack.end;
+    vm_copy_range(new->context, old->context, old->stack.start, old->stack.end - old->stack.start);
 
     // .. and remap hardware resources
     for(ptr_t i = ALLOCATOR_REGION_USER_HARDWARE.start; i < ALLOCATOR_REGION_USER_HARDWARE.end; i += 4096) {
         ptr_t hw = vm_context_get_physical_for_virtual(processes[scheduler_current_process].context, i);
 
         if(hw) {
-            vm_context_map(context, i, hw);
+            vm_context_map(new->context, i, hw);
         }
     }
 
     if(share_memory && entry) {
-        process->cpu.rip = entry;
+        new->cpu.rip = entry;
     }
 
     *newPid = pid;
 
     // copy cpu state
-    memcpy(&process->cpu, &processes[scheduler_current_process].cpu, sizeof(cpu_state));
-    process->cpu.rax = 0;
+    memcpy(&new->cpu, &old->cpu, sizeof(cpu_state));
+    new->cpu.rax = 0;
 
-    process->parent = scheduler_current_process;
+    new->parent = scheduler_current_process;
 }
 
 bool scheduler_handle_pf(ptr_t fault_address, uint64_t error_code) {
