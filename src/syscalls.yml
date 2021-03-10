@@ -35,6 +35,20 @@ groups:
     name:  yield
     desc:  Yield, scheduler another process
 
+  - number: 3
+    name:  get_pid
+    desc:  Return own or parent PID
+    parameters:
+    - name: parent
+      desc: If true, returns parent PID. Own PID otherwise
+      type: bool
+      reg:  rax
+    returns:
+    - name: pid
+      desc: Own or parent PID
+      type: pid_t
+      reg:  rax
+
 - number: 1
   name:   memory
   desc:   Syscalls affecting memory mappings for this or other processes
