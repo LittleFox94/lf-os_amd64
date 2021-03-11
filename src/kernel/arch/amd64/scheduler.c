@@ -435,7 +435,7 @@ void sc_handle_ipc_mq_send(uint64_t mq, pid_t pid, struct Message* msg, uint64_t
     msg->sender = scheduler_current_process;
 
     if(!mq) {
-        if(pid) {
+        if(pid != -1) {
             if(pid < MAX_PROCS && processes[pid].state != process_state_empty) {
                 mq = processes[pid].mq;
             }
