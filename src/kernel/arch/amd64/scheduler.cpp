@@ -38,6 +38,7 @@ typedef struct {
     region_t         hw;
     mq_id_t          mq;
     struct vm_table* context;
+    struct vm_table* new_context; // exec
     cpu_state        cpu;
 
     //! Physical address of the first of two IOPB pages, 0 if no IO privilege granted
@@ -600,6 +601,28 @@ void sc_handle_ipc_service_discover(const uuid_t* uuid, uint64_t mq, struct Mess
 void sc_handle_scheduler_get_pid(bool parent, pid_t* pid) {
     *pid = parent ? processes[scheduler_current_process].parent
                   : scheduler_current_process;
+}
+
+void sc_handle_scheduler_exec_prepare(uint64_t* error) {
+    if(processes[scheduler_current_process].new_context) {
+        *error = EBUSY;
+        return;
+    }
+
+    processes[scheduler_current_process].new_context = vm_context_new();
+    *error = 0;
+}
+
+void sc_handle_scheduler_exec_prepare_map(void* src, void* dest, uint32_t length, uint8_t access, uint64_t* error) {
+    UNUSED_PARAM(src);
+    UNUSED_PARAM(dest);
+    UNUSED_PARAM(length);
+    UNUSED_PARAM(access);
+    *error = EINVAL;
+}
+
+void sc_handle_scheduler_exec(uint64_t* error) {
+    *error = EINVAL;
 }
 
 uint64_t scheduler_map_hardware(uint64_t hw, size_t len) {

@@ -54,6 +54,50 @@ groups:
       type: pid_t
       reg:  rax
 
+  - number: 4
+    name: exec_prepare
+    desc: Prepare an exec() call by creating a new virtual memory map
+    returns:
+    - name: error
+      desc: 0 if success, errno otherwise
+      type: uint64_t
+      reg:  rax
+
+  - number: 5
+    name: exec_prepare_map
+    desc: Prepare an exec() call by mapping current heap into new memory map
+    parameters:
+    - name: current
+      type: void*
+      desc: Address in current process heap
+      reg:  rsi
+    - name: dest
+      type: void*
+      desc: Destination address in new process' space
+      reg:  rdi
+    - name: length
+      desc: Number of bytes to map, page size chosen by kernel
+      reg:  rax
+      type: uint32_t
+    - name: access
+      desc: Access mode bit map, MEM_READ = 1, MEM_WRITE = 2, MEM_EXEC = 4
+      type: uint8_t
+      reg:  rax
+    returns:
+    - name: error
+      desc: 0 if success, errno otherwise
+      type: uint64_t
+      reg:  rax
+
+  - number: 6
+    name: exec
+    desc: Execute a previously prepared exec (see exec_prepare and exec_prepare_map)
+    returns:
+    - name: error
+      desc: Not at all on success, errno otherwise
+      type: uint64_t
+      reg:  rax
+
 - number: 1
   name:   memory
   desc:   Syscalls affecting memory mappings for this or other processes
