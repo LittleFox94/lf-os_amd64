@@ -8,6 +8,8 @@
 #ifndef __ATA_H__
 #define __ATA_H__
 
+#include <stdint.h>
+
 #define __ATA_DISK_ID_INTERNAL_ATAPI 4
 #define __ATA_DISK_ID_INTERNAL_SATA 3
 #define __ATA_DISK_ID_INTERNAL_ATA 2
@@ -74,10 +76,13 @@
 #define __ATA_CMD_CFLUSH    0xE7         // Cache flush
 #define __ATA_CMD_DD        0x90         // used for non-std disk detect
 #define __ATA_CMD_IDENTIFY  0xEC         // used for std disk detect
+#define __ATA_CMD_READ 	    0x20         // used to read disks
 
-/**
- * Function declarations here
- */
+/* ATA driver functionality return codes */
+#define __ATA_CMD_SUCCESS       0
+#define __ATA_CMD_TIMEOUT       -1
+#define __ATA_CMD_READ_ERROR    -2
+
 
 /**
  * Helper struct to contain ATA disks & statuses
@@ -91,16 +96,53 @@ struct ata_disk_stat {
 };
 
 /**
+ * Lba structure containing.. well, lba.
+ *
+ */
+struct lba {
+	uint8_t low;
+	uint8_t mid;
+	uint8_t high;
+	uint8_t even_higher; /* :) */
+};
+
+/**
+ * Read in ata status from port
+ *
+ */
+unsigned char ata_delay_in(short port);
+
+/**
  * This function allows user to manually trigger ata reset. This can be 
  * useful eg. in case of crashed and/or buggy disk.
  *
  * \param port short Is a port to IO-base for device to reset.
+ *
  */
-inline void ata_sw_reset(short port);
+void ata_sw_reset(short port);
 
 /**
  * Find disks & (eventually) return their statuses & port bases.
+ *
  */
 void detect_ata_disks(struct ata_disk_stat *ata_disk_stat_array);
+
+/**
+ * Read helper, writes sector count to port
+ *
+ */
+void ata_set_sector_count(short port, char sectors);
+
+/**
+ * Read helper, sets LBA values
+ *
+ */
+void ata_set_lba_content(short port, struct lba *lbaptr, char dev_id);
+
+/**
+ * Read ata disk in 28bit PIO mode
+ *
+ */
+int ata_pio_b28_read(char type, short *dst, short port, char cnt, struct lba *lbaptr);
 
 #endif  /* __ATA_H__ */
