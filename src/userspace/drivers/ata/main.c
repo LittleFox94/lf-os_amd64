@@ -20,9 +20,9 @@
 struct ata_disk_stat ata_disk_stat_array[3];
 
 int main() {
-    detect_ata_disks((struct ata_disk_stat_array *)ata_disk_stat_array);
+    struct lba lba = {0};
 
-    do {} while (1);
+    detect_ata_disks((struct ata_disk_stat_array *)ata_disk_stat_array);
 }
 
 
