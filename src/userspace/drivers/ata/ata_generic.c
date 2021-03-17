@@ -44,7 +44,7 @@ unsigned char ata_delay_in(short port) {
  *
  * \param port short Is IO base
  */
-inline void ata_cache_flush(short port) {
+void ata_cache_flush(short port) {
     outb(__ATA_STAT(port), __ATA_CMD_CFLUSH);
 }
 
@@ -78,7 +78,7 @@ int ata_check_if_sata_or_atapi(short port) {
  *
  * \require port short Is IO base for device to reset
  */
-void ata_reset_device(short port) {
+void ata_sw_reset(short port) {
     unsigned char iobyte;
 
     /* Read status bits, issue reset command, and write back */
@@ -245,7 +245,15 @@ char *ata_get_disk_str_by_id(int id) {
     }
 }
 
-/* TODO: doc, eventually. I hope., yes. */
+/**
+ * This function is used by main() (and others, whatever wants access to
+ * get disk info) to detect ATA disks.
+ *
+ * \param ata_disk_stat_arr struct ata_disk_stat * Is a pointer to ata disk
+ * status structure.
+ *
+ * \return Void
+ */
 void detect_ata_disks(struct ata_disk_stat *ata_disk_stat_arr) {
     uint64_t stat = 0;
     int ports[] = {0x1f0, 0x170, 0x1e8, 0x168};
@@ -282,5 +290,41 @@ void detect_ata_disks(struct ata_disk_stat *ata_disk_stat_arr) {
                 break;
         }
     }
+}
+
+/**
+ * Disk read helpers and such stuff from here on, this should be pretty much
+ * usable across different ata pio read/write stuff, as well as non-pio
+ * functionality (probably, in one form or another)
+ *
+ */
+
+/**
+ * Helper to set sector count at appropriate register
+ *
+ * \param port short Is io-base for device to interact with
+ * \param sectors char Is sector count to set.
+ * \return Void
+ */
+void ata_set_sector_count(short port, char sectors) {
+	outb(__ATA_SECTOR_CNT(port), sectors);
+}
+
+/**
+ * Set LBA values as defined by lba structure to appropriate ports
+ *
+ * \param port short Is io-base for device to interact with
+ * \param lbaptr struct lba * Is pointer to lba structure
+ * \param dev_id char Is device primary/secondary(0xE0/0xF0) identifier
+ * \return Void
+ */
+void ata_set_lba_content(short port, struct lba *lbaptr, char dev_id) {
+	/* bits 24-28 OR'ed with primary/secondary flag */
+	outb(__ATA_DRIVE_HEAD(port), ((lbaptr->even_higher | (dev_id & 0x0F))));
+
+	outb(__ATA_CYL_HI(port), lbaptr->high);
+	outb(__ATA_CYL_LO(port), lbaptr->mid);
+	outb(__ATA_SECTOR_NUM(port), lbaptr->low);
+
 }
 
