@@ -47,7 +47,7 @@ deploy-apt:
       curl -X PUT --data-binary @$package           \
       -H 'x-component: lf-os'                       \
       -H 'x-suite: unstable'                        \
-      -H 'Authorization: Bearer $APT_DEPLOY_TOKEN'  \
+      -H "Authorization: Bearer $APT_DEPLOY_TOKEN"  \
       https://fission.svc.0x0a.network/apt/upload
     done
   only:
