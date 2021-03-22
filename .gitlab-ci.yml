@@ -41,7 +41,7 @@ deploy-apt:
   - apk add -u --no-cache curl
   script:
   - >
-    for package in "*.deb"; do
+    for package in *.deb; do
       curl -X PUT --data-binary @$package
       -H 'x-component: lf-os'
       -H 'x-suite: unstable'
