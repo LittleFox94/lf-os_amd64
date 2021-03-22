@@ -45,6 +45,7 @@ deploy-apt:
   - |
     for package in *.deb; do
       curl -X PUT --data-binary @$package           \
+      -H 'Content-Type: application/octet-stream'   \
       -H 'x-component: lf-os'                       \
       -H 'x-suite: unstable'                        \
       -H "Authorization: Bearer $APT_DEPLOY_TOKEN"  \
