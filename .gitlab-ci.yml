@@ -40,12 +40,12 @@ deploy-apt:
   before_script:
   - apk add -u --no-cache curl
   script:
-  - >
+  - |
     for package in *.deb; do
-      curl -X PUT --data-binary @$package
-      -H 'x-component: lf-os'
-      -H 'x-suite: unstable'
-      -H 'Authorization: Bearer $APT_DEPLOY_TOKEN'
+      curl -X PUT --data-binary @$package           \
+      -H 'x-component: lf-os'                       \
+      -H 'x-suite: unstable'                        \
+      -H 'Authorization: Bearer $APT_DEPLOY_TOKEN'  \
       https://fission.svc.0x0a.network/apt/upload
     done
   only:
