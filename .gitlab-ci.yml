@@ -1,10 +1,10 @@
 stages:
 - test
 - build
-- pages
+- deploy
 
 default:
-  image: registry.lf-net.org/littlefox/lf-os_amd64/ci:2021010801
+  image: registry.lf-net.org/littlefox/lf-os_amd64/ci:2021032201
 
 test:
   stage: test
@@ -18,7 +18,7 @@ build:
   stage: build
   interruptible: true
   script:
-  - cmake -DCMAKE_BUILD_TYPE=Release -B build -S .
+  - cmake -DCPACK_PACKAGE_VERSION=0.1.1-${CI_PIPELINE_IID} -DCMAKE_BUILD_TYPE=Release -B build -S .
   - make -C build -j$(nproc) hd.img.xz package
   - mv build/hd.img.xz build/*.deb .
   variables:
@@ -32,8 +32,29 @@ build:
     - "*.deb"
     - toolchain/include/kernel/syscalls.h
 
+deploy-apt:
+  stage: deploy
+  image: alpine
+  variables:
+    GIT_STRATEGY: none
+  before_script:
+  - apk add -u --no-cache curl
+  script:
+  - >
+    for package in "*.deb"; do
+      curl -X PUT --data-binary @$package
+      -H 'x-component: lf-os'
+      -H 'x-suite: unstable'
+      -H 'Authorization: Bearer $APT_DEPLOY_TOKEN'
+      https://fission.svc.0x0a.network/apt/upload
+    done
+  only:
+  - master
+  dependencies:
+  - build
+
 pages:
-  stage: pages
+  stage: deploy
   script:
   - cmake -DCMAKE_BUILD_TYPE=Release -B build -S .
   - make -C build doc

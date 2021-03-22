@@ -1,4 +1,4 @@
 FROM alpine:3.12
 
-RUN apk add -U --no-cache xz mtools sgdisk gcc g++ make cmake doxygen graphviz perl-yaml python3 git && \
+RUN apk add -U --no-cache xz mtools sgdisk gcc g++ make cmake doxygen graphviz perl-yaml python3 git curl && \
     ln -s /usr/bin/python3 /usr/local/bin/python
