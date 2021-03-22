@@ -43,7 +43,7 @@ deploy-apt:
       curl -X PUT --data-binary @$package           \
       -H 'Content-Type: application/octet-stream'   \
       -H 'x-component: lf-os'                       \
-      -H 'x-suite: unstable'                        \
+      -H 'x-suites: unstable'                        \
       -H "Authorization: Bearer $APT_DEPLOY_TOKEN"  \
       https://fission.svc.0x0a.network/apt/upload
     done
