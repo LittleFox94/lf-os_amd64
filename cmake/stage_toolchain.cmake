@@ -54,7 +54,7 @@ set(CMAKE_CXX_COMPILER_NAMES clang++ g++)
 set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_INSTALL_PREFIX ${toolchain})
 
-if($ENV{CCACHE_DIR})
+if(DEFINED ENV{CCACHE_DIR})
     set(LLVM_CCACHE_BUILD ON CACHE STRING "" FORCE)
 endif()
 
