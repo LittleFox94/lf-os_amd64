@@ -21,10 +21,6 @@ build:
   - cmake -DCPACK_PACKAGE_VERSION=0.1.1-${CI_PIPELINE_IID} -DCMAKE_BUILD_TYPE=Release -B build -S .
   - make -C build -j$(nproc) hd.img.xz package
   - mv build/hd.img.xz build/*.deb .
-  cache:
-    key: ${CI_COMMIT_REF_SLUG} # cache per branch ..
-    paths:
-    - build
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
     CACHE_FALLBACK_KEY: master # .. but fallback to use cache from master branch
