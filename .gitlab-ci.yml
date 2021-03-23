@@ -4,7 +4,7 @@ stages:
 - deploy
 
 default:
-  image: registry.lf-net.org/littlefox/lf-os_amd64/ci:2021032301
+  image: registry.lf-net.org/littlefox/lf-os_amd64/ci:2021032302
 
 test:
   stage: test
