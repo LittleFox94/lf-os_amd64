@@ -40,7 +40,7 @@ deploy-apt:
   script:
   - |
     for package in *.deb; do
-      curl -X PUT --data-binary @$package           \
+      curl -X PUT --data-binary @$package -f        \
       -H 'Content-Type: application/octet-stream'   \
       -H 'x-component: lf-os'                       \
       -H 'x-suites: unstable'                        \
