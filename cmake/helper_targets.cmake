@@ -32,9 +32,19 @@ add_custom_target(run-kvm
     USES_TERMINAL
 )
 
+add_custom_target(
+    syscalls.h  ALL
+    src/syscall-generator.pl src/syscalls.yml ${PROJECT_BINARY_DIR}/syscalls.h user
+    SOURCES
+        src/syscalls.yml
+        src/syscall-generator.pl
+    COMMENT           "Generating userspace syscall bindings"
+    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+)
+
 add_custom_target(doc
     COMMAND doxygen ${CMAKE_BINARY_DIR}/Doxyfile
-    DEPENDS Doxyfile
+    DEPENDS Doxyfile syscalls.h
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 )
 

@@ -10,9 +10,16 @@ test:
   stage: test
   variables:
     CTEST_OUTPUT_ON_FAILURE: "1"
+    GIT_STRATEGY: fetch
   script:
   - cmake -DCMAKE_BUILD_TYPE=Release -B build -S .
   - make -C build test-kernel
+  only:
+    changes:
+    - src/**/*
+    - cmake/**/*
+    - CMakeLists.txt
+    - .gitlab-ci.yml
 
 build:
   stage: build
@@ -22,13 +29,20 @@ build:
   - make -C build -j$(nproc) hd.img.xz package
   - mv build/hd.img.xz build/*.deb .
   variables:
+    GIT_STRATEGY: fetch
     GIT_SUBMODULE_STRATEGY: recursive
-    CACHE_FALLBACK_KEY: master # .. but fallback to use cache from master branch
+    ARTIFACT_COMPRESSION_LEVEL: fastest
   artifacts:
     paths:
     - hd.img.xz
     - "*.deb"
     - toolchain/include/kernel/syscalls.h
+  only:
+    changes:
+    - src/**/*
+    - cmake/**/*
+    - CMakeLists.txt
+    - .gitlab-ci.yml
 
 deploy-apt:
   stage: deploy
@@ -48,13 +62,21 @@ deploy-apt:
       https://fission.svc.0x0a.network/apt/upload
     done
   only:
-  - master
+    refs:
+    - master
+    changes:
+    - src/**/*
+    - cmake/**/*
+    - CMakeLists.txt
+    - .gitlab-ci.yml
   dependencies:
   - build
 
 pages:
   stage: deploy
-  cache: {}
+  variables:
+    GIT_STRATEGY: fetch
+    ARTIFACT_COMPRESSION_LEVEL: fastest
   script:
   - cmake -DCMAKE_BUILD_TYPE=Release -B build -S .
   - make -C build doc
@@ -63,6 +85,5 @@ pages:
     paths:
     - public
   only:
-  - master
-  dependencies:
-  - build
+    refs:
+    - master

@@ -60,15 +60,7 @@ endif()
 
 add_subdirectory(src/llvm/llvm)
 
-add_custom_target(
-    syscalls.h  ALL
-    src/syscall-generator.pl src/syscalls.yml ${PROJECT_BINARY_DIR}/syscalls.h user
-    SOURCES
-        src/syscalls.yml
-        src/syscall-generator.pl
-    COMMENT           "Generating userspace syscall bindings"
-    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-)
+include(helper_targets)
 
 install(FILES
     ${CMAKE_CURRENT_BINARY_DIR}/syscalls.h
