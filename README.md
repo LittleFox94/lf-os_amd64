@@ -4,7 +4,9 @@
 
 This is the 5th(?) attempt at writing an operating system from scratch, where "attempt" means: starting from zero.
 
-Development mainly happens on my Gitlab at https://praios.lf-net.org/littlefox/lf-os\_amd64 - check it out!
+Development mainly happens on my Gitlab at
+<a href="https://praios.lf-net.org/littlefox/lf-os_amd64" target="_blank">https://praios.lf-net.org/littlefox/lf-os_amd64</a>
+- check it out!
 
 ## Key difference to previous attempts
 
