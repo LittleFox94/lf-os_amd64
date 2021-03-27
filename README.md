@@ -4,6 +4,8 @@
 
 This is the 5th(?) attempt at writing an operating system from scratch, where "attempt" means: starting from zero.
 
+Development mainly happens on my Gitlab at https://praios.lf-net.org/littlefox/lf-os\_amd64 - check it out!
+
 ## Key difference to previous attempts
 
 * amd64, why use i386 like everyone else when I did not even manage to get a working system there?
