@@ -33,6 +33,7 @@ For QEMU you also need `OVMF` firmware installed.
 
 ```
 git clone https://praios.lf-net.org/littlefox/lf-os_amd64.git
+git submodule update --init
 cd lf-os_amd64 && mkdir build && cd build
 cmake -G UNIX\ Makefiles .. && make -j$(nproc) run
 ```
