@@ -36,7 +36,6 @@ build:
     paths:
     - hd.img.xz
     - "*.deb"
-    - toolchain/include/kernel/syscalls.h
   only:
     changes:
     - src/**/*
