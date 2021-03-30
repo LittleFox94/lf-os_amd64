@@ -463,6 +463,9 @@ void initialize_virtual_memory(struct LoaderState* state, EFI_SYSTEM_TABLE* syst
         filesStart += PAGE_SIZE;
     }
 
+#if LF_OS_ENABLE_EFI_RUNTIME_SERVICES
+    state->loaderStruct->firmware_info = system_table;
+
     // Remap UEFI runtime memory
     for(size_t i = 0; i < state->efiMemoryMapSize / state->efiMemoryMapEntrySize; ++i) {
         EFI_MEMORY_DESCRIPTOR* desc = (EFI_MEMORY_DESCRIPTOR*)((void*)state->efiMemoryMap + (i * state->efiMemoryMapEntrySize));
@@ -478,6 +481,7 @@ void initialize_virtual_memory(struct LoaderState* state, EFI_SYSTEM_TABLE* syst
     }
 
     system_table->RuntimeServices->SetVirtualAddressMap(state->efiMemoryMapSize, state->efiMemoryMapEntrySize, state->efiMemoryMapEntryVersion, state->efiMemoryMap);
+#endif // LF_OS_ENABLE_EFI_RUNTIME_SERVICES
 
     // prepare final loaderStuct, memory map and files location
     ptr_t loaderStructsArea = allocate_from_loader_scratchpad(state,
@@ -488,10 +492,13 @@ void initialize_virtual_memory(struct LoaderState* state, EFI_SYSTEM_TABLE* syst
         4096
     );
 
+#if LF_OS_ENABLE_EFI_RUNTIME_SERVICES
     state->loaderStruct->firmware_info = filesStart;
 
     memcpy(loaderStructsArea,
             system_table, system_table->Hdr.HeaderSize);
+#endif
+
     memcpy(loaderStructsArea + system_table->Hdr.HeaderSize,
             state->loaderStruct, state->loaderStruct->size);
     memcpy(loaderStructsArea + system_table->Hdr.HeaderSize + state->loaderStruct->size,
@@ -559,7 +566,6 @@ EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE* system_table) {
     state.loaderStruct                = allocate_from_loader_scratchpad(&state, sizeof(struct LoaderStruct), PAGE_SIZE);
     state.loaderStruct->signature     = LFOS_LOADER_SIGNATURE;
     state.loaderStruct->size          = sizeof(struct LoaderStruct);
-    state.loaderStruct->firmware_info = system_table;
 
     wprintf(
         L"LF OS amd64 uefi loader (%u bytes at 0x%x).\n\n",
@@ -604,6 +610,7 @@ EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE* system_table) {
     wprintf(L"Preparing memory map and exiting boot services ...");
 
     while(--try_counter) {
+        wprintf(L".");
         if(retrieve_memory_map(&state) != EFI_SUCCESS) {
             continue;
         }

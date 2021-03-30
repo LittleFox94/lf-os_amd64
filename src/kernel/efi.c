@@ -12,6 +12,11 @@ static EFI_GUID gVendorLFOSGuid = {
 static EFI_SYSTEM_TABLE* gST = 0;
 
 void init_efi(struct LoaderStruct* loaderStruct) {
+    if(!loaderStruct->firmware_info) {
+        logw("efi", "No EFI system table provided by bootloader, runtime services not available");
+        return;
+    }
+
     gST = (EFI_SYSTEM_TABLE*)loaderStruct->firmware_info;
     logi("efi", "firmware version %d by %ls", gST->FirmwareRevision, gST->FirmwareVendor);
 
