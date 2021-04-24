@@ -25,7 +25,7 @@
 #define SCSI_SYNCHRONIZE_CACHE               0x35
 #define SCSI_WRITE_BUFFER                    0x3B
 #define SCSI_READ_BUFFER                     0x3C
-#define SCSI_READ_TOC/PMA/ATIP               0x43
+#define SCSI_READ_TOC_PMA_ATIP               0x43
 #define SCSI_GET_CONFIGURATION               0x46
 #define SCSI_GET_EVENT_STATUS_NOTIFICATION   0x4A
 #define SCSI_READ_DISC_INFORMATION           0x51
@@ -43,10 +43,8 @@
 #define SCSI_SECURITY_PROTOCOL_IN            0xA2
 #define SCSI_SEND_KEY                        0xA3
 #define SCSI_REPORT_KEY                      0xA4
-#define SCSI_LOAD/UNLOAD_MEDIUM              0xA6
+#define SCSI_LOAD_UNLOAD_MEDIUM              0xA6
 #define SCSI_SET_READ_AHEAD                  0xA7
-#define SCSI_READ                            0xA8
-#define SCSI_WRITE                           0xAA
 #define SCSI_READ_MEDIA_SERIAL_NUMBER        0xAB
 #define SCSI_SERVICE_ACTION_IN               0x01
 #define SCSI_GET_PERFORMANCE                 0xAC
