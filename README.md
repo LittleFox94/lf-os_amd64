@@ -7,6 +7,8 @@ This is the 5th(?) attempt at writing an operating system from scratch, where "a
 Development mainly happens on my Gitlab at
 <a href="https://praios.lf-net.org/littlefox/lf-os_amd64" target="_blank">https://praios.lf-net.org/littlefox/lf-os_amd64</a> - check it out!
 
+[It can run Doom!](https://twitter.com/0x0a_fox/status/1386095877165551616)
+
 ## Key difference to previous attempts
 
 * amd64, why use i386 like everyone else when I did not even manage to get a working system there?
