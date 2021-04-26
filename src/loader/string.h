@@ -8,6 +8,7 @@ void* memcpy(void* dest, const void* src, size_t n);
 
 size_t wcslen(const CHAR16* s);
 int wcscmp(const CHAR16* s1, const CHAR16* s2);
+int wcscasecmp(const CHAR16* s1, const CHAR16* s2);
 size_t wcstombs(char* dest, const CHAR16* src, size_t n);
 
 void* malloc(size_t size);

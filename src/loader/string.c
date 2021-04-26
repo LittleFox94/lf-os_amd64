@@ -83,6 +83,34 @@ int wcscmp(const CHAR16* s1, const CHAR16* s2) {
     return *(s2 + i) - *(s1 + i);
 }
 
+CHAR16 towlower(CHAR16 c) {
+    if(c >= 'a' && c <= 'z') {
+        return c - ('a' - 'A');
+    }
+
+    return c;
+}
+
+int wcscasecmp(const CHAR16* s1, const CHAR16* s2) {
+    size_t i = 0;
+    while(s1[i] && s2[i]) {
+        CHAR16 a = s1[i];
+        CHAR16 b = s2[i];
+
+        ++i;
+
+        if(
+            (a != b) &&
+            (towlower(a) != towlower(b))
+        ) {
+            break;
+        }
+    }
+
+    return *(s2 + i) - *(s1 + i);
+}
+
+
 size_t wcstombs(char* dest, const CHAR16* src, size_t n) {
     size_t len = wcslen(src);
     size_t i;

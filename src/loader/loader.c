@@ -156,7 +156,7 @@ EFI_STATUS load_files(uint16_t* path, struct LoaderState* state) {
                 return status;
             }
 
-            if(wcscmp(buffer->FileName, L"kernel") == 0) {
+            if(wcscasecmp(buffer->FileName, L"KeRnEl") == 0) {
                 elf_file_header_t* elf_header = (elf_file_header_t*)fileBuffer;
                 uint64_t ph_header = (uint64_t)fileBuffer + (uint64_t)elf_header->programHeaderOffset;
 
