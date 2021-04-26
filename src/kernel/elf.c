@@ -33,7 +33,7 @@ ptr_t load_elf(ptr_t start, struct vm_table* context, ptr_t* data_start, ptr_t* 
         for(size_t j = 0; j < programHeader->memLength; j += 0x1000) {
             ptr_t physical = (ptr_t)mm_alloc_pages(1);
             memset((void*)(physical + ALLOCATOR_REGION_DIRECT_MAPPING.start), 0, 0x1000);
-            vm_context_map(context, (ptr_t)programHeader->vaddr + j, physical);
+            vm_context_map(context, (ptr_t)programHeader->vaddr + j, physical, 0);
 
             if(j < programHeader->fileLength) {
                 size_t offset = 0;

@@ -220,7 +220,7 @@ void sc_handle_scheduler_clone(bool share_memory, ptr_t entry, pid_t* newPid) {
         ptr_t hw = vm_context_get_physical_for_virtual(old->context, i);
 
         if(hw) {
-            vm_context_map(new->context, i, hw);
+            vm_context_map(new->context, i, hw, 0x07);
         }
     }
 
@@ -242,7 +242,7 @@ bool scheduler_handle_pf(ptr_t fault_address, uint64_t error_code) {
         ptr_t page_v = fault_address & ~0xFFF;
         ptr_t page_p = (ptr_t)mm_alloc_pages(1);
         memset((void*)(page_p + ALLOCATOR_REGION_DIRECT_MAPPING.start), 0, 0x1000);
-        vm_context_map(processes[scheduler_current_process].context, page_v, page_p);
+        vm_context_map(processes[scheduler_current_process].context, page_v, page_p, 0);
 
         if(page_v < processes[scheduler_current_process].stack.start) {
             processes[scheduler_current_process].stack.start = page_v;
@@ -305,7 +305,7 @@ void sc_handle_memory_sbrk(int64_t inc, ptr_t* data_end) {
             if(!vm_context_get_physical_for_virtual(processes[scheduler_current_process].context, i)) {
                 ptr_t phys = (ptr_t)mm_alloc_pages(1);
                 memset((void*)(phys + ALLOCATOR_REGION_DIRECT_MAPPING.start), 0, 0x1000);
-                vm_context_map(processes[scheduler_current_process].context, i, phys);
+                vm_context_map(processes[scheduler_current_process].context, i, phys, 0);
             }
         }
     }

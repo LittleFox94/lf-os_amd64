@@ -141,12 +141,12 @@ void set_iopb(struct vm_table* context, ptr_t new_iopb) {
     }
 
     if(!new_iopb) {
-        vm_context_map(context, iopb,         originalPages[0]);
-        vm_context_map(context, iopb + 4*KiB, originalPages[1]);
+        vm_context_map(context, iopb,         originalPages[0], 0);
+        vm_context_map(context, iopb + 4*KiB, originalPages[1], 0);
     }
     else {
-        vm_context_map(context, iopb,         new_iopb);
-        vm_context_map(context, iopb + 4*KiB, new_iopb + 4*KiB);
+        vm_context_map(context, iopb,         new_iopb, 0);
+        vm_context_map(context, iopb + 4*KiB, new_iopb + 4*KiB, 0);
     }
 }
 

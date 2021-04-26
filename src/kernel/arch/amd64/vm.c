@@ -5,8 +5,9 @@
 #include <slab.h>
 #include <bluescreen.h>
 #include <tpa.h>
+#include <msr.h>
 
-extern void load_cr3(ptr_t cr3);
+void load_cr3(ptr_t cr3);
 
 static bool vm_direct_mapping_initialized = false;
 static tpa_t* page_descriptors = 0;
@@ -23,8 +24,8 @@ struct vm_table_entry {
     unsigned int present      : 1;
     unsigned int writeable    : 1;
     unsigned int userspace    : 1;
-    unsigned int writethrough : 1;
-    unsigned int cachedisable : 1;
+    unsigned int pat0         : 1;
+    unsigned int pat1         : 1;
     unsigned int accessed     : 1;
     unsigned int dirty        : 1;
     unsigned int huge         : 1;
@@ -248,6 +249,12 @@ void init_vm() {
         }
     }
 
+    // set up PAT table, especially setting PAT 7 to write combine
+    uint64_t pat = read_msr(0x0277);
+    pat &= ~(0xFFULL << 56);
+    pat |= (0x01ULL << 56);
+    write_msr(0x0277, pat);
+
     logd("vm", "reserved kernel PML4 entries");
     logw("vm", "Skipping lots of code because not completed");
     return;
@@ -391,7 +398,7 @@ static void vm_ensure_table(struct vm_table* table, uint16_t index) {
     }
 }
 
-void vm_context_map(struct vm_table* pml4, ptr_t virtual, ptr_t physical) {
+void vm_context_map(struct vm_table* pml4, ptr_t virtual, ptr_t physical, uint8_t pat) {
     vm_ensure_table(pml4, PML4_INDEX(virtual));
 
     struct vm_table* pdp = BASE_TO_TABLE(pml4->entries[PML4_INDEX(virtual)].next_base);
@@ -406,6 +413,10 @@ void vm_context_map(struct vm_table* pml4, ptr_t virtual, ptr_t physical) {
     pt->entries[PT_INDEX(virtual)].present   = 1;
     pt->entries[PT_INDEX(virtual)].writeable = 1;
     pt->entries[PT_INDEX(virtual)].userspace = 1;
+
+    pt->entries[PT_INDEX(virtual)].pat0 = !!(pat & 1);
+    pt->entries[PT_INDEX(virtual)].pat1 = !!(pat & 2);
+    pt->entries[PT_INDEX(virtual)].huge = !!(pat & 4); // huge bit is pat2 bit in PT
 }
 
 void vm_context_unmap(struct vm_table* context, ptr_t virtual) {
@@ -545,7 +556,7 @@ ptr_t vm_context_alloc_pages(struct vm_table* context, region_t region, size_t n
     // we do not need continuous physical memory, so allocate each page on it's own
     for(size_t i = 0; i < num; ++i) {
         ptr_t physical = (ptr_t)mm_alloc_pages(1);
-        vm_context_map(context, vdest + (i * 4096), physical);
+        vm_context_map(context, vdest + (i * 4096), physical, 0);
     }
 
     return vdest;
@@ -561,7 +572,7 @@ void vm_copy_page(struct vm_table* dst_ctx, ptr_t dst, struct vm_table* src_ctx,
 
         if(!vm_context_page_present(dst_ctx, dst)) {
             dst_phys = (ptr_t)mm_alloc_pages(1);
-            vm_context_map(dst_ctx, dst, dst_phys);
+            vm_context_map(dst_ctx, dst, dst_phys, 0); // TODO: get PAT from source page
         } else {
             dst_phys = vm_context_get_physical_for_virtual(dst_ctx, dst);
         }
@@ -722,7 +733,7 @@ ptr_t vm_map_hardware(ptr_t hw, size_t len) {
     ptr_t  dest  = vm_context_find_free(context, ALLOCATOR_REGION_USER_HARDWARE, pages);
 
     for(size_t page = 0; page < pages; ++page) {
-        vm_context_map(context, dest + (page * 4096), hw + (page * 4096));
+        vm_context_map(context, dest + (page * 4096), hw + (page * 4096), 0x07);
     }
 
     return dest;
