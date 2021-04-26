@@ -47,11 +47,12 @@ ExternalProject_Add(
     USES_TERMINAL_INSTALL   ON
     BUILD_ALWAYS            ON
     STEP_TARGETS
-        "build"
         "install-headers"
 )
 ExternalProject_Add_Step("libc++" "install-headers"
     COMMAND ${CMAKE_MAKE_PROGRAM} install-cxx-headers
+    DEPENDEES configure
+    EXCLUDE_FROM_MAIN ON
     WORKING_DIRECTORY <BINARY_DIR>
 )
 
@@ -64,8 +65,8 @@ ExternalProject_Add(
         "-DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}"
         "-DCMAKE_TOOLCHAIN_FILE:STRING=${toolchain}/etc/cmake.toolchain"
         "-DCMAKE_INSTALL_PREFIX:STRING=${toolchain}"
-        "-DCMAKE_C_FLAGS:STRING=${CMAKE_C_FLAGS}"
-        "-DCMAKE_CXX_FLAGS:STRING=${CMAKE_CXX_FLAGS}"
+        "-DCMAKE_C_FLAGS:STRING=${CMAKE_C_FLAGS} -nostdlib"
+        "-DCMAKE_CXX_FLAGS:STRING=${CMAKE_CXX_FLAGS} -nostdlib"
         "-DLIBCXXABI_ENABLE_THREADS:STRING=Off"
         "-DLIBCXXABI_USE_COMPILER_RT:STRING=On"
         "-DLIBCXXABI_ENABLE_SHARED:STRING=Off"
