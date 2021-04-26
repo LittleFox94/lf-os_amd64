@@ -46,13 +46,20 @@ ExternalProject_Add(
     USES_TERMINAL_BUILD     ON
     USES_TERMINAL_INSTALL   ON
     BUILD_ALWAYS            ON
+    STEP_TARGETS
+        "build"
+        "install-headers"
+)
+ExternalProject_Add_Step("libc++" "install-headers"
+    COMMAND ${CMAKE_MAKE_PROGRAM} install-cxx-headers
+    WORKING_DIRECTORY <BINARY_DIR>
 )
 
 ExternalProject_Add(
     "libc++abi"
     DEPENDS
         "compiler-rt"
-        "libc++"
+        "libc++-install-headers"
     CMAKE_CACHE_ARGS
         "-DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}"
         "-DCMAKE_TOOLCHAIN_FILE:STRING=${toolchain}/etc/cmake.toolchain"
@@ -73,6 +80,10 @@ ExternalProject_Add(
     USES_TERMINAL_BUILD     ON
     USES_TERMINAL_INSTALL   ON
     BUILD_ALWAYS            ON
+    STEP_TARGETS
+        "install"
 )
+
+ExternalProject_Add_StepDependencies("libc++" "build" "libc++abi")
 
 install(CODE "") # nothing to install
