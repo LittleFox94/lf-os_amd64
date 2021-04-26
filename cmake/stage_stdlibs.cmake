@@ -6,7 +6,7 @@ ExternalProject_Add(
     CMAKE_CACHE_ARGS
         "-DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}"
         "-DCMAKE_TOOLCHAIN_FILE:STRING=${toolchain}/etc/cmake.toolchain"
-        "-DCMAKE_INSTALL_PREFIX:STRING=${toolchain}/lib/clang/12.0.0"
+        "-DCMAKE_INSTALL_PREFIX:STRING=${toolchain}/lib/clang/13.0.0"
         "-DCMAKE_C_FLAGS:STRING=${CMAKE_C_FLAGS} -nostdlib"
         "-DCMAKE_CXX_FLAGS:STRING=${CMAKE_CXX_FLAGS} -nostdlib"
         "-DCOMPILER_RT_DEFAULT_TARGET_ONLY:BOOL=ON"
@@ -23,31 +23,7 @@ ExternalProject_Add(
 )
 
 ExternalProject_Add(
-    "libc++abi"
-    DEPENDS "compiler-rt"
-    CMAKE_CACHE_ARGS
-        "-DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}"
-        "-DCMAKE_TOOLCHAIN_FILE:STRING=${toolchain}/etc/cmake.toolchain"
-        "-DCMAKE_INSTALL_PREFIX:STRING=${toolchain}"
-        "-DCMAKE_C_FLAGS:STRING=${CMAKE_C_FLAGS} -nostdlib"
-        "-DCMAKE_CXX_FLAGS:STRING=${CMAKE_CXX_FLAGS} -nostdlib"
-        "-DLIBCXXABI_ENABLE_THREADS:STRING=Off"
-        "-DLIBCXXABI_USE_COMPILER_RT:STRING=On"
-        "-DLIBCXXABI_ENABLE_SHARED:STRING=Off"
-        "-DLIBCXXABI_ENABLE_STATIC_UNWINDER:STRING=On"
-        "-DLIBCXXABI_USE_LLVM_UNWINDER:STRING=On"
-        "-DLIBUNWIND_ENABLE_SHARED:STRING=Off"
-    SOURCE_DIR
-        "${CMAKE_SOURCE_DIR}/src/llvm/libcxxabi"
-    USES_TERMINAL_CONFIGURE ON
-    USES_TERMINAL_BUILD     ON
-    USES_TERMINAL_INSTALL   ON
-    BUILD_ALWAYS            ON
-)
-
-ExternalProject_Add(
     "libc++"
-    DEPENDS "libc++abi"
     CMAKE_CACHE_ARGS
         "-DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}"
         "-DCMAKE_TOOLCHAIN_FILE:STRING=${toolchain}/etc/cmake.toolchain"
@@ -66,6 +42,33 @@ ExternalProject_Add(
         "-DLIBCXX_INCLUDE_TESTS:STRING=Off"
     SOURCE_DIR
         "${CMAKE_SOURCE_DIR}/src/llvm/libcxx"
+    USES_TERMINAL_CONFIGURE ON
+    USES_TERMINAL_BUILD     ON
+    USES_TERMINAL_INSTALL   ON
+    BUILD_ALWAYS            ON
+)
+
+ExternalProject_Add(
+    "libc++abi"
+    DEPENDS
+        "compiler-rt"
+        "libc++"
+    CMAKE_CACHE_ARGS
+        "-DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}"
+        "-DCMAKE_TOOLCHAIN_FILE:STRING=${toolchain}/etc/cmake.toolchain"
+        "-DCMAKE_INSTALL_PREFIX:STRING=${toolchain}"
+        "-DCMAKE_C_FLAGS:STRING=${CMAKE_C_FLAGS}"
+        "-DCMAKE_CXX_FLAGS:STRING=${CMAKE_CXX_FLAGS}"
+        "-DLIBCXXABI_ENABLE_THREADS:STRING=Off"
+        "-DLIBCXXABI_USE_COMPILER_RT:STRING=On"
+        "-DLIBCXXABI_ENABLE_SHARED:STRING=Off"
+        "-DLIBCXXABI_ENABLE_STATIC_UNWINDER:STRING=On"
+        "-DLIBCXXABI_USE_LLVM_UNWINDER:STRING=On"
+        "-DLIBCXXABI_LIBCXX_INCLUDES:STRING=${toolchain}/include/c++/v1"
+        "-DLIBUNWIND_ENABLE_SHARED:STRING=Off"
+        "-DLIBUNWIND_COMPILE_FLAGS:STRING="
+    SOURCE_DIR
+        "${CMAKE_SOURCE_DIR}/src/llvm/libcxxabi"
     USES_TERMINAL_CONFIGURE ON
     USES_TERMINAL_BUILD     ON
     USES_TERMINAL_INSTALL   ON
