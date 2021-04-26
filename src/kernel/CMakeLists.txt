@@ -30,6 +30,7 @@ add_executable(kernel
                 stdarg.h
                 stdbool.h
     ${PROJECT_BINARY_DIR}/syscalls.gen.c
+    ${PROJECT_BINARY_DIR}/config.h
 )
 
 add_subdirectory("arch/${architecture}")
