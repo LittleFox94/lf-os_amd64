@@ -12,7 +12,13 @@ LF OS can only be built out-of-tree, which is actually enforced by LLVM but good
 
 ## Required tools
 
-To compile the toolchain and LF OS components, you need cmake, a C- and C++-Compiler, anything cmake can generate configs for (e.g. make or ninja).
+To compile the toolchain and LF OS components, you need:
+
+- cmake
+- a C-/C++ compiler
+- python (3.x)
+- anything cmake can generate configs for (e.g. make or ninja)
+
 The syscall code generate runs with `perl` and requires the `YAML` module (libperl-yaml, perl-YAML, `cpan YAML`, ..).
 
 To produce disk images, you'll also need `mtools`, `gdisk` and `xz`.
