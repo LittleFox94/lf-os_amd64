@@ -24,6 +24,8 @@ test:
 build:
   stage: build
   interruptible: true
+  before_script:
+  - '[ -z "$CCACHE_DIR" ] && export CCACHE_DIR=$(pwd)/.ccache'
   script:
   - cmake -DCPACK_PACKAGE_VERSION=0.1.1-${CI_PIPELINE_IID} -DCMAKE_BUILD_TYPE=Release -B build -S .
   - make -C build -j$(nproc) hd.img.xz package
@@ -36,6 +38,9 @@ build:
     paths:
     - hd.img.xz
     - "*.deb"
+  cache:
+    paths:
+    - .ccache
   only:
     changes:
     - src/**/*
