@@ -69,16 +69,16 @@ void fbconsole_init(int width, int height, int stride, uint8_t* fb) {
     fbconsole_active = true;
     fbconsole_clear(fbconsole.background_r, fbconsole.background_g, fbconsole.background_b);
 
-    for(ptr_t page = (ptr_t)fb; page < (ptr_t)(fb + (stride * height * 4)); page += 4096) {
-        vm_context_map(VM_KERNEL_CONTEXT, page, vm_context_get_physical_for_virtual(VM_KERNEL_CONTEXT, page), 0x07);
-    }
-
     logd("framebuffer", "framebuffer console @ 0x%x (0x%x)", fb, (uint64_t)vm_context_get_physical_for_virtual(VM_KERNEL_CONTEXT, (ptr_t)fb));
 }
 
 void fbconsole_init_backbuffer(uint8_t* backbuffer) {
     memcpy(backbuffer, fbconsole.fb, fbconsole.stride * fbconsole.height * 4);
     fbconsole.backbuffer = backbuffer;
+
+    for(ptr_t page = (ptr_t)fbconsole.fb; page < (ptr_t)(fbconsole.fb + (fbconsole.stride * fbconsole.height * 4)); page += 4096) {
+        vm_context_map(VM_KERNEL_CONTEXT, page, vm_context_get_physical_for_virtual(VM_KERNEL_CONTEXT, page), 0x07);
+    }
 }
 
 void fbconsole_clear(int r, int g, int b) {
