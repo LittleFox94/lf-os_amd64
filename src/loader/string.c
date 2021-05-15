@@ -48,10 +48,6 @@ static void conwrite(CHAR16* s) {
         if(uart_out) {
             uart_write(msg, len - 1);
         }
-
-#if defined(DEBUG)
-        st->RuntimeServices->SetVariable(L"LFOS_LOG", &gVendorLFOSGuid, 0x47, len - 1, msg);
-#endif
     }
 
     free(msg);
@@ -329,9 +325,6 @@ void init_stdlib(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE* system_table) {
     BS = st->BootServices;
     st->ConOut->ClearScreen(st->ConOut);
 
-    // always clear log, not only in debug builds
-    st->RuntimeServices->SetVariable(L"LFOS_LOG", &gVendorLFOSGuid, 0x7, 0, 0);
-
     if(wcscmp(st->FirmwareVendor, L"EDK II") != 0) {
         uart_out = true;
 
@@ -341,11 +334,7 @@ void init_stdlib(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE* system_table) {
         outb(0x3F8 + 0, 0x0c);    // Set divisor to 12 (lo byte) 9600 baud
         outb(0x3F8 + 1, 0x00);    //                   (hi byte)
         outb(0x3F8 + 3, 0x03);    // 8 bits, no parity, one stop bit
+
+        wprintf(L"UART output enabled\n");
     }
-
-    wprintf(L"UART output enabled: %b\n", uart_out);
-
-#if defined(DEBUG)
-    wprintf(L"Debug build, will log to EFI variable\n");
-#endif
 }
