@@ -71,7 +71,7 @@ void* memcpy(void* dest, const void* src, size_t n) {
 size_t wcslen(const CHAR16* s) {
     size_t len = 0;
     while(s[len++]);
-    return len;
+    return len - 1;
 }
 
 int wcscpy(CHAR16* d, const CHAR16* s) {
