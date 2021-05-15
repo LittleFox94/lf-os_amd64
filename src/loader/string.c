@@ -178,10 +178,10 @@ size_t wprintui(unsigned long long int i, unsigned char base) {
 
     size_t len = 0;
 
-    while(i) {
+    do {
         buffer[buffer_size - 1 -++len] = chars[i % base];
         i /= base;
-    }
+    } while(i);
 
     conwrite(buffer + (buffer_size - len) - 1);
 
