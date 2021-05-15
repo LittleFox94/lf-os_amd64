@@ -7,10 +7,6 @@ static bool uart_out = false;
 static EFI_SYSTEM_TABLE* st;
 EFI_BOOT_SERVICES* BS;
 
-static EFI_GUID gVendorLFOSGuid = {
-    0x54a97f1c, 0x4828, 0x4bb0, { 0xaa, 0xa6, 0x95, 0x84, 0x5e, 0x2d, 0xb2, 0xee }
-};
-
 static void outb(uint16_t port, uint8_t data) {
     asm("outb %0, %1"::"a"(data), "d"(port));
 }
