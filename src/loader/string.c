@@ -73,6 +73,33 @@ void* memcpy(void* dest, const void* src, size_t n) {
     return dest;
 }
 
+int memcmp(const void* a, const void* b, size_t n) {
+    for(size_t i = 0; i < n; ++i) {
+        int diff = ((const char*)a)[i] - ((const char*)b)[i];
+
+        if(diff) {
+            return diff;
+        }
+    }
+
+    return 0;
+}
+
+size_t strlen(const char* s) {
+    size_t len = 0;
+    while(s[len++]);
+    return len - 1;
+}
+
+size_t strcpy(char* d, const char* s) {
+    size_t len = 0;
+    while(s[len]) {
+        d[len] = s[len];
+        ++len;
+    }
+    return len;
+}
+
 size_t wcslen(const CHAR16* s) {
     size_t len = 0;
     while(s[len++]);
