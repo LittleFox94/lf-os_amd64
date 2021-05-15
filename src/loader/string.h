@@ -3,10 +3,14 @@
 
 #include <efi.h>
 
+#define WIDEN_(x) L ## x
+#define WIDEN(x) WIDEN_(x)
+
 void* memset(void* s, int c, size_t n);
 void* memcpy(void* dest, const void* src, size_t n);
 
 size_t wcslen(const CHAR16* s);
+int wcscpy(CHAR16* d, const CHAR16* s);
 int wcscmp(const CHAR16* s1, const CHAR16* s2);
 int wcscasecmp(const CHAR16* s1, const CHAR16* s2);
 size_t wcstombs(char* dest, const CHAR16* src, size_t n);

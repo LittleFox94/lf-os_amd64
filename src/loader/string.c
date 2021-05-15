@@ -74,6 +74,15 @@ size_t wcslen(const CHAR16* s) {
     return len;
 }
 
+int wcscpy(CHAR16* d, const CHAR16* s) {
+    size_t len = 0;
+    while(s[len]) {
+        d[len] = s[len];
+        ++len;
+    }
+    return len;
+}
+
 int wcscmp(const CHAR16* s1, const CHAR16* s2) {
     size_t i = 0;
     while(*(s1 + i) && *(s1 + i) == *(s2 + i)) {

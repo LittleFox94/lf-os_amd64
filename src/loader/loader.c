@@ -13,9 +13,43 @@
 #include "elf.h"
 #include "string.h"
 
-EFI_GUID gEfiLoadedImageProtocolGuid      = EFI_LOADED_IMAGE_PROTOCOL_GUID;
-EFI_GUID gEfiSimpleFileSystemProtocolGuid = EFI_SIMPLE_FILE_SYSTEM_PROTOCOL_GUID;
-EFI_GUID gEfiGraphicsOutputProtocolGuid   = EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID;
+#if DEBUG
+#  define DEBUG_TRACE(args...) wprintf(args);
+static const int gDebugMode = 1;
+#else
+#  define DEBUG_TRACE
+static const int gDebugMode = 0;
+#endif
+
+#define EFI_CHECK_ERROR_CALL_NORET(protocol, function, ...) \
+    if(gDebugMode) \
+        wprintf(L"[%s:%d] " #protocol "->" #function "..", WIDEN(__FUNCTION__), __LINE__); \
+    status = protocol->function(__VA_ARGS__); \
+    if(status & EFI_ERR) { \
+        if(!gDebugMode) \
+            wprintf(L"[%s:%d] " #protocol "->" #function " ", WIDEN(__FUNCTION__), __LINE__, status); \
+        wprintf(L" failed: %d\n", status); \
+    } \
+    else { \
+        DEBUG_TRACE(L" succeeded: %d\n", status); \
+    }
+
+#define EFI_CHECK_ERROR_CALL(protocol, function, ...) \
+    EFI_CHECK_ERROR_CALL_NORET(protocol, function, __VA_ARGS__) \
+    if(status & EFI_ERR) { \
+        return status; \
+    }
+
+#define EFI_CHECK_ERROR_THISCALL_NORET(protocol, function, ...) \
+    EFI_CHECK_ERROR_CALL_NORET(protocol, function, protocol, __VA_ARGS__)
+
+#define EFI_CHECK_ERROR_THISCALL(protocol, function, ...) \
+    EFI_CHECK_ERROR_CALL(protocol, function, protocol, __VA_ARGS__)
+
+
+static EFI_GUID gEfiLoadedImageProtocolGuid      = EFI_LOADED_IMAGE_PROTOCOL_GUID;
+static EFI_GUID gEfiSimpleFileSystemProtocolGuid = EFI_SIMPLE_FILE_SYSTEM_PROTOCOL_GUID;
+static EFI_GUID gEfiGraphicsOutputProtocolGuid   = EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID;
 
 static const size_t UNIT_CONV = 1024;
 static const size_t KB        = UNIT_CONV;
@@ -79,167 +113,194 @@ ptr_t allocate_from_loader_scratchpad(struct LoaderState* state, size_t len, siz
     return ret + alignmentOffset;
 }
 
-EFI_STATUS load_file(EFI_FILE_PROTOCOL* dirHandle, uint16_t* name, size_t bufferSize, ptr_t buffer) {
+EFI_STATUS handle_loaded_file(struct LoaderState* state, void* buffer, size_t size, CHAR16* path) {
+    EFI_STATUS status = 0;
+
+    CHAR16* name = 0;
+    size_t plen = wcslen(path);
+    for(size_t i = plen - 1; i > 0; --i) {
+        if(path[i] == L'/') {
+            name = &path[i+1];
+            break;
+        }
+    }
+
+    if(!name) {
+        name = path;
+    }
+
+    static const CHAR16* kernel_filename = L"KeRnEl"; // funny-case to trigger fails in wcscasecmp in dev earlier
+
+    if(plen >= wcslen(kernel_filename) && wcscasecmp(name, kernel_filename) == 0) {
+        elf_file_header_t* elf_header = (elf_file_header_t*)buffer;
+        uint64_t ph_header = (uint64_t)buffer + (uint64_t)elf_header->programHeaderOffset;
+
+        size_t kernelSize = 0;
+        for(size_t i = 0; i < elf_header->programHeaderCount; ++i) {
+            elf_program_header_t* ph = (elf_program_header_t*)(ph_header + (i * elf_header->programHeaderEntrySize));
+
+            if(ph->type == 1) {
+                size_t length = ph->memLength;
+
+                if(ph->align) {
+                    size_t padding = length % ph->align;
+                    length += padding;
+                }
+
+                kernelSize += length;
+            }
+        }
+        kernelSize += PAGE_SIZE;
+
+        ptr_t physicalKernelLocation;
+
+        EFI_CHECK_ERROR_CALL(BS, AllocatePages, AllocateAnyPages, EfiLoaderCode, (kernelSize + PAGE_SIZE - 1) / PAGE_SIZE, (EFI_PHYSICAL_ADDRESS*)&physicalKernelLocation);
+
+        for(size_t i = 0; i < elf_header->programHeaderCount; ++i) {
+            elf_program_header_t* ph = (elf_program_header_t*)(ph_header + (i * elf_header->programHeaderEntrySize));
+
+            if(ph->type == 1) {
+                size_t size   = ph->fileLength;
+                uint64_t src  = (uint64_t)buffer + ph->offset;
+                uint64_t dest = (uint64_t)(physicalKernelLocation + ph->vaddr) - 0xFFFF800001000000;
+
+                memset((void*)dest, 0, ph->memLength);
+                memcpy((void*)dest, (ptr_t)src, size);
+            }
+        }
+
+        state->physicalKernelLocation = physicalKernelLocation;
+        state->kernelSize             = kernelSize;
+        state->kernelEntry            = (uint64_t)elf_header->entrypoint - 0xFFFF800001000000;
+
+        wprintf(L" @ 0x%x (0x%x bytes, entry 0x%llx)", physicalKernelLocation, kernelSize, elf_header->entrypoint);
+    }
+
+    state->fileDescriptors = state->fileDescriptors ? realloc(state->fileDescriptors, (state->loaderStruct->num_files + 1) * sizeof(struct LoaderFileDescriptor))
+                                                    : malloc((state->loaderStruct->num_files + 1) * sizeof(struct LoaderFileDescriptor));
+
+    struct LoaderFileDescriptor* desc = state->fileDescriptors + state->loaderStruct->num_files;
+    memset(desc->name, 0, 256);
+    desc->size = size;
+
+    EFI_CHECK_ERROR_CALL(BS, AllocatePages, AllocateAnyPages, EfiLoaderData, (desc->size + PAGE_SIZE - 1) / PAGE_SIZE, (EFI_PHYSICAL_ADDRESS*)&desc->data);
+
+    memcpy(desc->data, buffer, desc->size);
+
+    size_t nameLen = wcslen(name);
+    if(nameLen > sizeof(desc->name) - 1) {
+        nameLen = sizeof(desc->name) - 1;
+    }
+
+    wcstombs((char*)desc->name, name, nameLen);
+
+    ++state->loaderStruct->num_files;
+
+    return status;
+}
+
+EFI_STATUS load_file(struct LoaderState* state, EFI_FILE_PROTOCOL* dirHandle, uint16_t* name, size_t fileSize) {
+    wprintf(L"  %s ...", name);
+
+    EFI_STATUS status;
+
     EFI_FILE_PROTOCOL* fileHandle;
-    EFI_STATUS status = dirHandle->Open(dirHandle, &fileHandle, name, EFI_FILE_MODE_READ, 0);
-    if (status & EFI_ERR) {
-        wprintf(L" error opening %d\n", status);
+    EFI_CHECK_ERROR_THISCALL(dirHandle, Open, &fileHandle, name, EFI_FILE_MODE_READ, 0);
+
+    VOID* buffer = 0;
+
+    do {
+        buffer = realloc(buffer, fileSize);
+        status = fileHandle->Read(fileHandle, &fileSize, buffer);
+    } while(status == EFI_BUFFER_TOO_SMALL);
+
+    EFI_CHECK_ERROR_THISCALL(fileHandle, Close);
+
+    status = handle_loaded_file(state, buffer, fileSize, name);
+    free(buffer);
+
+    if(status & EFI_ERR) {
+        wprintf(L" failed: %d\n", status);
         return status;
     }
 
-    status = fileHandle->Read(fileHandle, &bufferSize, buffer);
-    if (status & EFI_ERR) {
-        wprintf(L" error reading %d\n", status);
-        return status;
-    }
-
-    status = fileHandle->Close(fileHandle);
-    if (status & EFI_ERR) {
-        wprintf(L" error closing %d\n", status);
-        return status;
-    }
-
+    wprintf(L" ok\n");
     return EFI_SUCCESS;
 }
 
 EFI_STATUS load_files(uint16_t* path, struct LoaderState* state) {
+    EFI_STATUS status;
+
     EFI_SIMPLE_FILE_SYSTEM_PROTOCOL* volume;
-    EFI_STATUS status = BS->HandleProtocol(state->loadedImage->DeviceHandle, &gEfiSimpleFileSystemProtocolGuid, (void**)&volume);
-    if (status & EFI_ERR) {
-        wprintf(L"Error in OpenProtocol: %d", status);
-        return status;
-    }
+    EFI_CHECK_ERROR_CALL(BS, HandleProtocol, state->loadedImage->DeviceHandle, &gEfiSimpleFileSystemProtocolGuid, (void**)&volume);
 
     EFI_FILE_PROTOCOL* rootHandle;
-    status = volume->OpenVolume(volume, &rootHandle);
-    if (status & EFI_ERR) {
-        wprintf(L"Error in OpenVolume: %d", status);
-        return status;
-    }
+    EFI_CHECK_ERROR_THISCALL(volume, OpenVolume, &rootHandle);
 
     EFI_FILE_PROTOCOL* dirHandle;
-    status = rootHandle->Open(rootHandle, &dirHandle, LF_OS_LOCATION, EFI_FILE_MODE_READ, 0);
-    if (status & EFI_ERR) {
-        wprintf(L"Error in Open: %d", status);
-        return status;
-    }
+    EFI_CHECK_ERROR_THISCALL_NORET(rootHandle, Open, &dirHandle, path, EFI_FILE_MODE_READ, 0);
 
-    size_t read = 64;
-    do {
-        EFI_FILE_INFO* buffer = malloc(read);
+    if(status == EFI_SUCCESS) {
+        size_t read = 64;
+        do {
+            EFI_FILE_INFO* buffer = malloc(read);
 
-        status = dirHandle->Read(dirHandle, &read, buffer);
-        if (status & EFI_ERR) {
-            if(status != EFI_BUFFER_TOO_SMALL) {
-                free(buffer);
-                wprintf(L"Error in Read: %d\n", status);
-                return status;
-            }
-        }
-        else if(read > 0 && (buffer->Attribute & EFI_FILE_DIRECTORY) == 0) {
-            uint8_t* fileBuffer;
-            status = BS->AllocatePages(AllocateAnyPages, EfiLoaderCode, (buffer->FileSize + PAGE_SIZE - 1) / PAGE_SIZE, (EFI_PHYSICAL_ADDRESS*)&fileBuffer);
-
-            if(status & EFI_ERR) {
-                wprintf(L" cannot get pages for loaded file: %d (%x bytes required)\n", status, buffer->FileSize);
-                free(fileBuffer);
-                free(buffer);
-                return status;
-            }
-
-            wprintf(L"  %s ...", buffer->FileName);
-
-            status = load_file(dirHandle, buffer->FileName, buffer->FileSize, fileBuffer);
-            if(status & EFI_ERR) {
-                free(fileBuffer);
-                free(buffer);
-                return status;
-            }
-
-            if(wcscasecmp(buffer->FileName, L"KeRnEl") == 0) {
-                elf_file_header_t* elf_header = (elf_file_header_t*)fileBuffer;
-                uint64_t ph_header = (uint64_t)fileBuffer + (uint64_t)elf_header->programHeaderOffset;
-
-                size_t kernelSize = 0;
-                for(size_t i = 0; i < elf_header->programHeaderCount; ++i) {
-                    elf_program_header_t* ph = (elf_program_header_t*)(ph_header + (i * elf_header->programHeaderEntrySize));
-
-                    if(ph->type == 1) {
-                        size_t length = ph->memLength;
-
-                        if(ph->align) {
-                            size_t padding = length % ph->align;
-                            length += padding;
-                        }
-
-                        kernelSize += length;
-                    }
+            status = dirHandle->Read(dirHandle, &read, buffer);
+            if (status & EFI_ERR) {
+                if(status != EFI_BUFFER_TOO_SMALL) {
+                    free(buffer);
+                    wprintf(L"Error in Read: %d\n", status);
+                    return status;
                 }
-                kernelSize += PAGE_SIZE;
+            }
+            else if(read > 0 && (buffer->Attribute & EFI_FILE_DIRECTORY) == 0) {
+                uint8_t* fileBuffer;
+                EFI_CHECK_ERROR_CALL_NORET(BS, AllocatePages, AllocateAnyPages, EfiLoaderCode, (buffer->FileSize + PAGE_SIZE - 1) / PAGE_SIZE, (EFI_PHYSICAL_ADDRESS*)&fileBuffer);
 
-                ptr_t physicalKernelLocation;
-
-                status = BS->AllocatePages(AllocateAnyPages, EfiLoaderCode, (kernelSize + PAGE_SIZE - 1) / PAGE_SIZE, (EFI_PHYSICAL_ADDRESS*)&physicalKernelLocation);
                 if(status & EFI_ERR) {
-                    wprintf(L" cannot get pages for kernel: %d (%x bytes required)\n", status, kernelSize);
                     free(fileBuffer);
                     free(buffer);
                     return status;
                 }
 
-                for(size_t i = 0; i < elf_header->programHeaderCount; ++i) {
-                    elf_program_header_t* ph = (elf_program_header_t*)(ph_header + (i * elf_header->programHeaderEntrySize));
-
-                    if(ph->type == 1) {
-                        size_t size   = ph->fileLength;
-                        uint64_t src  = (uint64_t)fileBuffer + ph->offset;
-                        uint64_t dest = (uint64_t)(physicalKernelLocation + ph->vaddr) - 0xFFFF800001000000;
-
-                        memset((void*)dest, 0, ph->memLength);
-                        memcpy((void*)dest, (ptr_t)src, size);
-                    }
+                status = load_file(state, dirHandle, buffer->FileName, buffer->FileSize);
+                if(status & EFI_ERR) {
+                    free(buffer);
+                    return status;
                 }
-
-                state->physicalKernelLocation = physicalKernelLocation;
-                state->kernelSize             = kernelSize;
-                state->kernelEntry            = (uint64_t)elf_header->entrypoint - 0xFFFF800001000000;
-
-                wprintf(L" @ 0x%x (0x%x bytes, entry 0x%llx)", physicalKernelLocation, kernelSize, elf_header->entrypoint);
             }
 
-            state->fileDescriptors = state->fileDescriptors ? realloc(state->fileDescriptors, (state->loaderStruct->num_files + 1) * sizeof(struct LoaderFileDescriptor))
-                                                            : malloc((state->loaderStruct->num_files + 1) * sizeof(struct LoaderFileDescriptor));
+            free(buffer);
+        } while (read > 0);
 
-            struct LoaderFileDescriptor* desc = state->fileDescriptors + state->loaderStruct->num_files;
-            memset(desc->name, 0, 256);
-            desc->size = buffer->FileSize;
-            desc->data = fileBuffer;
+        EFI_CHECK_ERROR_THISCALL(dirHandle, Close);
+    }
+    else {
+        // we cannot read directories, maybe we are PXE-booted
+        // lets try with a static file list instead
+        CHAR16* files[] = {
+            L"kernel",
+            L"init",
+        };
 
-            // XXX: ASCII only
-            size_t nameLen = wcslen(buffer->FileName);
-            for(size_t i = 0; i < nameLen && i < 255; ++i) {
-                desc->name[i] = buffer->FileName[i] & 0xFF;
+        size_t plen = wcslen(path);
+        size_t fileCount = sizeof(files) / sizeof(CHAR16*);
+
+        for(size_t i = 0; i < fileCount; ++i) {
+            size_t flen = wcslen(files[i]);
+            CHAR16* fullPath = malloc(sizeof(CHAR16) * (plen + flen + 2));
+            memset(fullPath, 0, sizeof(CHAR16) * (plen + flen + 2));
+            wcscpy(fullPath, path);
+            fullPath[plen] = L'/';
+            wcscpy(fullPath + plen + 1, files[i]);
+
+            if((status = load_file(state, rootHandle, fullPath, 0)) != EFI_SUCCESS) {
+                return status;
             }
-
-            ++state->loaderStruct->num_files;
-
-            wprintf(L" ok\n");
         }
-
-        free(buffer);
-    } while (read > 0);
-
-    status = dirHandle->Close(dirHandle);
-    if (status & EFI_ERR) {
-        wprintf(L"Error in Close dir: %d\n", status);
-        return status;
     }
 
-    status = rootHandle->Close(rootHandle);
-    if (status & EFI_ERR) {
-        wprintf(L"Error in Close root: %d\n", status);
-        return status;
-    }
+    EFI_CHECK_ERROR_THISCALL(rootHandle, Close);
 
     return EFI_SUCCESS;
 }
@@ -332,20 +393,15 @@ EFI_STATUS prepare_framebuffer(struct LoaderState* state) {
 
     UINTN handle_count        = 0;
     EFI_HANDLE* handle_buffer = 0;
-    status = BS->LocateHandleBuffer(ByProtocol, &gEfiGraphicsOutputProtocolGuid, 0, &handle_count, &handle_buffer);
-    if(status != EFI_SUCCESS) {
-        return status;
-    }
+
+    EFI_CHECK_ERROR_CALL(BS, LocateHandleBuffer, ByProtocol, &gEfiGraphicsOutputProtocolGuid, 0, &handle_count, &handle_buffer);
 
     if(handle_count == 0) {
         return EFI_UNSUPPORTED;
     }
 
     EFI_GRAPHICS_OUTPUT_PROTOCOL* gop;
-    status = BS->HandleProtocol(handle_buffer[0], &gEfiGraphicsOutputProtocolGuid, (void**)&gop);
-    if(status != EFI_SUCCESS) {
-        return status;
-    }
+    EFI_CHECK_ERROR_CALL(BS, HandleProtocol, handle_buffer[0], &gEfiGraphicsOutputProtocolGuid, (void**)&gop);
 
     size_t width  = gop->Mode->Info->HorizontalResolution;
     size_t height = gop->Mode->Info->VerticalResolution;
@@ -497,8 +553,8 @@ void initialize_virtual_memory(struct LoaderState* state, EFI_SYSTEM_TABLE* syst
 
     for(size_t i = 0; i < state->loaderStruct->num_files; ++i) {
         memcpy((fileDescriptors + i)->name, (state->fileDescriptors + i)->name, 256);
-        (fileDescriptors + i)->size                 = (state->fileDescriptors + i)->size;
-        (fileDescriptors + i)->offset               = (filesStart - (ptr_t)loaderStructFinal);
+        (fileDescriptors + i)->size   = (state->fileDescriptors + i)->size;
+        (fileDescriptors + i)->offset = (filesStart - (ptr_t)loaderStructFinal);
 
         for(size_t j = 0; j < (fileDescriptors + i)->size; j += PAGE_SIZE) {
             map_page(state, pml4, filesStart, (state->fileDescriptors + i)->data + j);
@@ -525,6 +581,7 @@ void initialize_virtual_memory(struct LoaderState* state, EFI_SYSTEM_TABLE* syst
 }
 
 EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE* system_table) {
+    EFI_STATUS status;
 
     init_stdlib(image_handle, system_table);
 
@@ -532,7 +589,8 @@ EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE* system_table) {
     memset(&state, 0, sizeof(state));
 
     EFI_LOADED_IMAGE_PROTOCOL* li;
-    EFI_STATUS status = BS->HandleProtocol(image_handle, &gEfiLoadedImageProtocolGuid, (void**)&li);
+    EFI_CHECK_ERROR_CALL(BS, HandleProtocol, image_handle, &gEfiLoadedImageProtocolGuid, (void**)&li);
+
     state.loadedImage = li;
     state.loaderStart = (ptr_t)li->ImageBase;
     state.loaderSize  = (size_t)li->ImageSize;
@@ -565,15 +623,13 @@ EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE* system_table) {
         state.loaderScratchpad, state.loaderScratchpadSize
     );
 
-#if defined(DEBUG)
     if(sizeof(vm_table_t) != 4096) {
         wprintf(L"\nCOMPILATION ERROR sizeof(vm_table_t) = %u\n", sizeof(vm_table_t));
-        return EFI_ABORTED;
+        while(1);
     }
-#endif
 
     wprintf(L"Loading files\n");
-    status = load_files(LF_OS_LOCATION, &state);
+    status = load_files(WIDEN(LF_OS_LOCATION), &state);
     if(status != EFI_SUCCESS) {
         wprintf(L"\nCould not load files: %d\n", status);
         return status;
