@@ -27,6 +27,11 @@ static int is_transmit_empty() {
 
 static void uart_write(char* msg, size_t len) {
     for(size_t i = 0; i < len; ++i) {
+        if(msg[i] == '\n') {
+            while(!is_transmit_empty()) { }
+            outb(0x3F8, '\r');
+        }
+
         while(!is_transmit_empty()) { }
         outb(0x3F8, msg[i]);
     }
