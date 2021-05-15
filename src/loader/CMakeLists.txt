@@ -10,6 +10,7 @@ endif()
 add_executable(loader
     loader.c
     string.c
+    pxe.c
 )
 
 configure_file(config.h.in config.h)

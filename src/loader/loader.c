@@ -228,11 +228,19 @@ EFI_STATUS load_file(struct LoaderState* state, EFI_FILE_PROTOCOL* dirHandle, ui
     return EFI_SUCCESS;
 }
 
+EFI_STATUS initPxeSfs(EFI_HANDLE* deviceHandle);
+
 EFI_STATUS load_files(uint16_t* path, struct LoaderState* state) {
     EFI_STATUS status;
+    EFI_HANDLE deviceHandle = state->loadedImage->DeviceHandle;
+
+    status = initPxeSfs(&deviceHandle);
+    if(status != EFI_SUCCESS) {
+        wprintf(L" Not booting via PXE\n", status);
+    }
 
     EFI_SIMPLE_FILE_SYSTEM_PROTOCOL* volume;
-    EFI_CHECK_ERROR_CALL(BS, HandleProtocol, state->loadedImage->DeviceHandle, &gEfiSimpleFileSystemProtocolGuid, (void**)&volume);
+    EFI_CHECK_ERROR_CALL(BS, HandleProtocol, deviceHandle, &gEfiSimpleFileSystemProtocolGuid, (void**)&volume);
 
     EFI_FILE_PROTOCOL* rootHandle;
     EFI_CHECK_ERROR_THISCALL(volume, OpenVolume, &rootHandle);
