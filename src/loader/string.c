@@ -158,6 +158,10 @@ void  free(void* ptr) {
 }
 
 void* realloc(void* ptr, size_t size) {
+    if(!ptr) {
+        return malloc(size);
+    }
+
     size_t orig = *(size_t*)(ptr - sizeof(size_t));
     void* new = malloc(size);
     memcpy(new, ptr, orig);
