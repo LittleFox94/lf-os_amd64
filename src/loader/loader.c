@@ -400,26 +400,6 @@ void map_page(struct LoaderState* state, vm_table_t* pml4, ptr_t virtual, ptr_t 
     };
 }
 
-void __attribute__((optnone)) jump_kernel(
-    volatile struct LoaderStruct* loaderStruct,
-    volatile ptr_t kernel,
-    volatile uint64_t entry
-) {
-    asm volatile(
-        "mov %%rax, %%rsp\n"
-        "subq $16,  %%rsp\n"
-        "mov %%rsp, %%rbp\n"
-
-        "addq %%rbx, %%rax\n"
-        "jmpq *%%rax"
-        ::
-        "D"(loaderStruct),
-        "a"(kernel),
-        "b"(entry)
-    );
-    while(1);
-}
-
 void initialize_virtual_memory(struct LoaderState* state, EFI_SYSTEM_TABLE* system_table) {
     const ptr_t higherHalf = (ptr_t)0xFFFF800000000000;
 
@@ -526,24 +506,25 @@ void initialize_virtual_memory(struct LoaderState* state, EFI_SYSTEM_TABLE* syst
         }
     }
 
-    // map the tiny bit of stack we still need
-    ptr_t rsp, rbp;
+    asm(
+        "mov %3,    %%cr3\n"
+        "mov %%rax, %%rsp\n"
+        "subq $16,  %%rsp\n"
+        "mov %%rsp, %%rbp\n"
 
-    asm("mov %%rsp, %0":"=r"(rsp));
-    asm("mov %%rbp, %0":"=r"(rbp));
+        "addq %%rbx, %%rax\n"
+        "jmpq *%%rax"
+        ::
+        "D"(loaderStructFinal),
+        "a"(kernelStart),
+        "b"(state->kernelEntry),
+        "r"(pml4)
+    );
 
-    for(ptr_t i = (ptr_t)((uint64_t)rsp & ~PAGE_SIZE); i < rbp; i += PAGE_SIZE) {
-        map_page(state, pml4, i, i);
-    }
-
-    asm volatile("mov %0, %%cr3"::"r"(pml4));
-
-    asm("outb %0, %1"::"a"((uint8_t)10), "d"((uint16_t)0x3F8));
-    jump_kernel(loaderStructFinal, kernelStart, state->kernelEntry);
+    while(1);
 }
 
 EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE* system_table) {
-    asm("mov %rsp, %rbp");
 
     init_stdlib(image_handle, system_table);
 

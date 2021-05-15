@@ -28,7 +28,6 @@ target_compile_options(loader PRIVATE
     -mno-red-zone
     -gdwarf
     -mno-ms-bitfields
-    -O0 # ¯\_(ツ)_/¯
 )
 
 target_link_options(loader PRIVATE
@@ -41,7 +40,6 @@ target_link_options(loader PRIVATE
     -Wl,-subsystem:efi_application
     -fuse-ld=lld-link
     -mno-ms-bitfields
-    -O0 # ¯\_(ツ)_/¯
 )
 
 set_target_properties(loader PROPERTIES OUTPUT_NAME loader.efi)
