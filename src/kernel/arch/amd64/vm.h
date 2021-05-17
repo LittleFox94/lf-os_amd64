@@ -56,6 +56,7 @@ struct vm_table* vm_current_context();
 void vm_context_activate(struct vm_table* context);
 
 void vm_context_map(struct vm_table* context, ptr_t virtual, ptr_t physical, uint8_t pat);
+void vm_context_unmap(struct vm_table* context, ptr_t virtual);
 
 ptr_t vm_context_get_free_address(struct vm_table* table, bool kernel);
 
