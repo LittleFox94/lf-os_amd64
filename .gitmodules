@@ -8,5 +8,5 @@
 	branch = lf-os
 [submodule "src/loader/efi"]
 	path = src/include/efi
-	branch = pbcp
-	url = https://github.com/LittleFox94/efi-headers.git
+	branch = master
+	url = https://github.com/yoppeh/efi.git
