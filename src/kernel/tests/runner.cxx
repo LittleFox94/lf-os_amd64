@@ -1,5 +1,6 @@
 #define _TESTRUNNER
 #include "lfostest.h"
+#include "../allocator.h"
 
 #include <iostream>
 #include <dlfcn.h>
@@ -17,12 +18,28 @@
     TEST_FUNCTIONS
 #undef testFunctionT
 
+LFOS_API allocator_t* alloc = 0;
+
 bool result = true;
 int main(int argc, char* argv[]) {
+    alloc = new allocator_t {
+        .alloc   = [](allocator_t* alloc, size_t size) -> void* {
+            alloc->tag += size + 8;
+            uint8_t* data = new uint8_t[size + sizeof(size_t)];
+            (reinterpret_cast<size_t*>(data))[0] = size;
+            return data+sizeof(size_t);
+        },
+        .dealloc = [](allocator_t* alloc, void* ptr) -> void {
+            size_t* data = reinterpret_cast<size_t*>(reinterpret_cast<uint8_t*>(ptr) - sizeof(size_t));
+            alloc->tag -= *data;
+            delete data;
+        }
+    };
+
     TestUtils utils;
 #define testFunctionT(type, name) utils.name ## _ ## type = [](type expected, type actual, const char* message) { \
     bool r = name ## _ ## type ## Impl(expected, actual); \
-    std::cerr << "\e[38;5;" << (r ? "2mok " : "1mnok") << "  " << message << " (" << (uint64_t)expected << " " #name " " << (uint64_t)actual << ")" << std::endl; \
+    std::cerr << "\e[38;5;" << (r ? "2mok " : "1mnok") << "  " << message << " (" << std::hex << expected << " " #name " " << std::hex << actual << ")" << std::endl; \
     if(!r) result = false; \
 };
     TEST_FUNCTIONS

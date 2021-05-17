@@ -38,4 +38,12 @@ typedef struct {
 
 typedef void(*TestMain)(TestUtils* utils);
 
+#include "../allocator.h"
+
+#if __cplusplus
+extern "C" allocator_t* alloc;
+#else
+extern allocator_t* alloc;
+#endif
+
 #endif

@@ -226,7 +226,7 @@ void init_vm() {
     logd("vm", "direct mapping set up");
 
     // initializing page descriptors
-    page_descriptors = tpa_new(vm_alloc, vm_free, sizeof(struct page_descriptor), 4080, page_descriptors); // vm_alloc needs 16 bytes
+    page_descriptors = tpa_new(&kernel_alloc, sizeof(struct page_descriptor), 4080, page_descriptors); // vm_alloc needs 16 bytes
     logd("vm", "page descriptor structure initialized");
 
     struct vm_table* new_kernel_context = (struct vm_table*)vm_context_alloc_pages(VM_KERNEL_CONTEXT, ALLOCATOR_REGION_KERNEL_HEAP, 1);
@@ -426,21 +426,21 @@ void vm_context_unmap(struct vm_table* context, ptr_t virtual) {
         return;
     }
 
-    struct vm_table*       pdp       = BASE_TO_TABLE(pml4_entry->next_base);
+    struct vm_table*       pdp= BASE_TO_TABLE(pml4_entry->next_base);
     struct vm_table_entry* pdp_entry = &pdp->entries[PDP_INDEX(virtual)];
 
     if(!pdp_entry->present) {
         return;
     }
 
-    struct vm_table*       pd       = BASE_TO_TABLE(pdp_entry->next_base);
+    struct vm_table*       pd = BASE_TO_TABLE(pdp_entry->next_base);
     struct vm_table_entry* pd_entry = &pd->entries[PD_INDEX(virtual)];
 
     if(!pd_entry->present) {
         return;
     }
 
-    struct vm_table*       pt       = BASE_TO_TABLE(pd_entry->next_base);
+    struct vm_table*       pt = BASE_TO_TABLE(pd_entry->next_base);
     struct vm_table_entry* pt_entry = &pt->entries[PT_INDEX(virtual)];
 
     if(!pt_entry->present) {
@@ -713,6 +713,23 @@ void vm_free(void* ptr) {
         mm_mark_physical_pages(phy, 1, MM_FREE);
     }
 }
+
+static void* kernel_alloc_fn(allocator_t* alloc, size_t size) {
+    alloc->tag += size;
+    return vm_alloc(size);
+}
+
+static void kernel_dealloc_fn(allocator_t* alloc, void* ptr) {
+    size_t size = *((size_t*)ptr-1);
+    alloc->tag -= size;
+    vm_free(ptr);
+}
+
+allocator_t kernel_alloc = (allocator_t){
+    .alloc   = kernel_alloc_fn,
+    .dealloc = kernel_dealloc_fn,
+    .tag     = 0,
+};
 
 struct vm_table* vm_current_context() {
     struct vm_table* current;

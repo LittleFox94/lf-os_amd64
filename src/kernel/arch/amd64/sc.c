@@ -211,7 +211,7 @@ void interrupt_add_queue(uint8_t interrupt, uint64_t mq) {
     flexarray_t array;
 
     if(!(array = interrupt_queues[interrupt])) {
-        array = new_flexarray(sizeof(uint64_t), 0, vm_alloc, vm_free);
+        array = new_flexarray(sizeof(uint64_t), 0, &kernel_alloc);
         interrupt_queues[interrupt] = array;
     }
 

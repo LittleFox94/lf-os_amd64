@@ -6,9 +6,9 @@ void scheduler_waitable_done(enum wait_reason r, union wait_data d, size_t m) {
 }
 
 __attribute__ ((visibility ("default"))) void testmain(TestUtils* t) {
-    init_mq(malloc, free);
+    init_mq(alloc);
 
-    uint64_t mq = mq_create(malloc, free);
+    uint64_t mq = mq_create(alloc);
 
     struct Message message;
     message.size             = 1 + sizeof(struct Message);
@@ -52,10 +52,10 @@ __attribute__ ((visibility ("default"))) void testmain(TestUtils* t) {
     }
 
     for(size_t i = 0; i < num_messages; ++i) {
-        struct Message* msg_peeked = malloc(sizeof(struct Message) + 1);
+        struct Message* msg_peeked = alloc->alloc(alloc, sizeof(struct Message) + 1);
         msg_peeked->size = sizeof(struct Message) + 1;
 
-        struct Message* msg_popped = malloc(sizeof(struct Message) + 1);
+        struct Message* msg_popped = alloc->alloc(alloc, sizeof(struct Message) + 1);
         msg_popped->size = sizeof(struct Message) + 1;
 
         t->eq_uint64_t(0, mq_peek(mq, msg_peeked), "Peeked message from queue");
@@ -65,10 +65,10 @@ __attribute__ ((visibility ("default"))) void testmain(TestUtils* t) {
         t->eq_uint8_t(msg_peeked->user_data.raw[0], msg_popped->user_data.raw[0], "Messages have identical raw user data");
         t->eq_uint8_t(msg_peeked->user_data.raw[0], i, "Messages have correct raw user data");
 
-        free(msg_peeked);
-        free(msg_popped);
+        alloc->dealloc(alloc, msg_peeked);
+        alloc->dealloc(alloc, msg_popped);
     }
 
     mq_destroy(mq);
-    free(mqs);
+    alloc->dealloc(alloc, mqs);
 }

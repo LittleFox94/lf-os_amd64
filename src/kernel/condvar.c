@@ -13,7 +13,7 @@ static tpa_t*   condvars;
 static uint64_t next_condvar = 1;
 
 void init_condvar() {
-    condvars = tpa_new(vm_alloc, vm_free, sizeof(struct condvar_data), 4080, 0);
+    condvars = tpa_new(&kernel_alloc, sizeof(struct condvar_data), 4080, 0);
 }
 
 void sc_handle_locking_create_condvar(uint64_t* cv, uint64_t* e) {

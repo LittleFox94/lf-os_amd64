@@ -52,9 +52,6 @@ struct MessageQueue {
     //! Allocator for new pages
     allocator_t* alloc;
 
-    //! How to free pages
-    deallocator_t* dealloc;
-
     //! Pointer to first page for popping and peeking
     struct MessageQueuePage* first_page;
 
@@ -62,18 +59,17 @@ struct MessageQueue {
     struct MessageQueuePage* last_page;
 };
 
-void init_mq(allocator_t alloc, deallocator_t dealloc) {
-    mqs = tpa_new(alloc, dealloc, sizeof(struct MessageQueue), 4080, 0);
+void init_mq(allocator_t* alloc) {
+    mqs = tpa_new(alloc, sizeof(struct MessageQueue), 4080, 0);
 }
 
-uint64_t mq_create(allocator_t* alloc, deallocator_t* dealloc) {
+uint64_t mq_create(allocator_t* alloc) {
     if(!next_mq) {
         panic_message("Mutex namespace overflow!");
     }
 
     struct MessageQueue mq = {
         .alloc   = alloc,
-        .dealloc = dealloc,
 
         .max_items            = 0,
         .max_bytes            = 0,
@@ -99,7 +95,7 @@ void mq_destroy(uint64_t mq) {
     struct MessageQueuePage* current = data->first_page;
     while(current) {
         struct MessageQueuePage* next = current->next;
-        data->dealloc(current);
+        data->alloc->dealloc(data->alloc, current);
         current = next;
     }
 
@@ -113,7 +109,7 @@ static void mq_alloc_page(struct MessageQueue* mq, size_t min_size) {
         alloc_size = min_size; // let's hope this size is uncommon and next page has average messages again
     }
 
-    struct MessageQueuePage* page = mq->alloc(alloc_size + sizeof(struct MessageQueuePage));
+    struct MessageQueuePage* page = mq->alloc->alloc(mq->alloc, alloc_size + sizeof(struct MessageQueuePage));
     memset(page, 0, alloc_size + sizeof(struct MessageQueuePage));
 
     page->allocated = alloc_size;
@@ -196,7 +192,7 @@ uint64_t mq_pop(uint64_t mq, struct Message* msg) {
         }
 
         struct MessageQueuePage* next = data->first_page->next;
-        data->dealloc(data->first_page);
+        data->alloc->dealloc(data->alloc, data->first_page);
         data->first_page = next;
     }
 

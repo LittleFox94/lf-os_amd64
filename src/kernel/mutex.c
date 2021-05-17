@@ -18,7 +18,7 @@ struct mutex_data {
 };
 
 void init_mutex() {
-    mutexes = tpa_new(vm_alloc, vm_free, sizeof(struct mutex_data), 4080, 0);
+    mutexes = tpa_new(&kernel_alloc, sizeof(struct mutex_data), 4080, 0);
 }
 
 mutex_t mutex_create() {

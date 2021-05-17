@@ -35,9 +35,6 @@ struct tpa {
     //! Allocator for new tpa pages
     allocator_t* allocator;
 
-    //! Deallocator for tpa pages no longer in use
-    deallocator_t* deallocator;
-
     //! Size of each entry
     uint64_t entry_size;
 
@@ -48,13 +45,12 @@ struct tpa {
     struct tpa_page_header* first;
 };
 
-tpa_t* tpa_new(allocator_t* alloc, deallocator_t* dealloc, uint64_t entry_size, uint64_t page_size, tpa_t* tpa) {
+tpa_t* tpa_new(allocator_t* alloc, uint64_t entry_size, uint64_t page_size, tpa_t* tpa) {
     if(!tpa) {
-        tpa = alloc(sizeof(struct tpa));
+        tpa = alloc->alloc(alloc, sizeof(struct tpa));
     }
 
     tpa->allocator   = alloc;
-    tpa->deallocator = dealloc;
     tpa->entry_size  = entry_size;
     tpa->page_size   = page_size;
     tpa->first       = 0;
@@ -66,11 +62,11 @@ void tpa_delete(tpa_t* tpa) {
     struct tpa_page_header* current = tpa->first;
     while(current) {
         struct tpa_page_header* next = current->next;
-        tpa->deallocator(current);
+        tpa->allocator->dealloc(tpa->allocator, current);
         current = next;
     }
 
-    tpa->deallocator(tpa);
+    tpa->allocator->dealloc(tpa->allocator, tpa);
 }
 
 size_t tpa_size(tpa_t* tpa) {
@@ -172,7 +168,7 @@ void tpa_clean_page(tpa_t* tpa, struct tpa_page_header* page) {
         tpa->first = page->next;
     }
 
-    tpa->deallocator(page);
+    tpa->allocator->dealloc(tpa->allocator, page);
 }
 
 void tpa_set(tpa_t* tpa, uint64_t idx, void* data) {
@@ -187,7 +183,7 @@ void tpa_set(tpa_t* tpa, uint64_t idx, void* data) {
     }
     else {
         if(!page) {
-            page = tpa->allocator(tpa->page_size);
+            page = tpa->allocator->alloc(tpa->allocator, tpa->page_size);
             memset(page, 0, tpa->page_size);
             page->start_idx = (idx / tpa_entries_per_page(tpa)) * tpa_entries_per_page(tpa);
 

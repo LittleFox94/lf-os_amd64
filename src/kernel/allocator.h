@@ -3,7 +3,15 @@
 
 #include <stdint.h>
 
-typedef void*(allocator_t)(size_t size);
-typedef void(deallocator_t)(void* ptr);
+struct allocator;
+
+typedef struct allocator {
+    void*(*alloc)(struct allocator* alloc, size_t size);
+    void(*dealloc)(struct allocator* alloc, void* mem);
+
+    uint64_t tag;
+} allocator_t;
+
+extern allocator_t kernel_alloc;
 
 #endif

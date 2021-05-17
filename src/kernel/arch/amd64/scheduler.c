@@ -38,13 +38,45 @@ typedef struct {
 
     //! Physical address of the first of two IOPB pages, 0 if no IO privilege granted
     ptr_t iopb;
+
+    allocator_t allocator;
+    size_t allocatedMemory;
 } process_t;
 
 volatile pid_t scheduler_current_process = -1;
 
 // TODO: better data structure here. A binary tree with prev/next pointers should be great
 #define MAX_PROCS 4096
-process_t processes[MAX_PROCS];
+static process_t processes[MAX_PROCS];
+
+void* process_alloc(allocator_t* alloc, size_t size) {
+    if(!alloc ||
+        (processes[alloc->tag].state != process_state_runnable &&
+         processes[alloc->tag].state != process_state_running)
+    ) {
+        logw("scheduler", "process_alloc called for invalid process %u\n", alloc->tag);
+        return 0;
+    }
+
+    processes[alloc->tag].allocatedMemory += size;
+
+    return vm_alloc(size);
+}
+
+void process_dealloc(allocator_t* alloc, void* ptr) {
+    if(!alloc ||
+        (processes[alloc->tag].state != process_state_runnable &&
+         processes[alloc->tag].state != process_state_running)
+    ) {
+        logw("scheduler", "process_alloc called for invalid process %u\n", alloc->tag);
+        return;
+    }
+
+    size_t size = *((size_t*)ptr - 1);
+    vm_free(ptr);
+
+    processes[alloc->tag].allocatedMemory -= size;
+}
 
 void init_scheduler() {
     memset((uint8_t*)processes, 0, sizeof(process_t) * MAX_PROCS);
@@ -84,7 +116,13 @@ pid_t setup_process() {
     process->hw.start = ALLOCATOR_REGION_USER_HARDWARE.start;
     process->hw.end   = ALLOCATOR_REGION_USER_HARDWARE.start;
 
-    process->mq = mq_create(vm_alloc, vm_free);
+    process->allocator = (allocator_t){
+        .alloc   = process_alloc,
+        .dealloc = process_dealloc,
+        .tag     = pid,
+    };
+
+    process->mq = mq_create(&process->allocator);
 
     return pid;
 }
@@ -313,7 +351,7 @@ void sc_handle_memory_sbrk(int64_t inc, ptr_t* data_end) {
         for(ptr_t i = old_end; i > new_end; i -= 0x1000) {
             if(!(i & ~0xFFF)) {
                 mm_mark_physical_pages(vm_context_get_physical_for_virtual(processes[scheduler_current_process].context, i), 1, MM_FREE);
-                // TODO: unmap
+                vm_context_unmap(processes[scheduler_current_process].context, i);
             }
         }
     }

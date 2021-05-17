@@ -4,7 +4,7 @@
 size_t tpa_entries_per_page(tpa_t* tpa);
 
 __attribute__ ((visibility ("default"))) void testmain(TestUtils* t) {
-    tpa_t* tpa = tpa_new(malloc, free, sizeof(uint64_t), 4096, 0);
+    tpa_t* tpa = tpa_new(alloc, sizeof(uint64_t), 4096, 0);
 
     t->eq_size_t(4096, tpa_size(tpa), "Size of TPA with no entries correct");
     t->eq_size_t(0, tpa_entries(tpa), "Entrycount of TPA with no entries correct");

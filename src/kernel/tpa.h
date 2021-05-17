@@ -16,7 +16,7 @@ typedef struct tpa tpa_t;
  * \param tpa Pointer to a memory region to use as tpa, 0 to alloc internally
  * \returns A new TPA to use
  */
-tpa_t* tpa_new(allocator_t* alloc, deallocator_t* dealloc, uint64_t entry_size, uint64_t page_size, tpa_t* tpa);
+tpa_t* tpa_new(allocator_t* alloc, uint64_t entry_size, uint64_t page_size, tpa_t* tpa);
 
 /**
  * Deallocate every data in use by the given TPA And the TPA itself

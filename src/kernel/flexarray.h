@@ -7,7 +7,7 @@
 struct flexarray;
 typedef struct flexarray* flexarray_t;
 
-flexarray_t new_flexarray(size_t member_size, size_t initial_alloc, allocator_t alloc, deallocator_t dealloc);
+flexarray_t new_flexarray(size_t member_size, size_t initial_alloc, allocator_t* alloc);
 void delete_flexarray(flexarray_t array);
 
 uint64_t flexarray_append(flexarray_t array, void* data);

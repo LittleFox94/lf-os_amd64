@@ -77,7 +77,7 @@ void main(struct LoaderStruct* loaderStruct) {
 
     INIT_STEP(
         "Initialized message queue subsystem",
-        init_mq(vm_alloc, vm_free);
+        init_mq(&kernel_alloc);
     )
 
     INIT_STEP(
