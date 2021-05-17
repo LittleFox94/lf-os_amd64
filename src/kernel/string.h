@@ -12,6 +12,7 @@ void* memmove(void* dest, const void* source, size_t size);
 
 size_t strlen(const char* str);
 int strcmp(const char* s1, const char* s2);
+int strcasecmp(const char* s1, const char* s2);
 char* strncpy(char* s1, const char* s2, size_t n);
 
 int ksnprintf(char* buffer, int buffer_size, const char* format, ...);

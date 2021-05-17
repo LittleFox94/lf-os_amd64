@@ -9,6 +9,23 @@ int strcmp(const char* a, const char* b) {
     return *a - *b;
 }
 
+char tolower(const char c) {
+    if(c >= 'A' && c <= 'Z') {
+        return c - ('A' - 'a');
+    }
+
+    return c;
+}
+
+int strcasecmp(const char* a, const char* b) {
+    while(
+        *a && *b &&
+        tolower(*a) == tolower(*b)
+    ) { a++; b++; }
+
+    return tolower(*a) - tolower(*b);
+}
+
 size_t strlen(const char* str) {
     if(!str) return 0;
 

@@ -188,7 +188,7 @@ void init_init(struct LoaderStruct* loaderStruct) {
         struct FileDescriptor* desc = (fileDescriptors + i);
         void*           data = (uint8_t*)((ptr_t)loaderStruct + desc->offset);
 
-        if(strcmp(desc->name, "kernel") != 0) {
+        if(strcasecmp(desc->name, "kernel") != 0) {
             struct vm_table* context = vm_context_new();
 
             ptr_t data_start = 0;
