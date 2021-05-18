@@ -1,0 +1,4 @@
+# vim: set ft=perl
+requires 'Template::Toolkit'  => '3.009';
+requires 'Regexp::Grammars'   => '1.057';
+requires 'Test2::Suite'       => '0.000140';
