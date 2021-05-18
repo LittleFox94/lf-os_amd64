@@ -755,3 +755,7 @@ ptr_t vm_map_hardware(ptr_t hw, size_t len) {
 
     return dest;
 }
+
+void vm_tlb_flush(ptr_t virtual) {
+    asm volatile("invlpg (%0)"::"r"(virtual));
+}

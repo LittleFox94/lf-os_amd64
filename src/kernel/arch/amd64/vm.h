@@ -72,4 +72,6 @@ void vm_copy_range(struct vm_table* dst_ctx, struct vm_table* src_ctx, ptr_t add
 //! Map a given memory area in the currently running userspace process at a random location
 ptr_t vm_map_hardware(ptr_t hw, size_t len);
 
+void vm_tlb_flush(ptr_t virtual);
+
 #endif
