@@ -2,6 +2,7 @@
 #define _MESSAGE_PASSING_H_INCLUDED
 
 #include <stdint.h>
+#include <uuid.h>
 
 struct Message {
     //! Size of the message, including metadata
@@ -21,6 +22,7 @@ struct Message {
         MT_IO,
         MT_Signal,
         MT_HardwareInterrupt,
+        MT_ServiceDiscovery,
 
         MT_UserDefined = 1024,
     } type;
@@ -42,6 +44,12 @@ struct Message {
         struct HardwareInterruptUserData {
             uint16_t interrupt;
         } HardwareInterrupt;
+
+        struct ServiceDiscoveryData {
+            uuid_t   serviceIdentifier;
+            uint64_t mq;
+            char     discoveryData[0];
+        } ServiceDiscovery;
 
         char raw[0];
     } user_data;

@@ -69,6 +69,7 @@ install(FILES
     ${CMAKE_SOURCE_DIR}/src/include/errno.h
     DESTINATION include/kernel/)
 install(FILES src/include/message_passing.h DESTINATION include/sys/)
+install(FILES src/include/uuid.h            DESTINATION include/)
 
 install(FILES src/include/arch/${architecture}/io.h DESTINATION include/sys/)
 

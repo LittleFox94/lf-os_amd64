@@ -9,6 +9,7 @@
 #include <mutex.h>
 #include <mq.h>
 #include <signal.h>
+#include <sd.h>
 
 typedef enum {
     process_state_empty = 0,
@@ -32,7 +33,7 @@ typedef struct {
     region_t         heap;
     region_t         stack;
     region_t         hw;
-    uint64_t         mq;
+    mq_id_t          mq;
     struct vm_table* context;
     cpu_state        cpu;
 
@@ -486,6 +487,37 @@ void sc_handle_ipc_mq_send(uint64_t mq, pid_t pid, struct Message* msg, uint64_t
     if(mq) {
         *error = mq_push(mq, msg);
     }
+}
+
+void sc_handle_ipc_service_register(uuid_t* uuid, uint64_t mq, uint64_t* error) {
+    if(!mq) {
+        mq = processes[scheduler_current_process].mq;
+    }
+
+    *error = sd_register(uuid, mq);
+}
+
+void sc_handle_ipc_service_discover(uuid_t* uuid, uint64_t mq, struct Message* msg, uint64_t* error) {
+    if(!mq) {
+        mq = processes[scheduler_current_process].mq;
+    }
+
+    if(!msg || msg->type != MT_ServiceDiscovery) {
+        *error = EINVAL;
+        return;
+    }
+
+    msg->sender = scheduler_current_process;
+    msg->user_data.ServiceDiscovery.mq = mq;
+    memcpy(msg->user_data.ServiceDiscovery.serviceIdentifier.data, uuid, sizeof(uuid_t));
+
+    int64_t delivered = sd_send(uuid, msg);
+
+    if(delivered < 0) {
+        *error = -delivered;
+    }
+
+    *error = 0;
 }
 
 void sc_handle_scheduler_get_pid(bool parent, pid_t* pid) {

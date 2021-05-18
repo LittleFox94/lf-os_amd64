@@ -24,6 +24,7 @@ add_executable(kernel
     slab.c      slab.h
     string.c    string.h
     tpa.c       tpa.h
+    uuid.c      ../include/uuid.h
     version.c
                 allocator.h
                 bitmap.h
@@ -44,6 +45,8 @@ target_include_directories(kernel PUBLIC
     "${PROJECT_SOURCE_DIR}/../include/efi"
     "${PROJECT_SOURCE_DIR}/../include/arch/${architecture}"
 )
+
+target_compile_definitions(kernel PRIVATE __kernel)
 
 target_compile_options(kernel PRIVATE
     -Wall -Werror -std=gnu11

@@ -351,6 +351,46 @@ groups:
       type: uint64_t
       reg:  rax
 
+  - number: 4
+    name:   service_register
+    desc:   Register as implementation of the given service
+    parameters:
+    - name: uuid
+      desc: UUID of the service to register for
+      type: uuid_t*
+      reg:  rax
+    - name: queue
+      desc: Message queue ID, 0 is process queue
+      type: uint64_t
+      reg:  rdi
+    returns:
+    - name: error
+      desc: Error code, 0 if success
+      type: uint64_t
+      reg:  rax
+
+  - number: 5
+    name:   service_discover
+    desc:   Send message to implementations of given service
+    parameters:
+    - name: uuid
+      desc: UUID of the service to register for
+      type: uuid_t*
+      reg:  rax
+    - name: queue
+      desc: Message queue ID, 0 is process queue
+      type: uint64_t
+      reg:  rdi
+    - name: message
+      desc: Message to send, UUID will be filled in automatically, has to be of type ServiceDiscover
+      type: struct Message*
+      reg:  rsi
+    returns:
+    - name: error
+      desc: Error code, 0 if success
+      type: uint64_t
+      reg:  rax
+
 - number: 255
   name:   debug
   desc:   Debugging syscalls (simple text output, logging, ...)

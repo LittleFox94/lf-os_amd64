@@ -6,13 +6,15 @@
 #include <stdbool.h>
 #include <message_passing.h>
 
+typedef uint64_t mq_id_t;
+
 void init_mq(allocator_t* alloc);
 
-uint64_t mq_create(allocator_t* alloc);
-void mq_destroy(uint64_t mq);
+mq_id_t mq_create(allocator_t* alloc);
+void mq_destroy(mq_id_t mq);
 
-uint64_t mq_push(uint64_t mq, struct Message* message);
-uint64_t mq_pop(uint64_t mq,  struct Message* message);
-uint64_t mq_peek(uint64_t mq, struct Message* message);
+uint64_t mq_push(mq_id_t mq, struct Message* message);
+uint64_t mq_pop(mq_id_t mq,  struct Message* message);
+uint64_t mq_peek(mq_id_t mq, struct Message* message);
 
 #endif
