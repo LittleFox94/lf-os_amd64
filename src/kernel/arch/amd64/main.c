@@ -33,6 +33,7 @@ void init_console_backbuffer(struct LoaderStruct* loaderStruct);
 void init_mm(struct LoaderStruct* loaderStruct);
 void init_symbols(struct LoaderStruct* loaderStruct);
 void init_init(struct LoaderStruct* loaderStruct);
+void init_usb_dbc();
 
 __attribute__ ((force_align_arg_pointer))
 void main(struct LoaderStruct* loaderStruct) {
@@ -53,6 +54,9 @@ void main(struct LoaderStruct* loaderStruct) {
         "Initialized virtual memory management",
         init_vm();
     )
+
+    //init_usb_dbc();
+    //while(1);
 
     INIT_STEP(
         "Initialized framebuffer console backbuffer",

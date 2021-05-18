@@ -10,3 +10,9 @@ target_sources(kernel PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/scheduler.c
     ${CMAKE_CURRENT_SOURCE_DIR}/vm.c
 )
+
+if(${kernel_log_usb_dbc})
+    target_sources(kernel PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/usb_dbc.c
+    )
+endif()

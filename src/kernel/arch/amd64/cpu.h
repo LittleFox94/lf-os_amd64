@@ -4,6 +4,8 @@
 #include <log.h>
 #include <stdint.h>
 
+#include "../../../include/arch/amd64/io.h"
+
 typedef struct {
     uint64_t r15;
     uint64_t r14;
