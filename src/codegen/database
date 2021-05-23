@@ -9,7 +9,7 @@ root:
               print:
                 children: {}
                 id: 1
-            id: 2
+            id: 1
           hardware:
             children:
               framebuffer:
@@ -21,16 +21,7 @@ root:
               ioperm:
                 children: {}
                 id: 2
-            id: 5
-          io:
-            children:
-              read:
-                children: {}
-                id: 1
-              write:
-                children: {}
-                id: 2
-            id: 1
+            id: 4
           ipc:
             children:
               mq_create:
@@ -51,7 +42,7 @@ root:
               service_register:
                 children: {}
                 id: 5
-            id: 7
+            id: 6
           locking:
             children:
               create_condvar:
@@ -78,13 +69,13 @@ root:
               wait_condvar:
                 children: {}
                 id: 8
-            id: 6
+            id: 5
           memory:
             children:
               sbrk:
                 children: {}
                 id: 1
-            id: 4
+            id: 3
           scheduler:
             children:
               clone:
@@ -99,7 +90,7 @@ root:
               yield:
                 children: {}
                 id: 3
-            id: 3
+            id: 2
         id: 1
     id: 1
 version: 0.001
