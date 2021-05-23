@@ -1,0 +1,1 @@
+[% var.type %] [% IF vardir == 'OUT' %]*[% ELSE %] [% END %][% var.name -%]

@@ -1,0 +1,32 @@
+// === syscall group [% group.name %] (ID [% group.id %]) === //
+
+[%- FOREACH call IN group.calls -%]
+[%- paramargs = BLOCK -%]
+[%- INCLUDE "vars.tt" vars=call.parameters varoutput="arg" vardir="IN" %]
+[%- END -%]
+[%- returnargs = BLOCK -%]
+[%- INCLUDE "vars.tt" vars=call.returns    varoutput="arg" vardir="OUT" %]
+[%- END -%]
+
+/**
+ * Syscall "[% call.name %]" (ID [% call.id %]) of group "[% group.name %]" (ID [% group.id %])
+ *
+
+[%- IF call.defined('desc') -%]
+ * [%- call.desc %]
+ *
+[%- END -%]
+[%- INCLUDE "vars.tt" vars=call.parameters varoutput="desc" vardir="IN"  -%]
+[%- INCLUDE "vars.tt" vars=call.returns    varoutput="desc" vardir="OUT" %]
+ */
+[% IF output_mode == 'headers' AND side == 'caller' -%]
+static inline
+[% END -%]
+void [% call.identifier %] (
+    [% IF paramargs  %][% paramargs  %][% IF returnargs %], [% END %][% END %]
+    [% IF returnargs %][% returnargs %][% END %]
+)
+[%- IF output_mode == 'headers' %][% IF side == 'handler' %];[% ELSE %] {
+[% INCLUDE "syscalls/registers.tt" call=call %]
+}[% END %][% END %]
+[% END %]

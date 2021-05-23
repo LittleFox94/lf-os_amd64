@@ -8,4 +8,5 @@ use FindBin;
 use lib "$FindBin::Bin/lib";
 use lib "$FindBin::Bin/local/lib/perl5";
 
-use LittleFox::LFOS::Codegen;
+use LittleFox::LFOS::CodeGen::App;
+LittleFox::LFOS::CodeGen::App->run;

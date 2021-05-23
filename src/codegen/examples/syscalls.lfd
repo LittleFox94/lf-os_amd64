@@ -1,0 +1,32 @@
+syscalls {
+    group io {
+        syscall read {
+            "Read $count bytes from I/O stream identified by $fh into $buffer"
+
+            parameters {
+                fh:     uint64_t    "Handle of stream to read from";
+                buffer: uint8_t*    "Where to store the data";
+                count:  size_t      "Number of bytes to read";
+            }
+            returns {
+                count:  size_t      "Number of bytes really read (might be less)";
+                error:  uint64_t    "errno-style error code";
+            }
+        }
+
+        syscall write {
+            "Write $count bytes from $buffer to I/O stream identified by $fh"
+
+            parameters {
+                fh:     uint64_t    "Handle of stream to read from";
+                buffer: uint8_t*    "Data to write";
+                count:  size_t      "Size of the buffer";
+            }
+            returns {
+                count:  size_t      "Number of bytes really written (might be less)";
+                error:  uint64_t    "errno-style error code";
+            }
+        }
+    }
+}
+

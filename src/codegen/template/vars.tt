@@ -1,0 +1,6 @@
+[%- FOREACH var IN vars -%]
+[%- IF varoutput == 'arg' -%]
+[%- IF NOT loop.first -%], [% END -%]
+[%- END -%]
+[% PROCESS "var-${varoutput}.tt" -%]
+[% END -%]

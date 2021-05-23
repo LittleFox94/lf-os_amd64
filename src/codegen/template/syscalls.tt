@@ -1,0 +1,12 @@
+/**
+ * This file
+[%- IF output_mode == 'headers' -%]
+ declares the syscall functions
+[%- ELSE -%]
+ implements the syscall dispatcher for the kernel
+[%- END -%].
+ */
+
+[% FOREACH group IN source.groups -%]
+[% INCLUDE "syscalls/group.tt" %]
+[%- END %]

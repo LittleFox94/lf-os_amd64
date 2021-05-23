@@ -1,0 +1,269 @@
+syscalls {
+  group debug {
+    syscall print {
+      "Print a message to the kernel log, possibly the screen"
+
+      parameters {
+        message: char* "Message to print";
+      }
+    }
+  }
+
+  group scheduler {
+    syscall exit {
+      "Exit the process, freeing all memory and other resources of it and deliver the exit code to the parent process"
+
+      parameters {
+        exit_code: uint8_t "Exit code to give the parent process";
+      }
+    }
+
+    syscall clone {
+      "Clone the process into a new one, optionally sharing all memory (commonly called a thread in that case)"
+
+      parameters {
+        share_memory: bool  "Share all memory with the new process, making it basically a thread";
+        entry:        void* "Entrypoint of the new process, required if share_memory is true. Otherwise it may be NULL, to continue at the same place";
+      }
+      returns {
+        pid: pid_t "PID of the new process in the old one, 0 in the new process if entry is NULL";
+      }
+    }
+
+    syscall yield {
+      "Yield, give up time slot and schedule another process"
+    }
+
+    syscall get_pid {
+      "Retrieve the PID of this process or its parent"
+
+      parameters {
+        parent: bool "If true, return parent process' PID, return the PID of the calling process otherwise";
+      }
+      returns {
+        pid: pid_t "The PID as requested";
+      }
+    }
+  }
+
+  group memory {
+    syscall sbrk {
+      "Increment the end of the data segment by $inc bytes and return the new end of the data segment"
+
+      parameters {
+        inc: int64_t "How much to increment the data segment, negative values allowed";
+      }
+      returns {
+        data_end: void* "New end of the data segment";
+      }
+    }
+  }
+
+  group hardware {
+    syscall framebuffer {
+      "Get control of the framebuffer (if the kernel is still in control)"
+
+      returns {
+        framebuffer: uint32_t* "Location of the framebuffer as userspace-accessible memory location";
+        width:     uint16_t  "Width of the framebuffer in pixels";
+        height:    uint16_t  "Height of the framebuffer in pixels";
+        stride:    uint16_t  "Stride of the framebuffer as number of pixels per pixel row";
+        colorFormat: uint16_t;
+      }
+    }
+
+    syscall ioperm {
+      "Request access to I/O ports, this is a x86/amd64-only syscall"
+
+      parameters {
+        from:  uint16_t "First port to request access for";
+        num:   uint16_t "Number of ports (including the start port) from the start port to request access for";
+        turn_on: bool   "True to request access, false to drop access";
+      }
+      returns {
+        error: uint64_t "errno-style error code";
+      }
+    }
+
+    syscall interrupt_notify {
+      "Subscribe to hardware interrupts (also called IRQs)"
+
+      parameters {
+        interrupt: uint8_t "Number of the IRQ to subscribe to";
+        notify:  bool      "true to create a new subscription, false to drop an existing one";
+        queue:   mq_id_t   "Message queue to send the messages to";
+      }
+      returns {
+        error: uint64_t "errno-style error code";
+      }
+    }
+  }
+
+  group locking {
+    syscall create_mutex {
+      "Create a new mutex"
+
+      returns {
+        mutex: pthread_mutex_t "Freshly created mutex";
+        error: uint64_t        "errno-style error code";
+      }
+    }
+
+    syscall destroy_mutex {
+      "Destroy a mutex"
+
+      parameters {
+        mutex: pthread_mutex_t "Mutex to destroy";
+      }
+      returns {
+        error: uint64_t "errno-style error code";
+      }
+    }
+
+    syscall lock_mutex {
+      "Lock a mutex, either blocking until its free or failing if its not free"
+
+      parameters {
+        mutex:       pthread_mutex_t "Mutex to lock";
+        nonblocking: bool            "true: try to lock, fail if not free. false: block until it is free, then lock it";
+      }
+      returns {
+        error: uint64_t "errno-style error code";
+      }
+    }
+
+    syscall unlock_mutex {
+      "Unlock a mutex"
+
+      parameters {
+        mutex: pthread_mutex_t "Mutex to unlock";
+      }
+      returns {
+        error: uint64_t "errno-style error code";
+      }
+    }
+
+    syscall create_condvar {
+      "Create a new condvar processes can wait on"
+
+      returns {
+        condvar: pthread_cond_t "Freshly created condvar";
+        error:   uint64_t       "errno-style error code";
+      }
+    }
+
+    syscall destroy_condvar {
+      "Destroy a condvar"
+
+      parameters {
+        condvar: pthread_cond_t "Condvar to destroy";
+      }
+      returns {
+        error: uint64_t "errno-style error code";
+      }
+    }
+
+    syscall signal_condvar {
+      "Signals a condvar up to allow up to $amount processes waiting on it to continue"
+
+      parameters {
+        condvar: pthread_cond_t "Condvar to destroy";
+        amount:  uint64_t       "Number of processes waiting on this condvar allowed to continue";
+      }
+      returns {
+        error: uint64_t "errno-style error code";
+      }
+    }
+
+    syscall wait_condvar {
+      "Wait for a signal on the given condvar"
+
+      parameters {
+        condvar: pthread_cond_t "Condvar to destroy";
+        timeout: uint64_t       "Wait timeout, not yet implemented";
+      }
+      returns {
+        error: uint64_t "errno-style error code";
+      }
+    }
+  }
+
+  group ipc {
+    syscall mq_create {
+      "Create a new message queue, which can then be used i.e. for IPC, subscribing to IRQs or being a service"
+
+      parameters {
+        global_read:   bool   "Allow other processes to read this queue, making them only need its ID";
+        global_write:  bool   "Allow other processes to write to this queue, making them only need its ID";
+        message_limit: size_t "Max number of messages to store in the queue, the system might lower this value";
+        data_limit:    size_t "Max amount of data (bytes) to store in the queue, the system might lower this value";
+      }
+      returns {
+        mq:    mq_id_t  "ID of the newly created message queue";
+        error: uint64_t "errno-style error code";
+      }
+    }
+
+    syscall mq_destroy {
+      "Destroy the given message queue, provided the calling process is allowed to"
+
+      parameters {
+        mq: mq_id_t "ID of the message queue to destroy";
+      }
+      returns {
+        error: uint64_t "errno-style error code";
+      }
+    }
+
+    syscall mq_poll {
+      "Retrieve a message from the queue, optionally waiting until one is available"
+
+      parameters {
+        mq:      mq_id_t         "ID of the queue to retrieve a message from";
+        wait:    bool            "Wait for a message to be available, blocking the process";
+        message: struct Message* "Memory location to store the message in, it has to be allocated with enough memory and it's size field has to be set accordingly";
+      }
+      returns {
+        error: uint64_t "errno-style error code";
+      }
+    }
+
+    syscall mq_send {
+      "Send $message to the given queue $mq"
+
+      parameters {
+        mq:      mq_id_t         "ID of the queue to send to, 0 is the process queue";
+        process: pid_t           "Process to send this message to, if $mq is 0";
+        message: struct Message* "Message to send";
+      }
+      returns {
+        error: uint64_t "errno-style error code";
+      }
+    }
+
+    syscall service_register {
+      "Register as implementation of the service given as $uuid"
+
+      parameters {
+        service: uuid_t* "UUID of the service to register for";
+        queue:   mq_id_t "Queue to send service messages to";
+      }
+      returns {
+        error: uint64_t "errno-style error code";
+      }
+    }
+
+    syscall service_discover {
+      "Send a message to all processes implementing the service given as $uuid"
+
+      parameters {
+        service: uuid_t*         "UUID of the service to discover";
+        queue:   mq_id_t         "Queue where to send the answers, 0 is the process queue";
+        message: struct Message* "Message to send";
+      }
+      returns {
+        error: uint64_t "errno-style error code";
+      }
+    }
+  }
+}

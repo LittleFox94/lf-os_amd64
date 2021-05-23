@@ -1,0 +1,5 @@
+[%- IF var.defined('desc') %]
+ * \param [% var.name %] [% vardir %] [% var.desc %]
+[%- ELSE %]
+#warning "parameter without description: [% param.name %]
+[%- END -%]

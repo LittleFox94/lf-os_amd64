@@ -27,13 +27,13 @@ is($parsed->{type}, 'service', 'Parsed to service correctly');
 my $open_call = $parsed->{methods}->[0];
 ok(  $open_call,                       'First method parsed');
 is(  $open_call->{name},       'open', 'First method name correct');
-like($open_call->{parameters}, { },    'First method parameters correct');
-like($open_call->{returns},    { },    'First method returns correct');
+like($open_call->{parameters}, [ ],    'First method parameters correct');
+like($open_call->{returns},    [ ],    'First method returns correct');
 
 my $close_call = $parsed->{methods}->[1];
 ok(  $close_call,                        'Second method parsed');
 is(  $close_call->{name},       'close', 'Second method name correct');
-like($close_call->{parameters}, { },     'Second method parameters correct');
-like($close_call->{returns},    { },     'Second method returns correct');
+like($close_call->{parameters}, [ ],     'Second method parameters correct');
+like($close_call->{returns},    [ ],     'Second method returns correct');
 
 done_testing;

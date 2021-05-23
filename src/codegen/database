@@ -1,0 +1,105 @@
+---
+root:
+  syscalls:
+    children:
+      group:
+        children:
+          debug:
+            children:
+              print:
+                children: {}
+                id: 1
+            id: 2
+          hardware:
+            children:
+              framebuffer:
+                children: {}
+                id: 1
+              interrupt_notify:
+                children: {}
+                id: 3
+              ioperm:
+                children: {}
+                id: 2
+            id: 5
+          io:
+            children:
+              read:
+                children: {}
+                id: 1
+              write:
+                children: {}
+                id: 2
+            id: 1
+          ipc:
+            children:
+              mq_create:
+                children: {}
+                id: 1
+              mq_destroy:
+                children: {}
+                id: 2
+              mq_poll:
+                children: {}
+                id: 3
+              mq_send:
+                children: {}
+                id: 4
+              service_discover:
+                children: {}
+                id: 6
+              service_register:
+                children: {}
+                id: 5
+            id: 7
+          locking:
+            children:
+              create_condvar:
+                children: {}
+                id: 5
+              create_mutex:
+                children: {}
+                id: 1
+              destroy_condvar:
+                children: {}
+                id: 6
+              destroy_mutex:
+                children: {}
+                id: 2
+              lock_mutex:
+                children: {}
+                id: 3
+              signal_condvar:
+                children: {}
+                id: 7
+              unlock_mutex:
+                children: {}
+                id: 4
+              wait_condvar:
+                children: {}
+                id: 8
+            id: 6
+          memory:
+            children:
+              sbrk:
+                children: {}
+                id: 1
+            id: 4
+          scheduler:
+            children:
+              clone:
+                children: {}
+                id: 2
+              exit:
+                children: {}
+                id: 1
+              get_pid:
+                children: {}
+                id: 4
+              yield:
+                children: {}
+                id: 3
+            id: 3
+        id: 1
+    id: 1
+version: 0.001

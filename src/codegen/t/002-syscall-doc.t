@@ -34,7 +34,7 @@ is($group->{name}, 'scheduler', 'Parsed to syscalls and group name correct');
 
 my $sbrk_call = $group->{calls}->[0];
 ok(  $sbrk_call,                                                         'First syscall parsed');
-like($sbrk_call->{desc},                        qr/^Change where the.*/, 'First syscall desc correct');
-like($sbrk_call->{parameters}->{break}->{desc}, qr/^Where the user.*/, '  First syscall parameters desc correct');
+like($sbrk_call->{desc},                    qr/^Change where the.*/, 'First syscall desc correct');
+like($sbrk_call->{parameters}->[0]->{desc}, qr/^Where the user.*/, '  First syscall parameters desc correct');
 
 done_testing;

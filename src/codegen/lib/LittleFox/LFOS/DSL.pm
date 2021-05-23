@@ -5,49 +5,21 @@ use strict;
 use warnings;
 
 use Regexp::Grammars;
-my $parser = qr{
-    <File>
-
-    <rule: File>              <Syscalls> | <Service>
-    <token: BlockStart>       \{
-    <token: BlockEnd>         \}
-    <token: HexDigit>         [0-9a-fA-F]
-    <token: Identifier>       [a-zA-Z_][a-zA-Z0-9_]+
-    <token: String>           "[^"]*"
-    <token: UUID>             <.HexDigit>{8}-<.HexDigit>{4}-<.HexDigit>{4}-<.HexDigit>{4}-<.HexDigit>{12}
-
-    <rule:  Syscalls>        syscalls                       <.BlockStart> <[SyscallGroup]>* <.BlockEnd>
-    <rule:  SyscallGroup>    group      <Identifier>        <.BlockStart> <[Syscall]>*      <.BlockEnd>
-    <rule:  Syscall>         syscall    <Identifier>        <.BlockStart> <MethodBody>      <.BlockEnd>
-
-    <rule:  Service>         service    <Identifier> <UUID> <.BlockStart> <[ServiceBody]>*  <.BlockEnd>
-    <rule:  ServiceBody>     <Method> | <Type>
-
-    <rule:  Method>          method     <Identifier>        <.BlockStart> <MethodBody>      <.BlockEnd>
-    <rule:  MethodBody>      <Desc=String>? <Parameters>? <Returns>?
-    <rule:  Parameters>      parameters <.BlockStart> <[Var]>* % ; <.BlockEnd>
-    <rule:  Returns>         returns    <.BlockStart> <[Var]>* % ; <.BlockEnd>
-
-    <rule: Type>             <Type=Union> | <Type=Struct>
-    <rule: Union>            union  <Type='union'>  <Identifier> <.BlockStart> <Desc=String>? <[Var]>+ % ; <.BlockEnd>
-    <rule: Struct>           struct <Type='struct'> <Identifier> <.BlockStart> <Desc=String>? <[Var]>+ % ; <.BlockEnd>
-
-    <rule:  Var>             <Name=Identifier>: <Type=Identifier> <Desc=String>?
-}xms;
 
 sub _transform_vars {
     my $vars = shift;
-    return {
+    return [
         map {
             my $desc = $_->{Desc};
                $desc = substr($desc, 1, length($desc) - 2) if $desc;
 
-            ($_->{Name} => {
+            {
+                name => $_->{Name},
                 type => $_->{Type},
                 desc => $desc,
-            })
+            }
         } $vars->@*,
-    };
+    ];
 }
 
 sub _transform_method {
@@ -66,6 +38,39 @@ sub _transform_method {
 
 sub parse {
     my ($pkg, $source) = @_;
+
+    my $parser = qr{
+        <File>
+
+        <rule: File> <Syscalls>
+                   | <Service>
+                   | <error:Expected syscalls or service>
+        <token: BlockStart>       \{
+        <token: BlockEnd>         \}
+        <token: HexDigit>         [0-9a-fA-F]
+        <token: Identifier>       [a-zA-Z_][a-zA-Z0-9_]+
+        <token: TypeIdentifier>   ((struct|union)\s+)?[a-zA-Z_][a-zA-Z0-9_]+\**
+        <token: String>           "[^"]*"
+        <token: UUID>             <.HexDigit>{8}-<.HexDigit>{4}-<.HexDigit>{4}-<.HexDigit>{4}-<.HexDigit>{12}
+
+        <rule:  Syscalls>        syscalls                       <.BlockStart> <[SyscallGroup]>*   <.BlockEnd>
+        <rule:  SyscallGroup>    group      <Identifier>        <.BlockStart> (<[Syscall]>|<ws>)* <.BlockEnd>
+        <rule:  Syscall>         syscall    <Identifier>        <.BlockStart> <MethodBody>        <.BlockEnd>
+
+        <rule:  Service>         service    <Identifier> <UUID> <.BlockStart> <[ServiceBody]>*  <.BlockEnd>
+        <rule:  ServiceBody>     <Method> | <Type>
+
+        <rule:  Method>          method     <Identifier>        <.BlockStart> <MethodBody>      <.BlockEnd>
+        <rule:  MethodBody>      <Desc=String>? <Parameters>? <Returns>?
+        <rule:  Parameters>      parameters <.BlockStart> <[Var]>* %% ; <.BlockEnd>
+        <rule:  Returns>         returns    <.BlockStart> <[Var]>* %% ; <.BlockEnd>
+
+        <rule: Type>             <Type=Union> | <Type=Struct>
+        <rule: Union>            union  <Type='union'>  <Identifier> <.BlockStart> <Desc=String>? <[Var]>* %% ; <.BlockEnd>
+        <rule: Struct>           struct <Type='struct'> <Identifier> <.BlockStart> <Desc=String>? <[Var]>* %% ; <.BlockEnd>
+
+        <rule:  Var>             <Name=Identifier>: <Type=TypeIdentifier> <Desc=String>?
+    }xms;
 
     if($source =~ $parser) {
         my ($type) = grep { $_ } keys $/{File}->%*;
@@ -105,8 +110,9 @@ sub parse {
 
         return \%/;
     }
-
-    0;
+    else {
+        return \@!;
+    }
 }
 
 1;

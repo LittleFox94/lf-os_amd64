@@ -23,7 +23,7 @@ ok($sdp_type,                                   'First type parsed');
 is($sdp_type->{name}, 'ServiceDiscoverPayload', 'First type name correct');
 is($sdp_type->{type}, 'struct',                 'First type base type correct');
 
-like($sdp_type->{members}, { id => { type => 'UUID' } },
+like($sdp_type->{members}, [ { name => 'id', type => 'UUID' } ],
     'First type members correct');
 
 my $foo_type = $parsed->{types}->[1];
@@ -31,7 +31,7 @@ ok($foo_type,         'Second method parsed');
 is($foo_type->{name}, 'Foo',   'Second method name correct');
 is($foo_type->{type}, 'union', 'Second method parameters correct');
 
-like($foo_type->{members}, { sdp => { type => 'ServiceDiscoverPayload' }, int => { type => 'int' } },
+like($foo_type->{members}, [ { name => 'sdp', type => 'ServiceDiscoverPayload' }, { name => 'int', type => 'int' } ],
     'Second method returns correct');
 
 done_testing;

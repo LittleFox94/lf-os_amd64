@@ -1,0 +1,14 @@
+[%- BLOCK offset -%]
+((uint[% call.regalloc.regs.$reg %]_t)[% content %] << [% call.regalloc.params.$param.offset %])
+[%- END -%]
+
+[%- FOREACH reg IN call.regalloc.regs.keys -%]
+    uint[% call.regalloc.regs.$reg %]_t [% reg %] =
+[%- FOREACH param IN call.regalloc.params.keys -%]
+[%- IF call.regalloc.params.$param.register == reg -%]
+[%- IF call.regalloc.params.$param.offset -%]
+[%- WRAPPER offset %] [% param %][% END -%]
+[%- ELSE           %] [% param %][% END -%]
+[%- END -%]
+[%- END -%];
+[%  END -%]
