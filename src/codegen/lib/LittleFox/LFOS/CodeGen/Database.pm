@@ -28,9 +28,15 @@ has datastore => (
 around new => sub {
     my ($orig, $self, %args) = @_;
 
-    my $ds = LoadFile($args{file});
+    my $ds;
+    if(-f $args{file}) {
+        $ds = LoadFile($args{file});
+    }
+    else {
+        $ds = {};
+    }
 
-    if($ds->{version} != $VERSION) {
+    if(!$ds->{version} || $ds->{version} != $VERSION) {
         if(!$ds->{version}) {
             $ds->{version} = $VERSION;
         }
@@ -38,6 +44,10 @@ around new => sub {
 
     if(!$ds->{root}) {
         $ds->{root} = {};
+    }
+
+    if(!-f $args{file}) {
+        DumpFile($args{file}, $ds);
     }
 
     $args{_datastore} = $ds;
