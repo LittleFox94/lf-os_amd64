@@ -8,6 +8,7 @@
 #ifndef __ATA_H__
 #define __ATA_H__
 
+#include <sys/io.h>
 #include <stdint.h>
 
 #define __ATA_DISK_ID_INTERNAL_ATAPI 4
@@ -82,6 +83,23 @@
 #define __ATA_CMD_SUCCESS       0
 #define __ATA_CMD_TIMEOUT       -1
 #define __ATA_CMD_READ_ERROR    -2
+#define __ATA_CMD_BUS_FLOATS    -3
+
+
+/* ATA Status reader */
+#define ATA_DELAY_IN(d, bus) { \
+    inb(__ATA_STAT(bus)); \
+    inb(__ATA_STAT(bus)); \
+    inb(__ATA_STAT(bus)); \
+    d = inb(__ATA_STAT(bus)); \
+}
+
+/* ATA LBA Setup */
+#define ATA_SET_LBA(bus, lba) { \
+    outb(__ATA_SECTOR_NUM(bus), (lba     & 0x000000FF)); \
+    outb(__ATA_CYL_LO(bus), ((lba >> 8)  & 0x000000FF)); \
+    outb(__ATA_CYL_HI(bus), ((lba >> 16) & 0x000000FF)); \
+}
 
 /**
  * Helper struct to contain ATA disks & statuses
@@ -92,6 +110,12 @@
 struct ata_disk_stat {
     short port;
     int status;
+
+    /**
+     * This pointer contains address to disk info, that is being read
+     * during standard disk detection phase.
+     */
+    short *disk_info;
 };
 
 #endif
