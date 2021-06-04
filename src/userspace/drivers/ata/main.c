@@ -9,8 +9,12 @@
 #include <sys/io.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "ata.h"
+
+#define __VALID_DISK(x) (((x & __ATA_DISK_ID_INTERNAL_NOT_DISK) == 0) && \
+                         ((x & __ATA_DISK_ID_INTERNAL_NON_ATA) == 0))
 
 /**
  * Implement manual cache flush - as some drives don't flush after ops.
@@ -145,10 +149,12 @@ int ata_nonstd_detect_disk_by_dd(short bus) {
  * \param bus short Is the IO-base to bus to read disk info from
  * \param dst short * Is pointer where to read the disk info
  */
-#define READ_DISK_INFO(bus, dst) \
-    for (int __dst_off = 0; __dst_off < 256; __dst_off++) { \
-        dst[__dst_off] = inw(bus); \
-    } \
+static inline void read_disk_info(short bus, short *dst);
+static inline void read_disk_info(short bus, short *dst) {
+    for (int __dst_off = 0; __dst_off < 256; __dst_off++) { 
+        dst[__dst_off] = inw(bus); 
+    } 
+}
 
 /**
  * Detect ata disk with Identify command, de-facto way of detecting disks.
@@ -226,9 +232,6 @@ int ata_detect_disk_by_identify(short bus, char type) {
         return __ATA_DISK_ID_INTERNAL_NOT_DISK;
     }
 
-    /* It is ATA disk, we gotta read it now to let it read it in future */
-    for (int i = 0; i < 256; i++)
-        inw(bus);
     return __ATA_DISK_ID_INTERNAL_ATA;
 }
 
@@ -272,36 +275,7 @@ void print_disk_type(short bus, int slot, int type) {
  * \param lba uint32_t Is LBA
  * \return 0 on success or error code as defined in ata.h
  */
-int read_ata_disk_b28(short x, int y, char c, void *p, uint32_t l) {
-
-    outb(0x1f2, 1);
-    outb(0x1f3, 1);
-    outb(0x1f4, 0);
-    outb(0x1f5, 0);
-    outb(0x1f6, 0xE0);
-    outb(0x1f7, 0x20);
-
-    // wait for not-busy
-    while((inb(0x1f7) & 0x80));
-
-    char buf[512] = {0};
-
-    // check if data is available and read it
-    char stat = inb(0x1f7);
-    if (stat & 0x08) {
-        for (int i = 0; i < 256; i++) {
-            uint16_t word = inw(0x1f0);
-            buf[(i * 2) + 0] = word & 0xFF;
-            buf[(i * 2) + 1] = word >> 8;
-        }
-    }
-    for (int i = 0; i < 8; i++)
-        printf("buf[%d]: %x\n", i, buf[i]);
-
-    do {} while (1);
-}
-
-int test_read_ata_disk_b28(short bus, 
+int read_ata_disk_b28(short bus, 
         int disk,
         char cnt, 
         void *dst, 
@@ -378,49 +352,81 @@ start:
     return __ATA_CMD_SUCCESS;
 }
 
-int main() {
-    char dst[0x1000] = {0};
+/**
+ * Helper function to populate ata_disk_stat
+ *
+ * This function is not intended to be called outside this file,
+ * so this documentation shall be enough.
+ */
+static int ata_populate_ata_disk_stat(struct ata_disk_stat ata_stat, short bus, int stat) {
+    ata_stat.bus       = bus;
+    ata_stat.id        = stat;
+    ata_stat.disk_info = (short *)malloc(512);
+    if (ata_stat.disk_info == 0) {
+       return -1;
+    }
+    read_disk_info(bus, ata_stat.disk_info);
+    return 0;
+}
+
+/**
+ * This function is used to detect all disks & populate ata disk info
+ * structures (refer to ata.h) 
+ *
+ * \param ata_sp struct ata_disk_stat Is a pointer to ata_disk_stat structure
+ * array to use, there needs to be 8 entries in this list.
+ */
+void ata_detect_disks(struct ata_disk_stat *ata_sp) {
     short bus_list[4] = {0x1f0, 0x170, 0x1e8, 0x168};
-    uint64_t err;
-    int stat;
+    uint64_t err = 0;
+    int stat = 0;
+    int ata_sp_offset = 0;
 
-    sc_do_hardware_ioperm(0x1f0, 8, 1, &err);
-    stat = ata_detect_disk_by_identify(0x1f0, 0xA0);
-    READ_DISK_INFO(0x1f0, (short *)dst);
-    read_ata_disk_b28(0x1f0, 0xe0, dst, 1, 1);
-
-    //for (int i = 0; i < 4; i++) {
-        //sc_do_hardware_ioperm(bus_list[i], 8, 1, &err);
-        /* TODO: Check for errors in future */
-
-        /*
+    for (int i = 0; i < 4; i++) {
+        /* TODO: Check for errors */
+        sc_do_hardware_ioperm(bus_list[i], 8, 1, &err);
+        
+        /* Check for disk, prints should be removed if not wanted here */
         stat = ata_detect_disk_by_identify(bus_list[i], 0xA0);
         if (stat == 0xFF) {
-            printf("Bus 0x%x floats, skip disk detection\n",
-                    bus_list[i]);
-            sc_do_hardware_ioperm(bus_list[i], 8, 0, &err);
-            continue;
+            /* Disk floats */
+            printf("Bus 0x%x floats, skip disk detection\n", bus_list[i]);
+            goto revoke_ioperm;
         }
         print_disk_type(bus_list[i], 0xA0, stat);
-        */
+        if (__VALID_DISK(stat)) {
+            if (ata_populate_ata_disk_stat(ata_sp[ata_sp_offset], bus_list[i], stat)) {
+                printf("FATAL: failed to allocate space for ata_sp[%d].disk_info!\n",
+                        ata_sp_offset);
+                return;
+            }
+        }
+        ata_sp_offset++;
 
-        /* No need to recheck for floating bus here */
-        //stat = ata_detect_disk_by_identify(bus_list[i], 0xB0);
-        //print_disk_type(bus_list[i], 0xB0, stat);
+        /** 
+         * No need to recheck for floating bus here,
+         * just print disk type for secondary device too
+         */
+        stat = ata_detect_disk_by_identify(bus_list[i], 0xB0);
+        print_disk_type(bus_list[i], 0xB0, stat);
+        if (__VALID_DISK(stat)) {
+           if (ata_populate_ata_disk_stat(ata_sp[ata_sp_offset], bus_list[i], stat)) {
+               printf("FATAL: failed to allocate space for ata_sp[%d].disk_info!\n",
+                      ata_sp_offset);
+               return;
+           }
+        }
 
-
-        /* Try reading from disks 
-        stat = read_ata_disk_b28(bus_list[i], 0xE0, (void *)dst, 1, 1);
-        printf("Disk read status: %d\n", stat);
-
-        printf("First 8 bytes of dst: ");
-        for (int off = 0; off < 16; off++)
-            printf("%x ", dst[off]);
-        printf("\n");
-        
+revoke_ioperm:
+        /* Revoke ioperms for this device & move on to next one */
         sc_do_hardware_ioperm(bus_list[i], 8, 0, &err);
-        */
-    //}
+    }
+}
+
+int main() {
+    struct ata_disk_stat ata_sp[8] = {0};
+
+    ata_detect_disks(ata_sp);
 
     do { } while (1);
     return 0;
