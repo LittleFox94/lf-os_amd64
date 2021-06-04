@@ -104,12 +104,12 @@
 /**
  * Helper struct to contain ATA disks & statuses
  *
- * short port Is port to ata device
- * int status Is status of disk, using __ATA_DISK_ID_INTERNAL_ATA_XXX.
+ * short bus Is bus to ata device
+ * int id Is status of disk, using __ATA_DISK_ID_INTERNAL_ATA_XXX.
  */
 struct ata_disk_stat {
-    short port;
-    int status;
+    short bus;
+    int id;
 
     /**
      * This pointer contains address to disk info, that is being read
