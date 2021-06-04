@@ -416,6 +416,7 @@ void ata_detect_disks(struct ata_disk_stat *ata_sp) {
                return;
            }
         }
+        ata_sp_offset++;
 
 revoke_ioperm:
         /* Revoke ioperms for this device & move on to next one */
