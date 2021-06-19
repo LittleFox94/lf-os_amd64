@@ -1,7 +1,55 @@
 stages:
+- prepare
 - test
 - build
 - deploy
+
+.docker-build: &docker-build
+  image:
+    name: gcr.io/kaniko-project/executor:debug-edge
+    entrypoint: [""]
+  script:
+    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
+    - >-
+        /kaniko/executor
+        --context     $CI_PROJECT_DIR
+        --dockerfile  $CI_PROJECT_DIR/$DOCKERFILE
+        --destination $IMAGE_NAME:$IMAGE_TAG
+        --cache=true
+        --cache-repo $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_NAME/kaniko-cache
+  only:
+  - branches
+
+ci-image-alpine:
+  <<: *docker-build
+  stage: prepare
+  variables:
+    IMAGE_NAME: $CI_REGISTRY_IMAGE/ci/alpine
+    IMAGE_TAG:  $CI_COMMIT_SHA
+    DOCKERFILE: Dockerfile.ci
+  only:
+    changes:
+    - Dockerfile.ci
+
+ci-image-debian:
+  <<: *docker-build
+  stage: prepare
+  variables:
+    IMAGE_NAME: $CI_REGISTRY_IMAGE/ci/debian
+    IMAGE_TAG:  $CI_COMMIT_SHA
+    DOCKERFILE: Dockerfile.deb-ci
+  only:
+    changes:
+    - Dockerfile.deb-ci
+
+llvm:
+  trigger:
+    project:  littlefox/llvm-project
+    branch:   lf-os
+    strategy: depend
+  only:
+    changes:
+    - .gitlab/llvm-ci.yml
 
 default:
   image: registry.lf-net.org/littlefox/lf-os_amd64/ci:2021032302

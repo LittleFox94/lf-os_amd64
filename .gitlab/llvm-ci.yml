@@ -1,0 +1,107 @@
+stages:
+- build
+- deploy
+
+build:
+  stage: build
+  image: registry.lf-net.org/littlefox/lf-os_amd64/ci/debian:c22ef0440db344801d432306becbe8b914044530
+  interruptible: true
+  before_script:
+  - '[ -z "$CCACHE_DIR" ] && export CCACHE_DIR=$(pwd)/.ccache'
+  script:
+  - mkdir build && cd build
+  - >
+    cmake -S ../llvm -G Ninja
+    -DCMAKE_BUILD_TYPE=Release
+    -DBUILD_SHARED_LIBS=OFF
+    -DLLVM_CCACHE_BUILD=ON
+    -DLLVM_ENABLE_PROJECTS="clang;lld"
+    -DLLVM_DEFAULT_TARGET_TRIPLE=x86_64-pc-lf_os
+    -DLLVM_TARGETS_TO_BUILD=X86
+    -DLLVM_BUILD_TOOLS=ON
+    -DLLVM_BUILD_UTILS=OFF
+    -DLLVM_BUILD_RUNTIME=OFF
+    -DLLVM_BUILD_EXAMPLES=OFF
+    -DLLVM_INCLUDE_TESTS=OFF
+    -DLLVM_INCLUDE_UTILS=OFF
+    -DLLVM_INCLUDE_RUNTIMES=OFF
+    -DCLANG_INCLUDE_TESTS=OFF
+    -DLLVM_INSTALL_TOOLCHAIN_ONLY=ON
+    -DLLVM_INSTALL_BINUTILS_SYMLINKS=ON
+    -DLLVM_TOOLCHAIN_TOOLS="llvm-ar;llvm-cov;llvm-cxxfilt;llvm-ranlib;llvm-lib;llvm-nm;llvm-objcopy;llvm-objdump;llvm-rc;llvm-readobj;llvm-size;llvm-strings;llvm-strip;llvm-profdata;llvm-symbolizer;addr2line;ar;c++filt;ranlib;nm;objcopy;objdump;size;strings;strip;llvm-readelf;readelf"
+    -DLLVM_USE_LLD=ON
+    -DCMAKE_C_COMPILER="clang"
+    -DCMAKE_CXX_COMPILER="clang++"
+    -DPACKAGE_VERSION="$VERSION"
+    -DCPACK_PACKAGE_NAME="lf_os-toolchain"
+    -DCPACK_PACKAGE_FILE_NAME="lf_os-toolchain"
+    -DCPACK_PACKAGE_VENDOR="LF OS"
+    -DCPACK_PACKAGE_CONTACT="Mara Sophie Grosch <littlefox@lf-net.org>"
+    -DCPACK_PACKAGING_INSTALL_PREFIX="/opt/lf_os/toolchain"
+    -DCPACK_DEBIAN_FILE_NAME="DEB-DEFAULT"
+    -DCPACK_DEBIAN_PACKAGE_ARCHITECTURE=amd64
+    -DCPACK_DEBIAN_COMPRESSION_TYPE=xz
+  - ninja
+  - cpack -G "DEB;TXZ"
+  - mv lf_os-toolchain.tar.xz               ../lf_os-toolchain_${VERSION}_amd64.tar.xz
+  - mv lf_os-toolchain_${VERSION}_amd64.deb ../
+  variables:
+    VERSION: 0.1.1+${CI_PIPELINE_ID}
+    ARTIFACT_COMPRESSION_LEVEL: fastest
+  artifacts:
+    paths:
+    - "lf_os-toolchain_${VERSION}_amd64.tar.xz"
+    - "lf_os-toolchain_${VERSION}_amd64.deb"
+  cache:
+    paths:
+    - .ccache
+  only:
+    refs:
+    - lf-os
+
+deploy-apt:
+  stage: deploy
+  image: alpine
+  variables:
+    GIT_STRATEGY: none
+  only:
+    refs:
+    - lf-os
+  needs:
+  - build
+  before_script:
+  - apk add -u --no-cache curl
+  script:
+  - |
+    for package in *.deb; do
+      curl -X PUT --data-binary @$package -f        \
+      -H 'Content-Type: application/octet-stream'   \
+      -H 'x-component: lf-os'                       \
+      -H 'x-suites: unstable'                       \
+      -H "Authorization: Bearer $APT_DEPLOY_TOKEN"  \
+      https://fission.svc.0x0a.network/apt/upload
+    done
+
+deploy-generic:
+  stage: deploy
+  image: alpine
+  variables:
+    GIT_STRATEGY: none
+  only:
+    refs:
+    - lf-os
+  needs:
+  - build
+  before_script:
+  - apk add -u --no-cache curl
+  script:
+  - |
+    for package in *; do
+      meta=$(echo "$package"    | grep -oE '([0-9]+[.+]?)+_\w+\..*')
+      version=$(echo "$package" | grep -oE '([0-9]+[.+]?)+_\w+\.')
+      name=${package%_$meta}
+      curl -f                               \
+      --header "JOB-TOKEN: $CI_JOB_TOKEN"   \
+      --upload-file "$package"              \
+      "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/$name/${version%.}/$package"
+    done
