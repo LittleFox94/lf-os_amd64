@@ -11,6 +11,9 @@ project("lf_os" NONE)
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake" CACHE PATH "CMake module path for LF OS" FORCE)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+set(CMAKE_C_COMPILER_NAMES   clang   gcc)
+set(CMAKE_CXX_COMPILER_NAMES clang++ g++)
+
 set(CMAKE_C_FLAGS         "-Wno-gnu-folding-constant")
 set(CMAKE_C_FLAGS_DEBUG   "-g -O0 -DDEBUG")
 set(CMAKE_CXX_FLAGS       "-Wno-gnu-folding-constant")

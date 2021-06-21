@@ -1,4 +1,10 @@
-FROM alpine:3.12
+FROM debian:buster
 
-RUN apk add -U --no-cache xz mtools sgdisk gcc g++ make cmake doxygen graphviz perl-yaml python3 git curl ccache && \
-    ln -s /usr/bin/python3 /usr/local/bin/python
+RUN apt-get -qq update                                                                                       && \
+    apt-get -qq install -y --no-install-recommends                                                              \
+        curl apt-transport-https ca-certificates gnupg2                                                      && \
+    echo "deb [arch=amd64] https://apt.svc.0x0a.network unstable lf-os" > /etc/apt/sources.list.d/lf-os.list && \
+    curl -sSL https://apt.svc.0x0a.network/public_key.gpg | apt-key add -                                    && \
+    apt-get -qq update                                                                                       && \
+    apt-get -qq install -y --no-install-recommends                                                              \
+        xz-utils mtools gdisk ninja-build cmake doxygen graphviz libyaml-perl python3 git

@@ -11,14 +11,14 @@ set(LLVM_BUILD_EXAMPLES OFF CACHE STRING "" FORCE)
 set(LLVM_INCLUDE_TESTS OFF CACHE STRING "" FORCE)
 set(LLVM_INCLUDE_UTILS OFF CACHE STRING "" FORCE)
 set(LLVM_INCLUDE_RUNTIMES OFF CACHE STRING "" FORCE)
-set(LLVM_INSTALL_TOOLCHAIN_ONLY OFF CACHE STRING "" FORCE)
+set(LLVM_INSTALL_TOOLCHAIN_ONLY ON CACHE STRING "" FORCE)
 set(LLVM_INSTALL_BINUTILS_SYMLINKS ON CACHE STRING "" FORCE)
 set(CLANG_INCLUDE_TESTS OFF CACHE STRING "" FORCE)
-set(BUILD_SHARED_LIBS ON CACHE BOOL "" FORCE)
 
-set(LLVM_ENABLED_TOOLS
+set(BUILD_SHARED_LIBS ON CACHE STRING "" FORCE)
+
+set(LLVM_TOOLCHAIN_TOOLS
     llvm-ar
-    llvm-config
     llvm-cov
     llvm-cxxfilt
     llvm-ranlib
@@ -33,26 +33,22 @@ set(LLVM_ENABLED_TOOLS
     llvm-strip
     llvm-profdata
     llvm-symbolizer
+
+    addr2line
+    ar
+    c++filt
+    ranlib
+    nm
+    objcopy
+    objdump
+    size
+    strings
+    strip
+
+    llvm-readelf
+    readelf
 )
 
-file(GLOB llvm_tool_dirs ${CMAKE_CURRENT_SOURCE_DIR}/src/llvm/llvm/tools/*)
-
-foreach(dir ${llvm_tool_dirs})
-    if(IS_DIRECTORY "${dir}" AND EXISTS "${dir}/CMakeLists.txt")
-        string(REPLACE "${CMAKE_CURRENT_SOURCE_DIR}/src/llvm/llvm/tools/" "" nameStrip ${dir})
-        string(REPLACE "-" "_" nameUNDERSCORE ${nameStrip})
-        string(TOUPPER ${nameUNDERSCORE} nameUPPER)
-
-        if(${nameStrip} IN_LIST LLVM_ENABLED_TOOLS)
-            set(LLVM_TOOL_${nameUPPER}_BUILD ON CACHE STRING "" FORCE)
-        else()
-            set(LLVM_TOOL_${nameUPPER}_BUILD OFF CACHE STRING "" FORCE)
-        endif()
-    endif()
-endforeach()
-
-set(CMAKE_C_COMPILER_NAMES   clang   gcc)
-set(CMAKE_CXX_COMPILER_NAMES clang++ g++)
 set(CMAKE_BUILD_TYPE Release CACHE STRING "" FORCE)
 set(CMAKE_INSTALL_PREFIX ${toolchain})
 

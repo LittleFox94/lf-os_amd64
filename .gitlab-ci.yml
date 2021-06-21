@@ -1,8 +1,19 @@
 stages:
+- pre-prepare
 - prepare
 - test
 - build
 - deploy
+
+llvm:
+  stage: pre-prepare
+  trigger:
+    project:  littlefox/llvm-project
+    branch:   lf-os
+    strategy: depend
+  only:
+    changes:
+    - .gitlab/llvm-ci.yml
 
 .docker-build: &docker-build
   image:
@@ -15,53 +26,42 @@ stages:
         --context     $CI_PROJECT_DIR
         --dockerfile  $CI_PROJECT_DIR/$DOCKERFILE
         --destination $IMAGE_NAME:$IMAGE_TAG
+        --destination $IMAGE_NAME/$CI_COMMIT_REF_NAME:latest
         --cache=true
         --cache-repo $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_NAME/kaniko-cache
   only:
   - branches
 
-ci-image-alpine:
+ci-image-llvm:
   <<: *docker-build
   stage: prepare
   variables:
-    IMAGE_NAME: $CI_REGISTRY_IMAGE/ci/alpine
+    IMAGE_NAME: $CI_REGISTRY_IMAGE/ci/llvm
+    IMAGE_TAG:  $CI_COMMIT_SHA
+    DOCKERFILE: Dockerfile.llvm-ci
+  only:
+    changes:
+    - Dockerfile.llvm-ci
+
+ci-image:
+  <<: *docker-build
+  stage: prepare
+  variables:
+    IMAGE_NAME: $CI_REGISTRY_IMAGE/ci
     IMAGE_TAG:  $CI_COMMIT_SHA
     DOCKERFILE: Dockerfile.ci
-  only:
-    changes:
-    - Dockerfile.ci
-
-ci-image-debian:
-  <<: *docker-build
-  stage: prepare
-  variables:
-    IMAGE_NAME: $CI_REGISTRY_IMAGE/ci/debian
-    IMAGE_TAG:  $CI_COMMIT_SHA
-    DOCKERFILE: Dockerfile.deb-ci
-  only:
-    changes:
-    - Dockerfile.deb-ci
-
-llvm:
-  trigger:
-    project:  littlefox/llvm-project
-    branch:   lf-os
-    strategy: depend
-  only:
-    changes:
-    - .gitlab/llvm-ci.yml
-
-default:
-  image: registry.lf-net.org/littlefox/lf-os_amd64/ci:2021032302
 
 test:
   stage: test
+  needs:
+  - ci-image
+  image: $CI_REGISTRY_IMAGE/ci:$CI_COMMIT_SHA
   variables:
     CTEST_OUTPUT_ON_FAILURE: "1"
     GIT_STRATEGY: fetch
   script:
-  - cmake -DCMAKE_BUILD_TYPE=Release -B build -S .
-  - make -C build test-kernel
+  - cmake -DCMAKE_BUILD_TYPE=Release -G Ninja -B build -S .
+  - ninja -C build test-kernel
   only:
     changes:
     - src/**/*
@@ -71,12 +71,15 @@ test:
 
 build:
   stage: build
+  needs:
+  - ci-image
+  image: $CI_REGISTRY_IMAGE/ci:$CI_COMMIT_SHA
   interruptible: true
   before_script:
   - '[ -z "$CCACHE_DIR" ] && export CCACHE_DIR=$(pwd)/.ccache'
   script:
-  - cmake -DCPACK_PACKAGE_VERSION=0.1.1-${CI_PIPELINE_IID} -DCMAKE_BUILD_TYPE=Release -B build -S .
-  - make -C build -j$(nproc) hd.img.xz package
+  - cmake -G Ninja -DCPACK_PACKAGE_VERSION=0.1.1-${CI_PIPELINE_IID} -DCMAKE_BUILD_TYPE=Release -B build -S .
+  - ninja -C build -j$(nproc) hd.img.xz package
   - mv build/hd.img.xz build/*.deb .
   variables:
     GIT_STRATEGY: fetch
@@ -121,17 +124,21 @@ deploy-apt:
     - cmake/**/*
     - CMakeLists.txt
     - .gitlab-ci.yml
-  dependencies:
+  needs:
+  - ci-image
   - build
 
 pages:
   stage: deploy
+  needs:
+  - ci-image
+  image: $CI_REGISTRY_IMAGE/ci:$CI_COMMIT_SHA
   variables:
     GIT_STRATEGY: fetch
     ARTIFACT_COMPRESSION_LEVEL: fastest
   script:
-  - cmake -DCMAKE_BUILD_TYPE=Release -B build -S .
-  - make -C build doc
+  - cmake -DCMAKE_BUILD_TYPE=Release -G Ninja -B build -S .
+  - ninja -C build doc
   - mv build/doc/html public
   artifacts:
     paths:
