@@ -5,7 +5,7 @@
 #include <mutex>
 
 #if   defined(__LF_OS__)
-#include <kernel/syscalls.h>
+#include <sys/syscalls.h>
 #elif defined(__linux)
 #include <sys/mman.h>
 #include <sys/stat.h>

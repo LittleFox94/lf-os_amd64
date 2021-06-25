@@ -1,6 +1,6 @@
 #include <string>
 #include <iostream>
-#include <kernel/syscalls.h>
+#include <sys/syscalls.h>
 #include <sys/io.h>
 
 const uint16_t base_port = 0x3f8;

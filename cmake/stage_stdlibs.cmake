@@ -4,9 +4,10 @@ include(ExternalProject)
 ExternalProject_Add(
     "compiler-rt"
     CMAKE_CACHE_ARGS
+        "-Dlf_os_sysroot:STRING=${lf_os_sysroot}"
         "-DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}"
-        "-DCMAKE_TOOLCHAIN_FILE:STRING=${toolchain}/etc/cmake.toolchain"
-        "-DCMAKE_INSTALL_PREFIX:STRING=${toolchain}/lib/clang/13.0.0"
+        "-DCMAKE_TOOLCHAIN_FILE:STRING=${lf_os_toolchain}/etc/cmake.toolchain"
+        "-DCMAKE_INSTALL_PREFIX:STRING=${lf_os_sysroot}"
         "-DCMAKE_C_FLAGS:STRING=${CMAKE_C_FLAGS} -nostdlib"
         "-DCMAKE_CXX_FLAGS:STRING=${CMAKE_CXX_FLAGS} -nostdlib"
         "-DCOMPILER_RT_DEFAULT_TARGET_ONLY:BOOL=ON"
@@ -26,9 +27,10 @@ ExternalProject_Add(
 ExternalProject_Add(
     "libc++"
     CMAKE_CACHE_ARGS
+        "-Dlf_os_sysroot:STRING=${lf_os_sysroot}"
         "-DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}"
-        "-DCMAKE_TOOLCHAIN_FILE:STRING=${toolchain}/etc/cmake.toolchain"
-        "-DCMAKE_INSTALL_PREFIX:STRING=${toolchain}"
+        "-DCMAKE_TOOLCHAIN_FILE:STRING=${lf_os_toolchain}/etc/cmake.toolchain"
+        "-DCMAKE_INSTALL_PREFIX:STRING=${lf_os_sysroot}"
         "-DCMAKE_C_FLAGS:STRING=${CMAKE_C_FLAGS} -nostdlib"
         "-DCMAKE_CXX_FLAGS:STRING=${CMAKE_CXX_FLAGS} -nostdlib"
         "-DLIBCXX_ENABLE_THREADS:STRING=On"
@@ -39,7 +41,7 @@ ExternalProject_Add(
         "-DLIBCXX_USE_COMPILER_RT:STRING=On"
         "-DLIBCXX_CXX_ABI:STRING=libcxxabi"
         "-DLIBCXX_CXX_STATIC_ABI_LIBRARY:STRING=c++abi"
-        "-DLIBCXX_CXX_ABI_LIBRARY_PATH:STRING=${toolchain}/lib"
+        "-DLIBCXX_CXX_ABI_LIBRARY_PATH:STRING=${lf_os_sysroot}/lib"
         "-DLIBCXX_INCLUDE_TESTS:STRING=Off"
     SOURCE_DIR
         "${CMAKE_SOURCE_DIR}/src/llvm/libcxx"
@@ -63,9 +65,10 @@ ExternalProject_Add(
         "compiler-rt"
         "libc++-install-headers"
     CMAKE_CACHE_ARGS
+        "-Dlf_os_sysroot:STRING=${lf_os_sysroot}"
         "-DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}"
-        "-DCMAKE_TOOLCHAIN_FILE:STRING=${toolchain}/etc/cmake.toolchain"
-        "-DCMAKE_INSTALL_PREFIX:STRING=${toolchain}"
+        "-DCMAKE_TOOLCHAIN_FILE:STRING=${lf_os_toolchain}/etc/cmake.toolchain"
+        "-DCMAKE_INSTALL_PREFIX:STRING=${lf_os_sysroot}"
         "-DCMAKE_C_FLAGS:STRING=${CMAKE_C_FLAGS} -nostdlib"
         "-DCMAKE_CXX_FLAGS:STRING=${CMAKE_CXX_FLAGS} -nostdlib"
         "-DLIBCXXABI_ENABLE_THREADS:STRING=Off"
@@ -73,7 +76,7 @@ ExternalProject_Add(
         "-DLIBCXXABI_ENABLE_SHARED:STRING=Off"
         "-DLIBCXXABI_ENABLE_STATIC_UNWINDER:STRING=On"
         "-DLIBCXXABI_USE_LLVM_UNWINDER:STRING=On"
-        "-DLIBCXXABI_LIBCXX_INCLUDES:STRING=${toolchain}/include/c++/v1"
+        "-DLIBCXXABI_LIBCXX_INCLUDES:STRING=${lf_os_sysroot}/include/c++/v1"
         "-DLIBUNWIND_ENABLE_SHARED:STRING=Off"
         "-DLIBUNWIND_COMPILE_FLAGS:STRING="
     SOURCE_DIR

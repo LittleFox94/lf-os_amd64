@@ -1,7 +1,7 @@
 #include <pthread.h>
 #include <errno.h>
 
-#include <kernel/syscalls.h>
+#include <sys/syscalls.h>
 
 int pthread_cond_init (pthread_cond_t *condvar, const pthread_condattr_t *attributes) {
     // XXX: do something with the attributes

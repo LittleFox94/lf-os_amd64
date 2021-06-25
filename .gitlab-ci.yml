@@ -1,19 +1,14 @@
 stages:
-- pre-prepare
+- prepare-toolchain
+- build-toolchain
+- deploy-toolchain
 - prepare
 - test
 - build
 - deploy
 
-llvm:
-  stage: pre-prepare
-  trigger:
-    project:  littlefox/llvm-project
-    branch:   lf-os
-    strategy: depend
-  only:
-    changes:
-    - .gitlab/llvm-ci.yml
+variables:
+  VERSION: 0.1.1+${CI_PIPELINE_ID}
 
 .docker-build: &docker-build
   image:
@@ -34,14 +29,97 @@ llvm:
 
 ci-image-llvm:
   <<: *docker-build
-  stage: prepare
+  stage: prepare-toolchain
   variables:
-    IMAGE_NAME: $CI_REGISTRY_IMAGE/ci/llvm
+    IMAGE_NAME: $CI_REGISTRY_IMAGE/llvm-ci
     IMAGE_TAG:  $CI_COMMIT_SHA
     DOCKERFILE: Dockerfile.llvm-ci
+
+llvm:
+  stage: build-toolchain
+  interruptible: true
+  needs:
+  - ci-image-llvm
+  image: $CI_REGISTRY_IMAGE/llvm-ci:$CI_COMMIT_SHA
+  variables:
+    GIT_STRATEGY: fetch
+    GIT_SUBMODULE_STRATEGY: recursive
+    ARTIFACT_COMPRESSION_LEVEL: fastest
+  script:
+  - mkdir build && cd build
+  - cmake -DPACKAGE_VERSION=$VERSION -DCMAKE_BUILD_TYPE=Release -G Ninja -Dsubproject=toolchain ..
+  - ninja
+  - cpack
+  - mv lf_os-toolchain.tar.xz               ../lf_os-toolchain_${VERSION}_amd64.tar.xz
+  - mv lf_os-toolchain_${VERSION}_amd64.deb ../
+  artifacts:
+    paths:
+    - "lf_os-toolchain_${VERSION}_amd64.tar.xz"
+    - "lf_os-toolchain_${VERSION}_amd64.deb"
   only:
     changes:
-    - Dockerfile.llvm-ci
+    - cmake/project_toolchain.cmake
+    - CMakeLists.txt
+    - .gitlab-ci.yml
+    - src/llvm
+    - Dockerfile.ci
+
+llvm-deploy:
+  stage: deploy-toolchain
+  image: alpine
+  variables:
+    GIT_STRATEGY: none
+  before_script:
+  - apk add -u --no-cache curl
+  script:
+  - |
+    for package in *.deb; do
+      curl -X PUT --data-binary @$package -f        \
+      -H 'Content-Type: application/octet-stream'   \
+      -H 'x-component: lf-os'                       \
+      -H 'x-suites: unstable'                        \
+      -H "Authorization: Bearer $APT_DEPLOY_TOKEN"  \
+      https://fission.svc.0x0a.network/apt/upload
+    done
+  only:
+    refs:
+    - master
+    changes:
+    - cmake/project_toolchain.cmake
+    - CMakeLists.txt
+    - .gitlab-ci.yml
+    - src/llvm
+    - Dockerfile.ci
+  needs:
+  - llvm
+
+llvm-deploy:
+  stage: deploy-toolchain
+  image: alpine
+  variables:
+    GIT_STRATEGY: none
+  before_script:
+  - apk add -u --no-cache curl
+  script:
+  - |
+    for package in *.deb; do
+      curl -X PUT --data-binary @$package -f        \
+      -H 'Content-Type: application/octet-stream'   \
+      -H 'x-component: lf-os'                       \
+      -H 'x-suites: unstable'                        \
+      -H "Authorization: Bearer $APT_DEPLOY_TOKEN"  \
+      https://fission.svc.0x0a.network/apt/upload
+    done
+  only:
+    refs:
+    - master
+    changes:
+    - cmake/project_toolchain.cmake
+    - CMakeLists.txt
+    - .gitlab-ci.yml
+    - src/llvm
+  needs:
+  - llvm
 
 ci-image:
   <<: *docker-build
@@ -50,12 +128,19 @@ ci-image:
     IMAGE_NAME: $CI_REGISTRY_IMAGE/ci
     IMAGE_TAG:  $CI_COMMIT_SHA
     DOCKERFILE: Dockerfile.ci
+  only:
+    changes:
+    - cmake/project_toolchain.cmake
+    - CMakeLists.txt
+    - .gitlab-ci.yml
+    - src/llvm
+    - Dockerfile.ci
+  needs:
+  - llvm
 
 test:
   stage: test
-  needs:
-  - ci-image
-  image: $CI_REGISTRY_IMAGE/ci:$CI_COMMIT_SHA
+  image: $CI_REGISTRY_IMAGE/ci/$CI_COMMIT_REF_NAME:latest
   variables:
     CTEST_OUTPUT_ON_FAILURE: "1"
     GIT_STRATEGY: fetch
@@ -68,12 +153,11 @@ test:
     - cmake/**/*
     - CMakeLists.txt
     - .gitlab-ci.yml
+    - Dockerfile.ci
 
 build:
   stage: build
-  needs:
-  - ci-image
-  image: $CI_REGISTRY_IMAGE/ci:$CI_COMMIT_SHA
+  image: $CI_REGISTRY_IMAGE/ci/$CI_COMMIT_REF_NAME:latest
   interruptible: true
   before_script:
   - '[ -z "$CCACHE_DIR" ] && export CCACHE_DIR=$(pwd)/.ccache'
@@ -98,6 +182,7 @@ build:
     - cmake/**/*
     - CMakeLists.txt
     - .gitlab-ci.yml
+    - Dockerfile.ci
 
 deploy-apt:
   stage: deploy
@@ -124,15 +209,13 @@ deploy-apt:
     - cmake/**/*
     - CMakeLists.txt
     - .gitlab-ci.yml
+    - Dockerfile.ci
   needs:
-  - ci-image
   - build
 
 pages:
   stage: deploy
-  needs:
-  - ci-image
-  image: $CI_REGISTRY_IMAGE/ci:$CI_COMMIT_SHA
+  image: $CI_REGISTRY_IMAGE/ci/$CI_COMMIT_REF_NAME:latest
   variables:
     GIT_STRATEGY: fetch
     ARTIFACT_COMPRESSION_LEVEL: fastest

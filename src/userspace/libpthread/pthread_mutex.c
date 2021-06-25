@@ -1,7 +1,7 @@
 #include <pthread.h>
 #include <errno.h>
 
-#include <kernel/syscalls.h>
+#include <sys/syscalls.h>
 
 int pthread_mutex_init (pthread_mutex_t *mutex, const pthread_mutexattr_t *attr) {
     // XXX: do something with the attributes

@@ -8,4 +8,4 @@ add_library(pthread
     pthread_mutex.c
     pthread_key.c
 )
-install(TARGETS pthread DESTINATION "${toolchain}/lib")
+install(TARGETS pthread DESTINATION "${lf_os_sysroot}/lib")
