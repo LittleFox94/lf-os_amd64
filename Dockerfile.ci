@@ -6,14 +6,8 @@ RUN dpkg -i /tmp/lf_os-toolchain_*_amd64.deb                  ;  \
     apt-get -qq update                                        && \
     apt-get -qq install -y --no-install-recommends -f         && \
     apt-get -qq install -y --no-install-recommends               \
-        xz-utils mtools gdisk                                    \
-        lf_os-toolchain ninja-build cmake doxygen graphviz       \
-        libyaml-perl python3 git libc-dev libgcc-8-dev        && \
+        xz-utils mtools gdisk python3-distutils                  \
+        lf_os-toolchain make ninja-build cmake doxygen graphviz  \
+        libyaml-perl python3 git gcc g++                      && \
     ln -s /opt/lf_os/toolchain/bin/ld.lld /usr/local/bin/ld   && \
     rm /tmp/lf_os-toolchain_*_amd64.deb
-
-ENV PATH=$PATH:/opt/lf_os/toolchain/bin         \
-    CC=clang                                    \
-    CFLAGS="-target x86_64-unknown-linux-gnu"   \
-    CXX=clang++                                 \
-    CXXFLAGS="-target x86_64-unknown-linux-gnu" \

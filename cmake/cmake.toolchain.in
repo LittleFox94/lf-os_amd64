@@ -12,3 +12,6 @@ set(CMAKE_C_COMPILER          @lf_os_toolchain@/bin/clang)
 set(CMAKE_C_COMPILER_TARGET   x86_64-pc-lf_os)
 set(CMAKE_CXX_COMPILER        @lf_os_toolchain@/bin/clang++)
 set(CMAKE_CXX_COMPILER_TARGET x86_64-pc-lf_os)
+
+set(CMAKE_AR     @lf_os_toolchain@/bin/ar)
+set(CMAKE_RANLIB @lf_os_toolchain@/bin/ranlib)
