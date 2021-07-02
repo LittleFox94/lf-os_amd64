@@ -9,7 +9,8 @@ stages:
 - deploy
 
 variables:
-  VERSION: 0.1.1+${CI_PIPELINE_ID}
+  VERSION:     0.1.1+${CI_PIPELINE_ID}
+  MAIN_BRANCH: master
 
 .docker-build: &docker-build
   image:
@@ -69,8 +70,8 @@ variables:
       https://fission.svc.0x0a.network/apt/upload
     done
   only:
-    refs:
-    - master
+    variables:
+    - $MAIN_BRANCH == $CI_COMMIT_REF_NAME
 
 .generic-deploy:
   image: alpine
@@ -93,8 +94,8 @@ variables:
       "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/$component/${VERSION}/$package"
     done
   only:
-    refs:
-    - master
+    variables:
+    - $MAIN_BRANCH == $CI_COMMIT_REF_NAME
 
 ci-image-llvm:
   <<: *docker-build
@@ -263,5 +264,5 @@ pages:
     paths:
     - public
   only:
-    refs:
-    - master
+    variables:
+    - $MAIN_BRANCH == $CI_COMMIT_REF_NAME
