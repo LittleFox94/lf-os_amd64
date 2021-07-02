@@ -92,6 +92,9 @@ variables:
       --upload-file "$package"              \
       "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/$component/${VERSION}/$package"
     done
+  only:
+    refs:
+    - master
 
 ci-image-llvm:
   <<: *docker-build
