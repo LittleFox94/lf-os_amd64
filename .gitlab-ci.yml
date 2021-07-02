@@ -4,7 +4,8 @@ stages:
 - deploy-toolchain
 - prepare
 - test
-- build
+- build-sysroot
+- build-system
 - deploy
 
 variables:
@@ -27,45 +28,31 @@ variables:
   only:
   - branches
 
-ci-image-llvm:
-  <<: *docker-build
-  stage: prepare-toolchain
-  variables:
-    IMAGE_NAME: $CI_REGISTRY_IMAGE/llvm-ci
-    IMAGE_TAG:  $CI_COMMIT_SHA
-    DOCKERFILE: Dockerfile.llvm-ci
-
-llvm:
-  stage: build-toolchain
+.cmake-build:
+  image: $CI_REGISTRY_IMAGE/ci/$CI_COMMIT_REF_NAME:latest
   interruptible: true
-  needs:
-  - ci-image-llvm
-  image: $CI_REGISTRY_IMAGE/llvm-ci:$CI_COMMIT_SHA
+  before_script: &cmake-build-before-script
+  - '[ -z "$CCACHE_DIR" ] && export CCACHE_DIR=$(pwd)/.ccache'
+  script: &cmake-build-script
+  - cmake -Dsubproject=$SUBPROJECT $CMAKE_DEFINES -G Ninja -DCPACK_PACKAGE_VERSION=$VERSION -DCMAKE_BUILD_TYPE=Release -B build -S .
+  - ninja -C build package $NINJA_TARGETS
+  - mv build/*.deb build/*.tar.xz .
   variables:
     GIT_STRATEGY: fetch
     GIT_SUBMODULE_STRATEGY: recursive
     ARTIFACT_COMPRESSION_LEVEL: fastest
-  script:
-  - mkdir build && cd build
-  - cmake -DPACKAGE_VERSION=$VERSION -DCMAKE_BUILD_TYPE=Release -G Ninja -Dsubproject=toolchain ..
-  - ninja
-  - cpack
-  - mv lf_os-toolchain.tar.xz               ../lf_os-toolchain_${VERSION}_amd64.tar.xz
-  - mv lf_os-toolchain_${VERSION}_amd64.deb ../
-  artifacts:
+  cache:
     paths:
-    - "lf_os-toolchain_${VERSION}_amd64.tar.xz"
-    - "lf_os-toolchain_${VERSION}_amd64.deb"
+    - .ccache
   only:
     changes:
-    - cmake/project_toolchain.cmake
+    - src/**/*
+    - cmake/**/*
     - CMakeLists.txt
     - .gitlab-ci.yml
-    - src/llvm
     - Dockerfile.ci
 
-llvm-deploy:
-  stage: deploy-toolchain
+.apt-deploy:
   image: alpine
   variables:
     GIT_STRATEGY: none
@@ -77,13 +64,53 @@ llvm-deploy:
       curl -X PUT --data-binary @$package -f        \
       -H 'Content-Type: application/octet-stream'   \
       -H 'x-component: lf-os'                       \
-      -H 'x-suites: unstable'                        \
+      -H 'x-suites: unstable'                       \
       -H "Authorization: Bearer $APT_DEPLOY_TOKEN"  \
       https://fission.svc.0x0a.network/apt/upload
     done
   only:
     refs:
     - master
+
+ci-image-llvm:
+  <<: *docker-build
+  stage: prepare-toolchain
+  variables:
+    IMAGE_NAME: $CI_REGISTRY_IMAGE/llvm-ci
+    IMAGE_TAG:  $CI_COMMIT_SHA
+    DOCKERFILE: Dockerfile.llvm-ci
+  only:
+    changes:
+    - cmake/project_toolchain.cmake
+    - CMakeLists.txt
+    - .gitlab-ci.yml
+    - src/llvm
+    - Dockerfile.ci
+
+llvm:
+  extends: .cmake-build
+  stage: build-toolchain
+  variables:
+    SUBPROJECT: toolchain
+  needs:
+  - ci-image-llvm
+  image: $CI_REGISTRY_IMAGE/llvm-ci:$CI_COMMIT_SHA
+  artifacts:
+    paths:
+    - lf_os-toolchain_$VERSION_*.deb
+    - lf_os-toolchain_$VERSION_*_*.tar.xz
+  only:
+    changes:
+    - cmake/project_toolchain.cmake
+    - CMakeLists.txt
+    - .gitlab-ci.yml
+    - src/llvm
+    - Dockerfile.ci
+
+llvm-deploy:
+  extends: .apt-deploy
+  stage: deploy-toolchain
+  only:
     changes:
     - cmake/project_toolchain.cmake
     - CMakeLists.txt
@@ -138,7 +165,7 @@ ci-image:
   needs:
   - llvm
 
-test:
+unittest:
   stage: test
   image: $CI_REGISTRY_IMAGE/ci/$CI_COMMIT_REF_NAME:latest
   variables:
@@ -155,55 +182,39 @@ test:
     - .gitlab-ci.yml
     - Dockerfile.ci
 
-build:
-  stage: build
-  image: $CI_REGISTRY_IMAGE/ci/$CI_COMMIT_REF_NAME:latest
-  interruptible: true
-  before_script:
-  - '[ -z "$CCACHE_DIR" ] && export CCACHE_DIR=$(pwd)/.ccache'
-  script:
-  - cmake -G Ninja -DCPACK_PACKAGE_VERSION=0.1.1-${CI_PIPELINE_IID} -DCMAKE_BUILD_TYPE=Release -B build -S .
-  - ninja -C build -j$(nproc) hd.img.xz package
-  - mv build/hd.img.xz build/*.deb .
+build-sysroot:
+  extends: .cmake-build
+  stage: build-sysroot
   variables:
-    GIT_STRATEGY: fetch
-    GIT_SUBMODULE_STRATEGY: recursive
-    ARTIFACT_COMPRESSION_LEVEL: fastest
+    SUBPROJECT: sysroot
   artifacts:
     paths:
-    - hd.img.xz
-    - "*.deb"
-  cache:
-    paths:
-    - .ccache
-  only:
-    changes:
-    - src/**/*
-    - cmake/**/*
-    - CMakeLists.txt
-    - .gitlab-ci.yml
-    - Dockerfile.ci
+    - lf_os-sysroot*
 
-deploy-apt:
-  stage: deploy
-  image: alpine
+build-system:
+  extends: .cmake-build
+  stage: build-system
   variables:
-    GIT_STRATEGY: none
+    SUBPROJECT: lf_os
+    CMAKE_DEFINES: -Dlf_os_sysroot=/opt/lf_os/sysroot
+    NINJA_TARGETS: hd.img.xz
+  needs:
+  - build-sysroot
   before_script:
-  - apk add -u --no-cache curl
+  - *cmake-build-before-script
+  - dpkg -i lf_os-sysroot*.deb
   script:
-  - |
-    for package in *.deb; do
-      curl -X PUT --data-binary @$package -f        \
-      -H 'Content-Type: application/octet-stream'   \
-      -H 'x-component: lf-os'                       \
-      -H 'x-suites: unstable'                        \
-      -H "Authorization: Bearer $APT_DEPLOY_TOKEN"  \
-      https://fission.svc.0x0a.network/apt/upload
-    done
+  - *cmake-build-script
+  - mv build/hd.img.xz .
+  artifacts:
+    paths:
+    - lf_os_$VERSION_*.deb
+    - lf_os.tar.xz
+
+apt-deploy:
+  extends: .apt-deploy
+  stage: deploy
   only:
-    refs:
-    - master
     changes:
     - src/**/*
     - cmake/**/*
@@ -211,7 +222,8 @@ deploy-apt:
     - .gitlab-ci.yml
     - Dockerfile.ci
   needs:
-  - build
+  - build-sysroot
+  - build-system
 
 pages:
   stage: deploy

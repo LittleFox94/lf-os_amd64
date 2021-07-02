@@ -20,13 +20,15 @@ add_custom_target(hd.img.xz
     COMMAND ${xz} -k ${CMAKE_BINARY_DIR}/hd.img
 )
 
-install(DIRECTORY ${CMAKE_BINARY_DIR}/shared/EFI/LFOS DESTINATION /boot/efi/EFI)
-install(DIRECTORY ${CMAKE_BINARY_DIR}/shared/LFOS     DESTINATION /boot/efi)
-install(PROGRAMS util/osprobe RENAME 20lfos           DESTINATION /usr/lib/os-probes/mounted/efi)
+install(DIRECTORY ${CMAKE_BINARY_DIR}/shared/EFI/LFOS DESTINATION boot/efi/EFI)
+install(DIRECTORY ${CMAKE_BINARY_DIR}/shared/LFOS     DESTINATION boot/efi)
+install(PROGRAMS util/osprobe RENAME 20lfos           DESTINATION usr/lib/os-probes/mounted/efi)
 
 set(CPACK_PACKAGE_NAME lf_os)
+set(CPACK_PACKAGE_FILE_NAME "lf_os")
 set(CPACK_PACKAGE_CONTACT  "Mara Sophie Grosch <littlefox@lf-net.org>")
 set(CPACK_PACKAGE_HOMEPAGE "https://praios.lf-net.org/littlefox/lf-os_amd64")
+set(CPACK_PACKAGING_INSTALL_PREFIX "/")
 
 set(CPACK_GENERATOR        "DEB;TXZ")
 set(CPACK_SOURCE_GENERATOR "")
