@@ -7,6 +7,7 @@ if(${subproject} STREQUAL "sysroot" AND ${current_stage} STREQUAL "root")
     set(CPACK_PACKAGE_NAME     "lf_os-sysroot")
     set(CPACK_PACKAGE_CONTACT  "Mara Sophie Grosch <littlefox@lf-net.org>")
     set(CPACK_PACKAGE_HOMEPAGE "https://praios.lf-net.org/littlefox/lf-os_amd64")
+    set(CPACK_DEBIAN_PACKAGE_DESCRIPTION "Everything you need to build software for LF OS")
 
     set(CPACK_GENERATOR        "DEB;TXZ")
     set(CPACK_SOURCE_GENERATOR "")
