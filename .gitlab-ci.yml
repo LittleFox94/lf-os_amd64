@@ -72,6 +72,27 @@ variables:
     refs:
     - master
 
+.generic-deploy:
+  image: alpine
+  variables:
+    GIT_STRATEGY: none
+  before_script:
+  - apk add -u --no-cache curl
+  script:
+   - |
+    for package in *; do
+      component=$(echo ${package#lf_os-} | cut -d '_' -f 1)
+
+      if [ $component = "lf_os" ];
+        component="system"
+      fi
+
+      curl -f                               \
+      --header "JOB-TOKEN: $CI_JOB_TOKEN"   \
+      --upload-file "$package"              \
+      "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/$component/${VERSION}/$package"
+    done
+
 ci-image-llvm:
   <<: *docker-build
   stage: prepare-toolchain
@@ -107,7 +128,7 @@ llvm:
     - src/llvm
     - Dockerfile.ci
 
-llvm-deploy:
+llvm-deploy-apt:
   extends: .apt-deploy
   stage: deploy-toolchain
   only:
@@ -120,31 +141,16 @@ llvm-deploy:
   needs:
   - llvm
 
-llvm-deploy:
+llvm-deploy-generic:
+  extends: .generic-deploy
   stage: deploy-toolchain
-  image: alpine
-  variables:
-    GIT_STRATEGY: none
-  before_script:
-  - apk add -u --no-cache curl
-  script:
-  - |
-    for package in *.deb; do
-      curl -X PUT --data-binary @$package -f        \
-      -H 'Content-Type: application/octet-stream'   \
-      -H 'x-component: lf-os'                       \
-      -H 'x-suites: unstable'                        \
-      -H "Authorization: Bearer $APT_DEPLOY_TOKEN"  \
-      https://fission.svc.0x0a.network/apt/upload
-    done
   only:
-    refs:
-    - master
     changes:
     - cmake/project_toolchain.cmake
     - CMakeLists.txt
     - .gitlab-ci.yml
     - src/llvm
+    - Dockerfile.ci
   needs:
   - llvm
 
@@ -214,6 +220,20 @@ build-system:
 
 apt-deploy:
   extends: .apt-deploy
+  stage: deploy
+  only:
+    changes:
+    - src/**/*
+    - cmake/**/*
+    - CMakeLists.txt
+    - .gitlab-ci.yml
+    - Dockerfile.ci
+  needs:
+  - build-sysroot
+  - build-system
+
+generic-deploy:
+  extends: .generic-deploy
   stage: deploy
   only:
     changes:
