@@ -189,7 +189,8 @@ build-sysroot:
     SUBPROJECT: sysroot
   artifacts:
     paths:
-    - lf_os-sysroot*
+    - lf_os-sysroot_$VERSION_*.deb
+    - lf_os-sysroot_$VERSION_*.tar.xz
 
 build-system:
   extends: .cmake-build
@@ -209,7 +210,7 @@ build-system:
   artifacts:
     paths:
     - lf_os_$VERSION_*.deb
-    - lf_os.tar.xz
+    - lf_os_$VERSION_*.tar.xz
 
 apt-deploy:
   extends: .apt-deploy
