@@ -178,7 +178,7 @@ ci-image:
     IMAGE_TAG:  $CI_COMMIT_SHA
     DOCKERFILE: Dockerfile.ci
   before_script:
-  - test -f lf_os-toolchain_$VERSION_amd64.deb && export BUILD_ARGS=--build-arg toolchainSource=local || true
+  - test -f lf_os-toolchain_${VERSION}_amd64.deb && export BUILD_ARGS="--build-arg toolchainSource=local" || true
   needs:
   - job:      llvm
     optional: true
