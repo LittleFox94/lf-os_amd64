@@ -249,6 +249,7 @@ pages:
   stage: deploy
   variables:
     TARGETS: doc
+    SUBPROJECT: lf_os
   script:
   - *cmake-build-script
   - mv build/doc/html public
