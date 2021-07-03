@@ -23,7 +23,7 @@ variables:
     - CMakeLists.txt
     - .gitlab-ci.yml
     - src/llvm
-    - Dockerfile.ci
+    - Dockerfile.llvm-ci
 
 .source-job:
   image: $CI_REGISTRY_IMAGE/ci/$CI_COMMIT_REF_NAME:latest
