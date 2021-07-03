@@ -12,6 +12,37 @@ variables:
   VERSION:     0.1.1+${CI_PIPELINE_ID}
   MAIN_BRANCH: master
 
+
+#############################
+# some job templates
+
+.toolchain-job:
+  only:
+    changes:
+    - cmake/project_toolchain.cmake
+    - CMakeLists.txt
+    - .gitlab-ci.yml
+    - src/llvm
+    - Dockerfile.ci
+
+.source-job:
+  image: $CI_REGISTRY_IMAGE/ci/$CI_COMMIT_REF_NAME:latest
+  only:
+    changes:
+    - src/**/*
+    - cmake/**/*
+    - CMakeLists.txt
+    - .gitlab-ci.yml
+    - Dockerfile.ci
+  needs:
+  - ci-image
+
+.deploy-job:
+  stage: deploy
+  only:
+    variables:
+    - $MAIN_BRANCH == $CI_COMMIT_REF_NAME
+
 .docker-build: &docker-build
   image:
     name: gcr.io/kaniko-project/executor:debug-edge
@@ -26,17 +57,20 @@ variables:
         --destination $IMAGE_NAME/$CI_COMMIT_REF_NAME:latest
         --cache=true
         --cache-repo $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_NAME/kaniko-cache
+        $BUILD_ARGS
   only:
   - branches
 
 .cmake-build:
+  extends:
+  - .source-job
   image: $CI_REGISTRY_IMAGE/ci/$CI_COMMIT_REF_NAME:latest
   interruptible: true
   before_script: &cmake-build-before-script
   - '[ -z "$CCACHE_DIR" ] && export CCACHE_DIR=$(pwd)/.ccache'
   script: &cmake-build-script
   - cmake -Dsubproject=$SUBPROJECT $CMAKE_DEFINES -G Ninja -DCPACK_PACKAGE_VERSION=$VERSION -DCMAKE_BUILD_TYPE=Release -B build -S .
-  - ninja -C build package $NINJA_TARGETS
+  - ninja -C build ${TARGETS:-package}
   - mv build/*.deb build/*.tar.xz .
   variables:
     GIT_STRATEGY: fetch
@@ -45,15 +79,11 @@ variables:
   cache:
     paths:
     - .ccache
-  only:
-    changes:
-    - src/**/*
-    - cmake/**/*
-    - CMakeLists.txt
-    - .gitlab-ci.yml
-    - Dockerfile.ci
 
 .apt-deploy:
+  extends:
+  - .deploy-job
+  - .source-job
   image: alpine
   variables:
     GIT_STRATEGY: none
@@ -69,11 +99,11 @@ variables:
       -H "Authorization: Bearer $APT_DEPLOY_TOKEN"  \
       https://fission.svc.0x0a.network/apt/upload
     done
-  only:
-    variables:
-    - $MAIN_BRANCH == $CI_COMMIT_REF_NAME
 
 .generic-deploy:
+  extends:
+  - .deploy-job
+  - .source-job
   image: alpine
   variables:
     GIT_STRATEGY: none
@@ -93,27 +123,25 @@ variables:
       --upload-file "$package"              \
       "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/$component/${VERSION}/$package"
     done
-  only:
-    variables:
-    - $MAIN_BRANCH == $CI_COMMIT_REF_NAME
+
+
+#############################
+# then jobs for the toolchain
 
 ci-image-llvm:
-  <<: *docker-build
+  extends:
+  - .docker-build
+  - .toolchain-job
   stage: prepare-toolchain
   variables:
     IMAGE_NAME: $CI_REGISTRY_IMAGE/llvm-ci
     IMAGE_TAG:  $CI_COMMIT_SHA
     DOCKERFILE: Dockerfile.llvm-ci
-  only:
-    changes:
-    - cmake/project_toolchain.cmake
-    - CMakeLists.txt
-    - .gitlab-ci.yml
-    - src/llvm
-    - Dockerfile.ci
 
 llvm:
-  extends: .cmake-build
+  extends:
+  - .cmake-build
+  - .toolchain-job
   stage: build-toolchain
   variables:
     SUBPROJECT: toolchain
@@ -124,73 +152,51 @@ llvm:
     paths:
     - lf_os-toolchain_$VERSION_*.deb
     - lf_os-toolchain_$VERSION_*_*.tar.xz
-  only:
-    changes:
-    - cmake/project_toolchain.cmake
-    - CMakeLists.txt
-    - .gitlab-ci.yml
-    - src/llvm
-    - Dockerfile.ci
 
 llvm-deploy-apt:
-  extends: .apt-deploy
+  extends:
+  - .apt-deploy
+  - .toolchain-job
   stage: deploy-toolchain
-  only:
-    changes:
-    - cmake/project_toolchain.cmake
-    - CMakeLists.txt
-    - .gitlab-ci.yml
-    - src/llvm
-    - Dockerfile.ci
   needs:
   - llvm
 
 llvm-deploy-generic:
-  extends: .generic-deploy
+  extends:
+  - .generic-deploy
+  - .toolchain-job
   stage: deploy-toolchain
-  only:
-    changes:
-    - cmake/project_toolchain.cmake
-    - CMakeLists.txt
-    - .gitlab-ci.yml
-    - src/llvm
-    - Dockerfile.ci
   needs:
   - llvm
 
 ci-image:
-  <<: *docker-build
+  extends:
+  - .docker-build
   stage: prepare
   variables:
     IMAGE_NAME: $CI_REGISTRY_IMAGE/ci
     IMAGE_TAG:  $CI_COMMIT_SHA
     DOCKERFILE: Dockerfile.ci
-  only:
-    changes:
-    - cmake/project_toolchain.cmake
-    - CMakeLists.txt
-    - .gitlab-ci.yml
-    - src/llvm
-    - Dockerfile.ci
+  before_script:
+  - test -f lf_os-toolchain_$VERSION_amd64.deb && export BUILD_ARGS=--build-arg toolchainSource=local || true
   needs:
-  - llvm
+  - job:      llvm
+    optional: true
+
+
+#############################
+# now actual LF OS jobs
 
 unittest:
+  extends:
+  - .source-job
   stage: test
-  image: $CI_REGISTRY_IMAGE/ci/$CI_COMMIT_REF_NAME:latest
   variables:
     CTEST_OUTPUT_ON_FAILURE: "1"
     GIT_STRATEGY: fetch
   script:
   - cmake -DCMAKE_BUILD_TYPE=Release -G Ninja -B build -S .
   - ninja -C build test-kernel
-  only:
-    changes:
-    - src/**/*
-    - cmake/**/*
-    - CMakeLists.txt
-    - .gitlab-ci.yml
-    - Dockerfile.ci
 
 build-sysroot:
   extends: .cmake-build
@@ -208,7 +214,7 @@ build-system:
   variables:
     SUBPROJECT: lf_os
     CMAKE_DEFINES: -Dlf_os_sysroot=/opt/lf_os/sysroot
-    NINJA_TARGETS: hd.img.xz
+    TARGETS: package hd.img.xz
   needs:
   - build-sysroot
   before_script:
@@ -223,46 +229,29 @@ build-system:
     - lf_os_$VERSION_*.tar.xz
 
 apt-deploy:
-  extends: .apt-deploy
-  stage: deploy
-  only:
-    changes:
-    - src/**/*
-    - cmake/**/*
-    - CMakeLists.txt
-    - .gitlab-ci.yml
-    - Dockerfile.ci
+  extends:
+  - .apt-deploy
   needs:
   - build-sysroot
   - build-system
 
 generic-deploy:
-  extends: .generic-deploy
-  stage: deploy
-  only:
-    changes:
-    - src/**/*
-    - cmake/**/*
-    - CMakeLists.txt
-    - .gitlab-ci.yml
-    - Dockerfile.ci
+  extends:
+  - .generic-deploy
   needs:
   - build-sysroot
   - build-system
 
 pages:
+  extends:
+  - .cmake-build
+  - .deploy-job
   stage: deploy
-  image: $CI_REGISTRY_IMAGE/ci/$CI_COMMIT_REF_NAME:latest
   variables:
-    GIT_STRATEGY: fetch
-    ARTIFACT_COMPRESSION_LEVEL: fastest
+    TARGETS: doc
   script:
-  - cmake -DCMAKE_BUILD_TYPE=Release -G Ninja -B build -S .
-  - ninja -C build doc
+  - *cmake-build-script
   - mv build/doc/html public
   artifacts:
     paths:
     - public
-  only:
-    variables:
-    - $MAIN_BRANCH == $CI_COMMIT_REF_NAME
