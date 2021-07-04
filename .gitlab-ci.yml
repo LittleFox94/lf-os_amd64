@@ -228,6 +228,7 @@ build-system:
     paths:
     - lf_os_$VERSION_*.deb
     - lf_os_$VERSION_*.tar.xz
+    - hd.img.xz
 
 apt-deploy:
   extends:
