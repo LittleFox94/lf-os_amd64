@@ -71,7 +71,7 @@ variables:
   script: &cmake-build-script
   - cmake -Dsubproject=$SUBPROJECT $CMAKE_DEFINES -G Ninja -DCPACK_PACKAGE_VERSION=$VERSION -DCMAKE_BUILD_TYPE=Release -B build -S .
   - ninja -C build ${TARGETS:-package}
-  - mv build/*.deb build/*.tar.xz .
+  - test "$CMAKE_NO_COPY" || mv build/*.deb build/*.tar.xz .
   variables:
     GIT_STRATEGY: fetch
     GIT_SUBMODULE_STRATEGY: recursive
@@ -251,6 +251,7 @@ pages:
   variables:
     TARGETS: doc
     SUBPROJECT: lf_os
+    CMAKE_NO_COPY: blacklivesmatter # any non-empty string
   script:
   - *cmake-build-script
   - mv build/doc/html public
