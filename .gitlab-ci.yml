@@ -223,12 +223,12 @@ build-system:
   - dpkg -i lf_os-sysroot*.deb
   script:
   - *cmake-build-script
-  - mv build/hd.img.xz .
+  - mv build/hd.img.xz lf_os_$VERSION_amd64.img.xz
   artifacts:
     paths:
     - lf_os_$VERSION_*.deb
     - lf_os_$VERSION_*.tar.xz
-    - hd.img.xz
+    - lf_os_$VERSION_*.img.xz
 
 apt-deploy:
   extends:
