@@ -1,9 +1,12 @@
 function(multistage)
-    # Staging logic module for cmake
-    set(current_stage "root" CACHE STRING "Current build stage (you want to start with root)")
-
-    if(staging_shared_install)
+    if(staging_shared_install AND NOT current_stage)
         set(CMAKE_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/shared)
+    endif()
+
+    # Staging logic module for cmake
+    if(NOT current_stage)
+        set(current_stage "root" PARENT_SCOPE)
+        set(current_stage "root")
     endif()
 
     if(${current_stage} STREQUAL "root")
