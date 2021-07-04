@@ -190,14 +190,14 @@ ci-image:
 
 unittest:
   extends:
-  - .source-job
+  - .cmake-build
   stage: test
   variables:
     CTEST_OUTPUT_ON_FAILURE: "1"
     GIT_STRATEGY: fetch
-  script:
-  - cmake -DCMAKE_BUILD_TYPE=Release -G Ninja -B build -S .
-  - ninja -C build test-kernel
+    SUBPROJECT: lf_os
+    TARGETS: test-kernel
+    CMAKE_NO_COPY: transrightsarehumanrights # any non-empty string
 
 build-sysroot:
   extends: .cmake-build
