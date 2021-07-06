@@ -22,14 +22,14 @@ add_executable(kernel
     mutex.c     mutex.h
     sd.c        sd.h
     slab.c      slab.h
-    string.c    string.h
+    string.c    cstdlib/string.h
     tpa.c       tpa.h
     uuid.c      ../include/uuid.h
     version.c
                 allocator.h
                 bitmap.h
-                stdarg.h
-                stdbool.h
+                cstdlib/stdarg.h
+                cstdlib/stdbool.h
     ${PROJECT_BINARY_DIR}/syscalls.gen.c
     ${PROJECT_BINARY_DIR}/config.h
 )
@@ -40,8 +40,10 @@ configure_file(config.h.in config.h)
 target_include_directories(kernel PUBLIC
     "${PROJECT_BINARY_DIR}"
     "${PROJECT_SOURCE_DIR}"
+    "${PROJECT_SOURCE_DIR}/cstdlib"
     "${PROJECT_SOURCE_DIR}/arch/${architecture}"
     "${PROJECT_SOURCE_DIR}/../include"
+    "${PROJECT_SOURCE_DIR}/../include/sys"
     "${PROJECT_SOURCE_DIR}/../include/efi"
     "${PROJECT_SOURCE_DIR}/../include/arch/${architecture}"
 )

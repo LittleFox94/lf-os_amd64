@@ -1,14 +1,22 @@
 #ifndef _LFOSTEST_H_INCLUDED
 #define _LFOSTEST_H_INCLUDED
 
+#include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdlib.h>
+#include <sys/types.h>
+
+typedef uint64_t ptr_t;
 
 #ifndef _TESTRUNNER
-void* malloc(size_t);
-void free(void*);
+#ifdef TESTNAME
+#ifndef __cplusplus
+__attribute__ ((visibility ("default"))) const char* TestName = TESTNAME;
+#endif
+#endif
+
 #else
-#include <stddef.h>
 typedef uint64_t ptr_t;
 #endif
 

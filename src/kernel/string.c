@@ -1,7 +1,8 @@
-#include "string.h"
-#include "stdbool.h"
-#include "stdint.h"
-#include "stddef.h"
+#include <string.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stddef.h>
 
 int strcmp(const char* a, const char* b) {
     while(*a && *b && *a == *b) { a++; b++; }

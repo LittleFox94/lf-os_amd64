@@ -209,6 +209,11 @@ unittest:
     KUBERNETES_CPU_LIMIT: 2
     KUBERNETES_MEMORY_REQUEST: 2Gi
     KUBERNETES_MEMORY_LIMIT: 2Gi
+  artifacts:
+    when: always
+    reports:
+      junit:
+      - build/kernel_tests.xml
 
 build-sysroot:
   extends: .cmake-build
