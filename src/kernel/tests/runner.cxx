@@ -84,15 +84,29 @@ class LFOSTest : public LFOSTestFixture {
             }
 
             _testMain = (TestMain)dlsym(_lib, "testmain");
-            if((error = dlerror())) {
-                std::cerr << "Could not find symbol \"testmain\" in \"" << _libPath << "\": " << error << std::endl;
-                abort();
+
+            if(!_testMain) {
+                error = dlerror();
+
+                bool* cxxTest = (bool*)dlsym(_lib, "CXXTest");
+
+                if(!(cxxTest && *cxxTest)) {
+                    if(error) {
+                        std::cerr << "Could not find symbol \"testmain\" in \"" << _libPath << "\": " << error << std::endl;
+                    }
+                    else {
+                        std::cerr << "Could not find symbol \"testmain\" in \"" << _libPath << "\"" << std::endl;
+                    }
+
+                    abort();
+                }
             }
+            else {
+                const char** testNamePtr = (const char**)dlsym(_lib, "TestName");
 
-            const char** testNamePtr = (const char**)dlsym(_lib, "TestName");
-
-            if(testNamePtr) {
-                _testName = *testNamePtr;
+                if(testNamePtr) {
+                    _testName = *testNamePtr;
+                }
             }
         }
 
@@ -101,7 +115,9 @@ class LFOSTest : public LFOSTestFixture {
         }
 
         void TestBody() override {
-            _testMain(&_utils);
+            if(_testMain) {
+                _testMain(&_utils);
+            }
         }
 
         void TearDown() override {

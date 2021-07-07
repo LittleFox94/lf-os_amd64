@@ -17,6 +17,8 @@ void free(void* ptr);
 #else
 #include <stdlib.h>
 #include <sys/types.h>
+
+extern "C" __attribute__ ((visibility ("default"))) const bool CXXTest = true;
 #endif
 #endif
 
