@@ -47,7 +47,7 @@ struct tpa {
 
 tpa_t* tpa_new(allocator_t* alloc, uint64_t entry_size, uint64_t page_size, tpa_t* tpa) {
     if(!tpa) {
-        tpa = alloc->alloc(alloc, sizeof(struct tpa));
+        tpa = (tpa_t*)alloc->alloc(alloc, sizeof(struct tpa));
     }
 
     tpa->allocator   = alloc;
@@ -100,7 +100,7 @@ uint64_t tpa_offset_in_page(tpa_t* tpa, uint64_t idx) {
 }
 
 uint64_t* tpa_get_marker(tpa_t* tpa, struct tpa_page_header* page, uint64_t idx) {
-    return (uint64_t*)((void*)page + tpa_offset_in_page(tpa, idx));
+    return (uint64_t*)((uint64_t)page + tpa_offset_in_page(tpa, idx));
 }
 
 bool tpa_entry_exists_in_page(tpa_t* tpa, struct tpa_page_header* page, uint64_t idx) {
@@ -146,7 +146,7 @@ void* tpa_get(tpa_t* tpa, uint64_t idx) {
 
     if(page) {
         if(tpa_entry_exists_in_page(tpa, page, idx - page->start_idx)) {
-            return (void*)page + tpa_offset_in_page(tpa, idx - page->start_idx) + 8; // 8: skip marker
+            return (void*)((uint64_t)page + tpa_offset_in_page(tpa, idx - page->start_idx) + 8); // 8: skip marker
         }
     }
 
@@ -183,7 +183,7 @@ void tpa_set(tpa_t* tpa, uint64_t idx, void* data) {
     }
     else {
         if(!page) {
-            page = tpa->allocator->alloc(tpa->allocator, tpa->page_size);
+            page = (struct tpa_page_header*)tpa->allocator->alloc(tpa->allocator, tpa->page_size);
             memset(page, 0, tpa->page_size);
             page->start_idx = (idx / tpa_entries_per_page(tpa)) * tpa_entries_per_page(tpa);
 
@@ -216,7 +216,7 @@ void tpa_set(tpa_t* tpa, uint64_t idx, void* data) {
         }
 
         *(tpa_get_marker(tpa, page, idx - page->start_idx)) = 1;
-        memcpy((void*)page + tpa_offset_in_page(tpa, idx - page->start_idx) + 8, data, tpa->entry_size);
+        memcpy((void*)((uint64_t)page + tpa_offset_in_page(tpa, idx - page->start_idx) + 8), data, tpa->entry_size);
     }
 }
 
