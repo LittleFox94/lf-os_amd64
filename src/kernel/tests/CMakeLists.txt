@@ -55,7 +55,7 @@ foreach(test IN LISTS test_files)
         target_compile_options(
             kerneltest-${test}
             PRIVATE
-                -fpermissive
+                -fpermissive -Wno-write-strings
         )
     else()
         target_include_directories(
