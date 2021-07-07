@@ -46,7 +46,7 @@ foreach(test IN LISTS test_files)
     target_compile_options(
         kerneltest-${test}
         PRIVATE
-            -nostdlib -nodefaultlibs -static -fvisibility=hidden
+            -nostdlib -nodefaultlibs -static -fvisibility=hidden -fno-builtin
     )
 
     if(${extension} STREQUAL "cxx")
@@ -56,6 +56,20 @@ foreach(test IN LISTS test_files)
             kerneltest-${test}
             PRIVATE
                 -fpermissive
+        )
+    else()
+        target_include_directories(
+            kerneltest-${test}
+            PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/../cstdlib
+            ${CMAKE_CURRENT_SOURCE_DIR}/../../include/sys
+            ${CMAKE_CURRENT_SOURCE_DIR}/../../include/arch/amd64
+        )
+
+        target_compile_options(
+            kerneltest-${test}
+            PRIVATE
+                -nostdinc
         )
     endif()
 

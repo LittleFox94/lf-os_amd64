@@ -4,8 +4,6 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <stdlib.h>
-#include <sys/types.h>
 
 typedef uint64_t ptr_t;
 
@@ -13,6 +11,12 @@ typedef uint64_t ptr_t;
 #ifdef TESTNAME
 #ifndef __cplusplus
 __attribute__ ((visibility ("default"))) const char* TestName = TESTNAME;
+
+void* malloc(size_t size);
+void free(void* ptr);
+#else
+#include <stdlib.h>
+#include <sys/types.h>
 #endif
 #endif
 
