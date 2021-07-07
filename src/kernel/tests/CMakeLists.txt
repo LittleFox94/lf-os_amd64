@@ -12,26 +12,17 @@ target_compile_options(test_runner PRIVATE -fvisibility=hidden)
 
 add_custom_target(test-kernel COMMAND ${CMAKE_CTEST_COMMAND} DEPENDS test_runner)
 
-file(GLOB test_files_c   RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} CONFIGURE_DEPENDS test_*.c)
-file(GLOB test_files_cxx RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} CONFIGURE_DEPENDS test_*.cxx)
+file(GLOB test_files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} CONFIGURE_DEPENDS test_*.cxx)
 
-set(test_files ${test_files_c} ${test_files_cxx})
 set(tests "")
 
 foreach(test IN LISTS test_files)
-    string(REGEX REPLACE "^test_.*\.(c|cxx)$"   "\\1" extension ${test})
-    string(REGEX REPLACE "^test_(.*).c(xx)?$" "\\1" test      ${test})
-
-    set_source_files_properties(
-        ${CMAKE_CURRENT_SOURCE_DIR}/test_${test}.${extension}
-        PROPERTIES
-            COMPILE_DEFINITIONS "TESTNAME=\"${test}\""
-    )
+    string(REGEX REPLACE "^test_(.*).cxx$" "\\1" test ${test})
 
     add_library(
         kerneltest-${test}
         SHARED
-        ${CMAKE_CURRENT_SOURCE_DIR}/test_${test}.${extension}
+        ${CMAKE_CURRENT_SOURCE_DIR}/test_${test}.cxx
     )
 
     target_include_directories(
@@ -41,37 +32,14 @@ foreach(test IN LISTS test_files)
             ${CMAKE_CURRENT_SOURCE_DIR}/../../include
             ${CMAKE_CURRENT_SOURCE_DIR}/../
             ${CMAKE_CURRENT_SOURCE_DIR}/../arch/amd64
+            ${GTEST_INCLUDE_DIR}
     )
 
     target_compile_options(
         kerneltest-${test}
         PRIVATE
-            -nostdlib -nodefaultlibs -static -fvisibility=hidden -fno-builtin
+            -nostdlib -nodefaultlibs -static -fvisibility=hidden -fno-builtin -fpermissive -Wno-write-strings
     )
-
-    if(${extension} STREQUAL "cxx")
-        target_include_directories(kerneltest-${test} PRIVATE ${GTEST_INCLUDE_DIR})
-
-        target_compile_options(
-            kerneltest-${test}
-            PRIVATE
-                -fpermissive -Wno-write-strings
-        )
-    else()
-        target_include_directories(
-            kerneltest-${test}
-            PRIVATE
-            ${CMAKE_CURRENT_SOURCE_DIR}/../cstdlib
-            ${CMAKE_CURRENT_SOURCE_DIR}/../../include/sys
-            ${CMAKE_CURRENT_SOURCE_DIR}/../../include/arch/amd64
-        )
-
-        target_compile_options(
-            kerneltest-${test}
-            PRIVATE
-                -nostdinc
-        )
-    endif()
 
     list(APPEND tests $<TARGET_FILE:kerneltest-${test}>)
 

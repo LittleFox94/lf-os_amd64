@@ -1,5 +1,4 @@
 #include <lfostest.h>
-#include <gtest/gtest.h>
 
 namespace LFOS {
     extern "C" {

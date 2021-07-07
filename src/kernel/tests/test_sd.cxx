@@ -1,22 +1,11 @@
 #include <lfostest.h>
-#include <gtest/gtest.h>
-
-#include <stdarg.h>
 
 namespace LFOS {
-    int ksnprintf(char* buffer, size_t len, char* fmt, ...) {
-        va_list args;
-        va_start(args, fmt);
-        int ret = vsnprintf(buffer, len, fmt, args);
-        va_end(args);
-
-        return ret;
-    }
-
     #define __kernel 1
 
     extern "C" {
         #include <message_passing.h>
+        #include "../cstdlib/string.h"
 
         #define MT_Invalid Message::MT_Invalid
 

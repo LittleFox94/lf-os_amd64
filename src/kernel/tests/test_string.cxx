@@ -1,9 +1,7 @@
 #include <lfostest.h>
 
-#include <gtest/gtest.h>
-
 namespace LFOS {
-#include <string.c>
+    #include <string.c>
 
     TEST(KernelString, strlen) {
         EXPECT_EQ(strlen("Hello, world!"), 13) << "simple strlen correct";
