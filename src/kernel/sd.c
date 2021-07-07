@@ -33,7 +33,7 @@ void init_sd() {
 }
 
 static struct sd_entry* new_sd_entry(uuid_t* uuid, mq_id_t queue) {
-    struct sd_entry* entry = kernel_alloc.alloc(&kernel_alloc, (sizeof(struct sd_entry)));
+    struct sd_entry* entry = (struct sd_entry*)kernel_alloc.alloc(&kernel_alloc, (sizeof(struct sd_entry)));
     memset(entry, 0, sizeof(struct sd_entry));
     memcpy(&entry->uuid, uuid, sizeof(uuid_t));
     entry->queues[entry->push_idx++] = queue;
