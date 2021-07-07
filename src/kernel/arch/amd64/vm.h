@@ -55,15 +55,15 @@ struct vm_table* vm_current_context();
 
 void vm_context_activate(struct vm_table* context);
 
-void vm_context_map(struct vm_table* context, ptr_t virtual, ptr_t physical, uint8_t pat);
-void vm_context_unmap(struct vm_table* context, ptr_t virtual);
+void vm_context_map(struct vm_table* context, ptr_t virt, ptr_t physical, uint8_t pat);
+void vm_context_unmap(struct vm_table* context, ptr_t virt);
 
 ptr_t vm_context_get_free_address(struct vm_table* table, bool kernel);
 
 int   vm_table_get_free_index1(struct vm_table* table);
 int   vm_table_get_free_index3(struct vm_table* table, int start, int end);
 
-ptr_t vm_context_get_physical_for_virtual(struct vm_table* context, ptr_t virtual);
+ptr_t vm_context_get_physical_for_virtual(struct vm_table* context, ptr_t virt);
 
 ptr_t vm_context_alloc_pages(struct vm_table* context, region_t region, size_t num);
 
