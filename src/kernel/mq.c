@@ -69,15 +69,16 @@ uint64_t mq_create(allocator_t* alloc) {
     }
 
     struct MessageQueue mq = {
-        .alloc   = alloc,
-
         .max_items            = 0,
         .max_bytes            = 0,
         .bytes                = 0,
         .items                = 0,
         .average_message_size = 0,
-        .first_page           = 0,
-        .last_page            = 0
+
+        .alloc = alloc,
+
+        .first_page = 0,
+        .last_page  = 0
     };
 
     tpa_set(mqs, next_mq, &mq);
@@ -86,7 +87,7 @@ uint64_t mq_create(allocator_t* alloc) {
 }
 
 void mq_destroy(uint64_t mq) {
-    struct MessageQueue* data = tpa_get(mqs, mq);
+    struct MessageQueue* data = (struct MessageQueue*)tpa_get(mqs, mq);
 
     if(!data) {
         return;
@@ -109,7 +110,7 @@ static void mq_alloc_page(struct MessageQueue* mq, size_t min_size) {
         alloc_size = min_size; // let's hope this size is uncommon and next page has average messages again
     }
 
-    struct MessageQueuePage* page = mq->alloc->alloc(mq->alloc, alloc_size + sizeof(struct MessageQueuePage));
+    struct MessageQueuePage* page = (struct MessageQueuePage*)mq->alloc->alloc(mq->alloc, alloc_size + sizeof(struct MessageQueuePage));
     memset(page, 0, alloc_size + sizeof(struct MessageQueuePage));
 
     page->allocated = alloc_size;
@@ -126,7 +127,7 @@ static void mq_alloc_page(struct MessageQueue* mq, size_t min_size) {
 }
 
 uint64_t mq_push(uint64_t mq, struct Message* message) {
-    struct MessageQueue* data = tpa_get(mqs, mq);
+    struct MessageQueue* data = (struct MessageQueue*)tpa_get(mqs, mq);
 
     if(!data) {
         return ENOENT;
@@ -154,7 +155,7 @@ uint64_t mq_push(uint64_t mq, struct Message* message) {
         mq_alloc_page(data, message->size);
     }
 
-    void* message_pos = (void*)data->last_page + data->last_page->push_position + sizeof(struct MessageQueuePage);
+    void* message_pos = (void*)((uint64_t)data->last_page + data->last_page->push_position + sizeof(struct MessageQueuePage));
     memcpy(message_pos, message, message->size); // TODO: either validate size or make sure only the process crashes
 
     data->last_page->push_position += message->size;
@@ -177,7 +178,7 @@ uint64_t mq_pop(uint64_t mq, struct Message* msg) {
         return error;
     }
 
-    struct MessageQueue* data = tpa_get(mqs, mq);
+    struct MessageQueue* data = (struct MessageQueue*)tpa_get(mqs, mq);
 
     data->first_page->pop_position += msg->size;
     data->first_page->bytes        -= msg->size;
@@ -200,7 +201,7 @@ uint64_t mq_pop(uint64_t mq, struct Message* msg) {
 }
 
 uint64_t mq_peek(uint64_t mq, struct Message* msg) {
-    struct MessageQueue* data = tpa_get(mqs, mq);
+    struct MessageQueue* data = (struct MessageQueue*)tpa_get(mqs, mq);
 
     if(!data) {
         return ENOENT;
@@ -210,7 +211,7 @@ uint64_t mq_peek(uint64_t mq, struct Message* msg) {
         return ENOMSG;
     }
 
-    struct Message* msg_in_page = (struct Message*)((void*)data->first_page + data->first_page->pop_position + sizeof(struct MessageQueuePage));
+    struct Message* msg_in_page = (struct Message*)((uint64_t)data->first_page + data->first_page->pop_position + sizeof(struct MessageQueuePage));
 
     if(msg_in_page->size <= msg->size) {
         memcpy(msg, msg_in_page, msg_in_page->size);
