@@ -3,4 +3,4 @@ FROM gitpod/workspace-base:latest
 RUN curl -sSL https://apt.svc.0x0a.network/public_key.gpg               | sudo apt-key add -                          && \
     echo "deb [arch=amd64] https://apt.svc.0x0a.network unstable lf-os" | sudo tee /etc/apt/sources.list.d/lf_os.list && \
     sudo apt-get -qq update                                                                                           && \
-    sudo apt-get -qq install -y lf_os-toolchain cmake ninja-build make
+    sudo apt-get -qq install -y lf_os-toolchain cmake ninja-build make qemu qemu-utils ovmf libyaml-perl
