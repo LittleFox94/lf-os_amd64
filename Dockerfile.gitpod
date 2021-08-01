@@ -5,5 +5,6 @@ RUN curl -sSL https://apt.svc.0x0a.network/public_key.gpg               | sudo a
     sudo apt-get -qq update                                                                                           && \
     sudo apt-get -qq install -y                                 \
         lf_os-toolchain cmake ninja-build make gcc g++ python3  \
-        qemu qemu-utils ovmf doxygen graphviz                   \
-        libyaml-perl gdisk xz-utils mtools python3-distutils
+        qemu-system-x86-64 qemu-utils ovmf doxygen graphviz     \
+        libyaml-perl gdisk xz-utils mtools python3-distutils    \
+        novnc net-tools

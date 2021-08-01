@@ -1,8 +1,18 @@
 image:
   file: Dockerfile.gitpod
 
+ports:
+- port: 5900
+  onOpen: ignore
+- port: 1234
+  onOpen: ignore
+- port: 6080
+  onOpen: notify
+
 tasks:
 - name: configure build
   init: >
     mkdir -p build            &&
     cmake -B build -G Ninja .
+- name: run novnc
+  command: /usr/share/novnc/utils/launch.sh
