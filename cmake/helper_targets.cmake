@@ -9,6 +9,10 @@ set(QEMU_FLAGS      -pflash firmware.qcow2 -m ${QEMU_MEMORY} -d int,guest_errors
 set(QEMU_FLAGS_NVME -drive format=raw,file=hd.img,if=none,id=boot_drive -device nvme,drive=boot_drive,serial=1234)
 set(QEMU_FLAGS_PXE  -netdev user,id=net0,tftp=${CMAKE_BINARY_DIR}/shared,bootfile=/EFI/LFOS/BOOTX64.efi -device virtio-net,netdev=net0,romfile=)
 
+if(DEFINED ENV{GITPOD_INSTANCE_ID})
+    set(QEMU_FLAGS ${QEMU_FLAGS} -display vnc=:0)
+endif()
+
 add_custom_target(firmware.qcow2
     COMMAND ${qemu_img} create -o backing_file=${ovmf_firmware} -o backing_fmt=raw -o cluster_size=512 -f qcow2 firmware.qcow2
     DEPENDS ${ovmf_firmware}
