@@ -2,9 +2,10 @@ FROM gitpod/workspace-base:latest
 
 RUN curl -sSL https://apt.svc.0x0a.network/public_key.gpg               | sudo apt-key add -                          && \
     echo "deb [arch=amd64] https://apt.svc.0x0a.network unstable lf-os" | sudo tee /etc/apt/sources.list.d/lf_os.list && \
-    sudo apt-get -qq update                                                                                           && \
-    sudo apt-get -qq install -y                                 \
-        lf_os-toolchain cmake ninja-build make gcc g++ python3  \
-        qemu-system-x86-64 qemu-utils ovmf doxygen graphviz     \
-        libyaml-perl gdisk xz-utils mtools python3-distutils    \
-        novnc net-tools
+    sudo apt-get -qq update                                              && \
+    sudo apt-get -qq install -y                                             \
+        lf_os-toolchain cmake ninja-build make gcc g++ python3 gdb          \
+        qemu-system-x86-64 qemu-utils ovmf doxygen graphviz                 \
+        libyaml-perl gdisk xz-utils mtools python3-distutils                \
+        novnc net-tools                                                  && \
+    sudo ln -s /usr/share/novnc/vnc_auto.html /usr/share/novnc/index.html
