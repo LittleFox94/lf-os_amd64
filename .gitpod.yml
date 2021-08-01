@@ -4,8 +4,8 @@ image:
 tasks:
 - name: configure build
   init: >
-    mkdir -p build   &&
-    cmake -B build . &&
+    mkdir -p build            &&
+    cmake -B build -G Ninja . &&
     gp sync-done build-prepare
 - name:    test
   init:    gp sync-await build-prepare
