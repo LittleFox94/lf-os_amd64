@@ -51,9 +51,10 @@ volatile pid_t scheduler_current_process = -1;
 static process_t processes[MAX_PROCS];
 
 void* process_alloc(allocator_t* alloc, size_t size) {
-    if(!alloc ||
-        (processes[alloc->tag].state != process_state_runnable &&
-         processes[alloc->tag].state != process_state_running)
+    if(!alloc                                               ||
+        processes[alloc->tag].state == process_state_exited ||
+        processes[alloc->tag].state == process_state_killed ||
+        processes[alloc->tag].state == process_state_empty
     ) {
         logw("scheduler", "process_alloc called for invalid process %u\n", alloc->tag);
         return 0;
@@ -340,7 +341,7 @@ void sc_handle_memory_sbrk(int64_t inc, ptr_t* data_end) {
     ptr_t new_end = old_end + inc;
 
     if(inc > 0) {
-        for(ptr_t i = old_end & ~0xFFF; i < new_end; i+=0x1000) {
+        for(ptr_t i = old_end & ~0xFFF; i < new_end; i += 0x1000) {
             if(!vm_context_get_physical_for_virtual(processes[scheduler_current_process].context, i)) {
                 ptr_t phys = (ptr_t)mm_alloc_pages(1);
                 memset((void*)(phys + ALLOCATOR_REGION_DIRECT_MAPPING.start), 0, 0x1000);
@@ -515,6 +516,7 @@ void sc_handle_ipc_service_discover(uuid_t* uuid, uint64_t mq, struct Message* m
 
     if(delivered < 0) {
         *error = -delivered;
+        return;
     }
 
     *error = 0;
