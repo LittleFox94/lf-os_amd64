@@ -5,7 +5,7 @@ find_package(GTest REQUIRED)
 
 include(CTest)
 
-add_executable(test_runner runner.cxx)
+add_executable(test_runner EXCLUDE_FROM_ALL runner.cxx)
 target_link_libraries(test_runner GTest::GTest dl)
 target_link_options(test_runner PRIVATE -Wl,-E)
 target_compile_options(test_runner PRIVATE -fvisibility=hidden)
@@ -21,6 +21,7 @@ foreach(test IN LISTS test_files)
 
     add_library(
         kerneltest-${test}
+        EXCLUDE_FROM_ALL
         SHARED
         ${CMAKE_CURRENT_SOURCE_DIR}/test_${test}.cxx
     )
