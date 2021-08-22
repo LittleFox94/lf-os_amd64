@@ -41,5 +41,3 @@ set(LIBCXX_CXX_ABI_LIBRARY_PATH "${lf_os_sysroot}/lib")
 set(LIBCXXABI_LIBCXX_INCLUDES "${lf_os_sysroot}/include/c++/v1")
 
 add_subdirectory(src/llvm/runtimes)
-
-install(CODE "") # nothing to install

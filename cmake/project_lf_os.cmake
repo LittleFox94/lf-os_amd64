@@ -18,7 +18,7 @@ include(staging)
 set(stages lowlevel userspace initramfs)
 
 if(NOT lf_os_sysroot_external)
-    list(PREPEND stages sysroot libc stdlibs)
+    list(PREPEND stages sysroot libc stdlibs userspace_libs)
 endif()
 
 multistage(${stages})

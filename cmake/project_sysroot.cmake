@@ -1,7 +1,7 @@
 include(config)
 
 include(staging)
-multistage(sysroot libc stdlibs)
+multistage(sysroot libc stdlibs userspace_libs)
 
 if(${subproject} STREQUAL "sysroot" AND ${current_stage} STREQUAL "root")
     set(CPACK_PACKAGE_NAME      "lf_os-sysroot")
