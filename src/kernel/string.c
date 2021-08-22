@@ -91,8 +91,16 @@ void* memcpy(void* dest, void const* source, size_t size) {
 int memcmp(const void* a, const void* b, size_t n) {
     const uint8_t* _a = (const uint8_t*)a;
     const uint8_t* _b = (const uint8_t*)b;
-    while(*_a && *_b && *_a == *_b) { _a++; _b++; }
-    return *_a - *_b;
+
+    size_t i = 0;
+    for(i = 0; i < n && _a[i] == _b[i]; ++i) {
+    }
+
+    if(i == n) {
+        return 0;
+    }
+
+    return _a[i] - _b[i];
 }
 
 void* memmove(void* dest, const void* src, size_t n) {

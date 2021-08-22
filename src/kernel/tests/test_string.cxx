@@ -3,6 +3,16 @@
 namespace LFOS {
     #include <string.c>
 
+    TEST(KernelString, memcmp) {
+        uint8_t data_A[] = { 42, 23, 42, 13, 37, 0, 12, 34, 0, 56 };
+        uint8_t data_B[] = { 42, 23, 42, 13, 37, 0, 12, 33, 0, 56 };
+        uint8_t data_C[] = { 42, 23, 42, 13, 37, 0, 12, 35, 0, 56 };
+
+        EXPECT_EQ(memcmp(data_A, data_A, 10), 0) << "memcmp returns zero correctly";
+        EXPECT_GT(memcmp(data_A, data_B, 10), 0) << "memcmp returns positive correctly";
+        EXPECT_LT(memcmp(data_A, data_C, 10), 0) << "memcmp returns negative correctly";
+    }
+
     TEST(KernelString, strlen) {
         EXPECT_EQ(strlen("Hello, world!"), 13) << "simple strlen correct";
         EXPECT_EQ(strlen("\t\t"), 2)           << "control characters strlen correct";
@@ -50,6 +60,6 @@ namespace LFOS {
        
     TEST_F(SputFamilyTest, sputbytes) {
         EXPECT_EQ(sputbytes(_buffer, 20, 4096), 4) << "sputbytes return correct";
-        EXPECT_STREQ(_buffer, "4KiB")             << "sputbytes modified buffer correctly";
+        EXPECT_STREQ(_buffer, "4KiB")              << "sputbytes modified buffer correctly";
     }
 }
