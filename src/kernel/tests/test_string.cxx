@@ -1,7 +1,13 @@
 #include <lfostest.h>
 
 namespace LFOS {
+
     #include <string.c>
+
+    #define __kernel 1
+    #include <uuid.h>
+    #include <sys/known_services.h>
+    #include "../uuid.c"
 
     TEST(KernelString, memcmp) {
         uint8_t data_A[] = { 42, 23, 42, 13, 37, 0, 12, 34, 0, 56 };
@@ -61,5 +67,15 @@ namespace LFOS {
     TEST_F(SputFamilyTest, sputbytes) {
         EXPECT_EQ(sputbytes(_buffer, 20, 4096), 4) << "sputbytes return correct";
         EXPECT_STREQ(_buffer, "4KiB")              << "sputbytes modified buffer correctly";
+    }
+
+    TEST(ksnprintf, UUID) {
+        char* buffer = new char[64];
+        size_t len = uuid_fmt(buffer, 64, (uuid_t*)&FileSystemDriverUUID);
+
+        EXPECT_EQ(len, 37)                                           << "correct length";
+        EXPECT_STREQ(buffer, "74347BC9-1DE4-4D8B-BFC9-1718F5D0AA6A") << "UUID formatted correctly";
+
+        delete[] buffer;
     }
 }
