@@ -357,7 +357,7 @@ groups:
     parameters:
     - name: uuid
       desc: UUID of the service to register for
-      type: uuid_t*
+      type: const uuid_t*
       reg:  rax
     - name: queue
       desc: Message queue ID, 0 is process queue
@@ -374,8 +374,8 @@ groups:
     desc:   Send message to implementations of given service
     parameters:
     - name: uuid
-      desc: UUID of the service to register for
-      type: uuid_t*
+      desc: UUID of the service to discover
+      type: const uuid_t*
       reg:  rax
     - name: queue
       desc: Message queue ID, 0 is process queue
