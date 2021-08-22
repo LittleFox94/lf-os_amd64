@@ -17,9 +17,9 @@ int uuid_cmp(uuid_t* a, uuid_t* b) {
 int uuid_fmt(char* buffer, size_t len, uuid_t* uuid) {
     int ret = ksnprintf(buffer, len,
         "%08x-%04x-%04x-%04x-%02x%02x%02x%02x%02x%02x",
-        uuid->a, uuid->b, uuid->c, uuid->d,
-        uuid->e[0], uuid->e[2], uuid->e[2],
-        uuid->e[3], uuid->e[4], uuid->e[5]
+        (uint64_t)uuid->a,    (uint64_t)uuid->b,    (uint64_t)uuid->c, (uint64_t)uuid->d,
+        (uint64_t)uuid->e[0], (uint64_t)uuid->e[1], (uint64_t)uuid->e[2],
+        (uint64_t)uuid->e[3], (uint64_t)uuid->e[4], (uint64_t)uuid->e[5]
     );
 
     if(ret < len) {
