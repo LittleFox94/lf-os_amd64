@@ -1,6 +1,13 @@
-set(lf_os_sysroot_external OFF)
-if(DEFINED lf_os_sysroot AND NOT DEFINED current_stage)
-    set(lf_os_sysroot_external ON)
+set(lf_os_sysroot_external ON)
+
+if(DEFINED lf_os_sysroot)
+    cmake_path(GET lf_os_sysroot PARENT_PATH sysroot_parent_dir)
+
+    if(sysroot_parent_dir STREQUAL ${CMAKE_BINARY_DIR})
+        set(lf_os_sysroot_external OFF)
+    endif()
+else()
+    set(lf_os_sysroot_external OFF)
 endif()
 
 include(config)
