@@ -116,7 +116,7 @@ EOF
 sub type_data {
     my ($type) = @_;
 
-    if($type =~ /^(?:(?:struct|enum)\s)?[a-zA-Z_][a-zA-Z0-9_]+\*$/) {
+    if($type =~ /^(?:(?:const|struct|enum)\s)*[a-zA-Z_][a-zA-Z0-9_]+\*$/) {
         return {
             length => 64,
             signed => 0,
