@@ -57,6 +57,7 @@ variables:
         --destination $IMAGE_NAME/$CI_COMMIT_REF_NAME:latest
         --cache=true
         --cache-repo $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_NAME/kaniko-cache
+        --force
         $BUILD_ARGS
   only:
   - branches
