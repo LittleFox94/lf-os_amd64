@@ -10,7 +10,6 @@ stages:
 
 variables:
   VERSION:     0.1.1+${CI_PIPELINE_ID}
-  MAIN_BRANCH: master
 
 
 #############################
@@ -41,7 +40,7 @@ variables:
   stage: deploy
   only:
     variables:
-    - $MAIN_BRANCH == $CI_COMMIT_REF_NAME
+    - $CI_DEFAULT_BRANCH == $CI_COMMIT_REF_NAME
 
 .docker-build: &docker-build
   image:
