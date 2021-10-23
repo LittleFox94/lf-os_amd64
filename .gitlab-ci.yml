@@ -10,6 +10,10 @@ stages:
 
 variables:
   VERSION:     0.1.1+${CI_PIPELINE_ID}
+  KUBERNETES_CPU_REQUEST: 500m
+  KUBERNETES_CPU_LIMIT: 2
+  KUBERNETES_MEMORY_REQUEST: 1Gi
+  KUBERNETES_MEMORY_LIMIT: 2Gi
 
 
 #############################
@@ -76,6 +80,8 @@ variables:
     GIT_STRATEGY: fetch
     GIT_SUBMODULE_STRATEGY: recursive
     ARTIFACT_COMPRESSION_LEVEL: fastest
+    KUBERNETES_CPU_REQUEST: 6
+    KUBERNETES_CPU_LIMIT: 7
   cache:
     paths:
     - .ccache
@@ -146,6 +152,8 @@ llvm:
   stage: build-toolchain
   variables:
     SUBPROJECT: toolchain
+    KUBERNETES_MEMORY_REQUEST: 8Gi
+    KUBERNETES_MEMORY_LIMIT: 12Gi
   needs:
   - ci-image-llvm
   image: $CI_REGISTRY_IMAGE/llvm-ci:$CI_COMMIT_SHA
