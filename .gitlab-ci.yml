@@ -80,7 +80,6 @@ variables:
     GIT_STRATEGY: fetch
     GIT_SUBMODULE_STRATEGY: recursive
     ARTIFACT_COMPRESSION_LEVEL: fastest
-    KUBERNETES_CPU_REQUEST: 6
     KUBERNETES_CPU_LIMIT: 7
   cache:
     paths:
