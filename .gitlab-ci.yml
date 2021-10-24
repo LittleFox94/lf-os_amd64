@@ -205,6 +205,10 @@ unittest:
     SUBPROJECT: lf_os
     TARGETS: test-kernel
     CMAKE_NO_COPY: transrightsarehumanrights # any non-empty string
+    KUBERNETES_CPU_REQUEST: 2
+    KUBERNETES_CPU_LIMIT: 2
+    KUBERNETES_MEMORY_REQUEST: 2Gi
+    KUBERNETES_MEMORY_LIMIT: 2Gi
 
 build-sysroot:
   extends: .cmake-build
@@ -260,6 +264,10 @@ pages:
     TARGETS: doc
     SUBPROJECT: lf_os
     CMAKE_NO_COPY: blacklivesmatter # any non-empty string
+    KUBERNETES_CPU_REQUEST: 1
+    KUBERNETES_CPU_LIMIT: 1
+    KUBERNETES_MEMORY_REQUEST: 1Gi
+    KUBERNETES_MEMORY_LIMIT: 1Gi
   script:
   - *cmake-build-script
   - mv build/doc/html public
