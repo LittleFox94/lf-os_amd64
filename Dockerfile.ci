@@ -1,4 +1,4 @@
-ARG debianVersion=bullseye
+ARG debianVersion=bookworm
 
 # can be local or repo, local adds a file lf_os-toolchain_*_amd64.deb, repo loads from apt repository
 ARG toolchainSource=repo
