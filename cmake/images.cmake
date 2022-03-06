@@ -12,13 +12,13 @@ add_custom_target(hd.img
     COMMAND ${dd} if=/dev/zero of=hd.img bs=512 count=${image_size_hd_sectors}
     COMMAND ${sgdisk}  -Z -o -n 1:2048:${image_size_headers} -t 1:ef00 hd.img
     COMMAND ${mformat} -i hd.img@@1M -F -T ${boot_fs_sectors}
-    COMMAND ${mcopy}   -i hd.img@@1M -sbnmv ${CMAKE_BINARY_DIR}/shared/* ::/
-)
+    COMMAND ${mcopy}   -i hd.img@@1M -snmv ${CMAKE_BINARY_DIR}/shared/* ::/
+    )
 
 add_custom_target(hd.img.xz
     DEPENDS hd.img
     COMMAND ${xz} -k ${CMAKE_BINARY_DIR}/hd.img
-)
+    )
 
 install(DIRECTORY ${CMAKE_BINARY_DIR}/shared/EFI/LFOS DESTINATION boot/efi/EFI)
 install(DIRECTORY ${CMAKE_BINARY_DIR}/shared/LFOS     DESTINATION boot/efi)
@@ -45,6 +45,6 @@ set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA
     ${CMAKE_SOURCE_DIR}/packaging/preinst
     ${CMAKE_SOURCE_DIR}/packaging/postinst
     ${CMAKE_SOURCE_DIR}/packaging/postrm
-)
+    )
 
 include(CPack)
