@@ -1,0 +1,5 @@
+--indent=spaces=4
+--style=google
+--break-closing-braces
+--attach-closing-while
+--align-pointer=type
