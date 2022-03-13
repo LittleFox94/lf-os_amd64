@@ -15,7 +15,7 @@ When compiling the toolchain, the userspace side of the syscalls is generated au
 #include <kernel/syscalls.h>
 ```
 
-See toolchain/include/kernel/syscalls.h for a list of syscalls and their arguments.
+See build/sysroot/include/sys/syscalls.h for a list of syscalls and their arguments.
 
 
 ## Implementation of syscalls
