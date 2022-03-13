@@ -265,6 +265,14 @@ pages:
   - .cmake-build
   - .deploy-job
   stage: deploy
+  only:
+    changes:
+    - src/**/*
+    - cmake/**/*
+    - CMakeLists.txt
+    - .gitlab-ci.yml
+    - Dockerfile.ci
+    - Doxyfile.in
   variables:
     TARGETS: doc
     SUBPROJECT: lf_os
