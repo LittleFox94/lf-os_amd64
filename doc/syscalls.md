@@ -12,10 +12,10 @@
 When compiling the toolchain, the userspace side of the syscalls is generated automatically.
 
 ```c
-#include <kernel/syscalls.h>
+#include <sys/syscalls.h>
 ```
 
-See build/sysroot/include/sys/syscalls.h for a list of syscalls and their arguments.
+See build/syscalls.h for a list of syscalls and their arguments.
 
 
 ## Implementation of syscalls
