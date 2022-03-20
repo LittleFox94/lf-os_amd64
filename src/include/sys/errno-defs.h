@@ -1,29 +1,5 @@
-#ifndef _SYS_ERRNO_H_
-#define _SYS_ERRNO_H_
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#if !defined(_kernel) && defined(NEWLIB_VERSION)
-#include <sys/reent.h>
-
-#ifndef _REENT_ONLY
-#define errno (*__errno())
-extern int *__errno (void);
-#endif
-
-
-extern __IMPORT const char * const _sys_errlist[];
-extern __IMPORT int _sys_nerr;
-
-#define __errno_r(ptr) ((ptr)->_errno)
-
-/* --- end of slight redundancy (the use of struct _reent->_errno is
-       hard-coded in perror.c so why pretend anything else could work too ? */
-
-#define __set_errno(x) (errno = (x))
-#endif
+#ifndef _SYS_ERRNO_DEFS_H_
+#define _SYS_ERRNO_DEFS_H_
 
 #define EPERM         1
 #define ENOENT        2
@@ -49,14 +25,12 @@ extern __IMPORT int _sys_nerr;
 #define ENOSYS       38
 #define ENOMSG       42
 #define EOVERFLOW    75
+#define EFTYPE       79
+#define EILSEQ       84
 #define EMSGSIZE     90
 #define ENOTSUP      95
 
 // user defined after this
 #define __ELASTERROR 2000
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif
