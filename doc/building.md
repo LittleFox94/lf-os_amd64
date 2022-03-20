@@ -21,9 +21,9 @@ To compile the toolchain and LF OS components, you need:
 
 The syscall code generate runs with `perl` and requires the `YAML` module (libperl-yaml, perl-YAML, `cpan YAML`, ..).
 
-To produce disk images, you'll also need `mtools`, `gdisk` and `xz`.
+To produce disk images, you'll need `gdisk` and maybe `xz`.
 
-For QEMU you also need `OVMF` firmware installed.
+For QEMU you need `OVMF` firmware installed.
 
 
 ## Noteworthy targets

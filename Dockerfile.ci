@@ -24,7 +24,7 @@ FROM build_$toolchainSource
 
 RUN apt-get -qq update                                                             && \
     apt-get -qq install -y --no-install-recommends                                    \
-        xz-utils mtools gdisk python3-distutils                                       \
+        xz-utils gdisk python3-distutils                                              \
         make ninja-build cmake doxygen graphviz                                       \
         libyaml-perl python3 git gcc g++ libgtest-dev                              && \
     ln -s /opt/lf_os/toolchain/bin/ld.lld /usr/local/bin/ld
