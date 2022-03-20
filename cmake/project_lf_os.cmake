@@ -24,8 +24,11 @@ endif()
 multistage(${stages})
 
 if(${current_stage} STREQUAL "root")
+    enable_language(C CXX)
+    add_subdirectory(util)
+
     include(tests)
     include(images)
     include(helper_targets)
-    add_dependencies(hd.img stage_userspace)
+    add_dependencies(bootfs.img stage_userspace)
 endif()

@@ -2,17 +2,23 @@ set(image_size_hd 256 CACHE STRING "hd.img size")
 find_program(xz      NAMES xz      DOC "xz compression tool")
 find_program(dd      NAMES dd      DOC "dd program to create disk images")
 find_program(sgdisk  NAMES sgdisk  DOC "sgdisk program for manipulating GPT on disk images")
-find_program(mformat NAMES mformat DOC "mformat program for creating MS-DOS file systems on disk images")
-find_program(mcopy   NAMES mcopy   DOC "mcopy program for copying files on MS-DOS formated disk images")
 
 math(EXPR image_size_hd_sectors "${image_size_hd} * 1024 * 1024 / 512")
-math(EXPR boot_fs_sectors "${image_size_hd_sectors} - 2048")
+# Partition starts at sector 2048 (1MiB) and leaves enough space for backup GPT at the end
+math(EXPR boot_fs_sectors "${image_size_hd_sectors} - 2048 - 33")
+
+add_custom_target(bootfs.img
+    COMMAND $<TARGET_FILE:fatcreate>
+        -s ${boot_fs_sectors}
+        -o bootfs.img
+        ${CMAKE_BINARY_DIR}/shared/*
+)
 
 add_custom_target(hd.img
-    COMMAND ${dd} if=/dev/zero of=hd.img bs=512 count=${image_size_hd_sectors}
-    COMMAND ${sgdisk}  -Z -o -n 1:2048:${image_size_headers} -t 1:ef00 hd.img
-    COMMAND ${mformat} -i hd.img@@1M -F -T ${boot_fs_sectors}
-    COMMAND ${mcopy}   -i hd.img@@1M -snmv ${CMAKE_BINARY_DIR}/shared/* ::/
+    DEPENDS bootfs.img
+    COMMAND ${dd} if=/dev/zero of=hd.img bs=512 count=${image_size_hd_sectors} conv=sparse
+    COMMAND ${sgdisk} -Z -o -n 1:2048:+${boot_fs_sectors} -t 1:ef00 hd.img
+    COMMAND ${dd} if=bootfs.img of=hd.img bs=512 seek=2048 conv=notrunc,sparse
 )
 
 add_custom_target(hd.img.xz
