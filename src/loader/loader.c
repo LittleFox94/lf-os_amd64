@@ -162,7 +162,7 @@ EFI_STATUS handle_loaded_file(struct LoaderState* state, void* buffer, size_t si
             if(ph->type == 1) {
                 size_t size   = ph->fileLength;
                 uint64_t src  = (uint64_t)buffer + ph->offset;
-                uint64_t dest = (uint64_t)(physicalKernelLocation + ph->vaddr) - 0xFFFF800001000000;
+                uint64_t dest = (uint64_t)(physicalKernelLocation + ph->vaddr) - 0xffffffff81000000;
 
                 memset((void*)dest, 0, ph->memLength);
                 memcpy((void*)dest, (ptr_t)src, size);
@@ -171,7 +171,7 @@ EFI_STATUS handle_loaded_file(struct LoaderState* state, void* buffer, size_t si
 
         state->physicalKernelLocation = physicalKernelLocation;
         state->kernelSize             = kernelSize;
-        state->kernelEntry            = (uint64_t)elf_header->entrypoint - 0xFFFF800001000000;
+        state->kernelEntry            = (uint64_t)elf_header->entrypoint - 0xffffffff81000000;
 
         wprintf(L" @ 0x%x (0x%x bytes, entry 0x%llx)", physicalKernelLocation, kernelSize, elf_header->entrypoint);
     }
@@ -465,7 +465,7 @@ void map_page(struct LoaderState* state, vm_table_t* pml4, ptr_t virtual, ptr_t 
 }
 
 void initialize_virtual_memory(struct LoaderState* state, EFI_SYSTEM_TABLE* system_table) {
-    const ptr_t higherHalf = (ptr_t)0xFFFF800000000000;
+    const ptr_t higherHalf = (ptr_t)0xffffffff80000000;
 
     vm_table_t* pml4 = allocate_from_loader_scratchpad(state, sizeof(vm_table_t), PAGE_SIZE);
 

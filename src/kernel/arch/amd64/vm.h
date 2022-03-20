@@ -16,14 +16,14 @@ typedef struct {
 #define ALLOCATOR_REGION_USER_STACK     (region_t){ .name = "User stack", .start = 0x00003F0000001000, .end = 0x00003FFFFFFFEFF0 }
 #define ALLOCATOR_REGION_USER_HARDWARE  (region_t){ .name = "User stack", .start = 0x00007F0000000000, .end = 0x00007FFFFFFFFFFF }
 
-#define ALLOCATOR_REGION_SCRATCHPAD     (region_t){ .name = "Kernel scratchpad", .start = 0xFFFF800000000000, .end = 0xFFFF800000FFFFFF }
-#define ALLOCATOR_REGION_KERNEL_BINARY  (region_t){ .name = "Kernel binary",     .start = 0xFFFF800001000000, .end = 0xFFFF800008FFFFFF }
-#define ALLOCATOR_REGION_SLAB_4K        (region_t){ .name = "4k slab allocator", .start = 0xFFFF800009000000, .end = 0xFFFF80000FFFFFFF }
-#define ALLOCATOR_REGION_KERNEL_HEAP    (region_t){ .name = "Kernel heap",       .start = 0xFFFF800040000000, .end = 0xFFFF8007FFFFFFFF }
+#define ALLOCATOR_REGION_SCRATCHPAD     (region_t){ .name = "Kernel scratchpad", .start = 0xFFFFFFFF80000000, .end = 0xFFFFFFFF80FFFFFF }
+#define ALLOCATOR_REGION_KERNEL_BINARY  (region_t){ .name = "Kernel binary",     .start = 0xFFFFFFFF81000000, .end = 0xFFFFFFFF88FFFFFF }
+#define ALLOCATOR_REGION_SLAB_4K        (region_t){ .name = "4k slab allocator", .start = 0xFFFFFFFF89000000, .end = 0xFFFFFFFF8FFFFFFF }
+#define ALLOCATOR_REGION_KERNEL_HEAP    (region_t){ .name = "Kernel heap",       .start = 0xFFFFFFFF90000000, .end = 0xFFFFFFFFFFFFFFFF }
 
 // this one must be PML4 aligned! (PDP, PD and PT indexes must be zero for the start and 511 for the end)
 // must also be the last region
-#define ALLOCATOR_REGION_DIRECT_MAPPING (region_t){ .name = "Physical mapping",  .start = 0xFFFF840000000000, .end = 0xFFFF87FFFFFFFFFF }
+#define ALLOCATOR_REGION_DIRECT_MAPPING (region_t){ .name = "Physical mapping",  .start = 0xFFFF800000000000, .end = 0xFFFF83FFFFFFFFFF }
 
 // Some usage flags for pages
 static const uint32_t PageUsageKernel          = 1;  //! Page is used by kernel, userspace otherwise

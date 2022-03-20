@@ -52,14 +52,15 @@ target_compile_definitions(kernel PRIVATE __kernel)
 
 target_compile_options(kernel PRIVATE
     -Wall -Werror -std=gnu11
-    -mno-omit-leaf-frame-pointer -fno-omit-frame-pointer -fno-stack-protector -mno-red-zone
+    -mno-omit-leaf-frame-pointer -fno-omit-frame-pointer
+    -fno-stack-protector -mno-red-zone
     -fno-builtin -ffreestanding -nostdinc -fshort-wchar
-    -mcmodel=large
+    -mcmodel=kernel
     -flto
 )
 
 target_link_options(kernel PRIVATE
-    -flto -fuse-ld=lld -nostdlib -Wl,--image-base,0xFFFF800001000000
+    -flto -fuse-ld=lld -nostdlib -Wl,--image-base,0xffffffff81000000
 )
 
 install(TARGETS kernel DESTINATION LFOS)
