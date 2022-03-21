@@ -276,7 +276,7 @@ uint32_t store_data(context* ctx, void* data, size_t size, uint32_t start) {
         }
 
         memset(cluster_data, 0, cluster_size);
-        memcpy(cluster_data, data + (i * cluster_size), amount);
+        memcpy(cluster_data, (uint8_t*)data + (i * cluster_size), amount);
         fseek(ctx->outfile, ctx->data_start + (cluster_size * (current_cluster - 2)), SEEK_SET);
         fwrite(cluster_data, cluster_size, 1, ctx->outfile);
         fflush(ctx->outfile);
@@ -453,7 +453,7 @@ void fatify_name(char** dst, const char* fullname, struct directory_entry* dir, 
                 prefixlen--;
             }
 
-            snprintf(ret, 12, "%.*s~%d% 3s", prefixlen, fullname, cnt, ext);
+            snprintf(ret, 12, "%.*s~%d%3s", prefixlen, fullname, cnt, ext);
             strupr(ret);
 
             for(size_t i = 0; i < dirlen; ++i) {
@@ -516,11 +516,10 @@ uint8_t lfn_checksum(struct directory_entry* entry) {
 void make_lfn(char* name, struct directory_entry* dest, size_t max_entries) {
     size_t num_entries = lfn_entries(name);
     if(num_entries != max_entries) {
-        fprintf(stderr, "max_entries called with value not equal to number of required entries (%d != %d)\n", num_entries, max_entries);
+        fprintf(stderr, "max_entries called with value not equal to number of required entries (%lu != %lu)\n", num_entries, max_entries);
         exit(-1);
     }
 
-    struct directory_entry* last_entry = 0;
     struct directory_entry* entry = dest + max_entries - 1;
     size_t ei = 0;
 
@@ -565,7 +564,7 @@ uint32_t store_directory(context* ctx, uint32_t parent_dir_start, const char* sr
 
     DIR* dir = opendir(src);
     struct dirent* cur;
-    while(cur = readdir(dir)) {
+    while((cur = readdir(dir))) {
         if(cur->d_name[0] == '.') {
             continue;
         }
@@ -594,7 +593,7 @@ uint32_t store_directory(context* ctx, uint32_t parent_dir_start, const char* sr
 
     rewinddir(dir);
 
-    while(cur = readdir(dir)) {
+    while((cur = readdir(dir))) {
         if(cur->d_name[0] == '.') {
             continue;
         }
