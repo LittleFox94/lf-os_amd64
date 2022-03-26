@@ -12,6 +12,8 @@ extern "C" {
     #include "lfostest.h"
     #include "../allocator.h"
 
+    LFOS_API uint64_t scheduler_current_process = 0;
+
     LFOS_API allocator_t kernel_alloc = allocator_t {
         .alloc   = [](allocator_t* alloc, size_t size) -> void* {
             alloc->tag += size;

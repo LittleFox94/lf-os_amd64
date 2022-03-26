@@ -6,6 +6,7 @@
 #include <string.h>
 #include <log.h>
 #include <errno.h>
+#include <scheduler.h>
 
 struct sd_entry {
     struct sd_entry* prev;
@@ -45,7 +46,7 @@ uint64_t sd_register(uuid_t* uuid, mq_id_t svc_queue) {
     char uuid_s[38];
     uuid_fmt(uuid_s, sizeof(uuid_s), uuid);
 
-    logd("sd", "Registering queue %u for service %s", svc_queue, uuid_s);
+    logd("sd", "Registering queue %u/%u for service %s", scheduler_current_process, svc_queue, uuid_s);
 
     uuid_key_t key         = uuid_key(uuid);
     struct sd_entry* entry = sd_global_data.entry_shortcut[key];
