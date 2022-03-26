@@ -330,7 +330,13 @@ cpu_state* interrupt_handler(cpu_state* cpu) {
             DUMP_CPU(cpu);
 
             // exception in user space
-            scheduler_kill_current(kill_reason_abort);
+            if(cpu->interrupt == 14) {
+                scheduler_kill_current(kill_reason_segv);
+            }
+            else {
+                scheduler_kill_current(kill_reason_abort);
+            }
+
             handled = true;
         }
 
