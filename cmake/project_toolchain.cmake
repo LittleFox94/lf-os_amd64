@@ -61,7 +61,7 @@ install(FILES ${CMAKE_BINARY_DIR}/cmake.toolchain DESTINATION etc/)
 install(FILES cmake/cmake.platform                DESTINATION share/cmake/Modules/Platform/ RENAME LF-OS.cmake)
 
 get_directory_property(toolchain_install DIRECTORY src/llvm/llvm DEFINITION LLVM_TOOLCHAIN_TOOLS)
-list(APPEND toolchain_install clang lld)
+list(APPEND toolchain_install clang clangd lld)
 set(toolchain_install_added ON)
 
 while(toolchain_install_added)
