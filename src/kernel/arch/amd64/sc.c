@@ -314,6 +314,8 @@ cpu_state* interrupt_handler(cpu_state* cpu) {
     scheduler_process_save(cpu);
 
     if(cpu->interrupt < 32) {
+        bool handled = false;
+
         if((cpu->rip & 0x0000800000000000) == 0) {
             if(cpu->interrupt == 0x0e) {
                 ptr_t fault_address;
@@ -329,16 +331,12 @@ cpu_state* interrupt_handler(cpu_state* cpu) {
 
             // exception in user space
             scheduler_kill_current(kill_reason_abort);
-
-            cpu_state*  new_cpu = cpu;
-            struct vm_table* new_context;
-            schedule_next(&new_cpu, &new_context);
-
-            vm_context_activate(new_context);
-            return new_cpu;
+            handled = true;
         }
 
-        panic_cpu(cpu);
+        if(!handled) {
+            panic_cpu(cpu);
+        }
     }
     else if(cpu->interrupt >= 32 && cpu->interrupt < 48) {
         pic_set_handled(cpu->interrupt);
