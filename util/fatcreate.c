@@ -17,6 +17,8 @@ static const unsigned default_sector_size = 512;
 static const unsigned default_size        = 128 * 1024;
 static char*    const default_label       = "LF OS Boot";
 
+#define UNUSED(x) (void)(x)
+
 void strupr(char* s) {
     do {
         *s = toupper(*s);
@@ -453,7 +455,13 @@ void fatify_name(char** dst, const char* fullname, struct directory_entry* dir, 
                 prefixlen--;
             }
 
+            // our compiler tries to helpfully warn us about the string being truncated,
+            // but this is exactly what we want to do here - truncate the file name to 8.3
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-truncation"
             snprintf(ret, 12, "%.*s~%d%3s", prefixlen, fullname, cnt, ext);
+#pragma GCC diagnostic pop
+
             strupr(ret);
 
             for(size_t i = 0; i < dirlen; ++i) {
