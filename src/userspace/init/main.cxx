@@ -175,8 +175,7 @@ int main(int argc, char* argv[]) {
 
         if(error == EMSGSIZE) {
             size = msg->size;
-            free(msg);
-            msg = (struct Message*)malloc(size);
+            msg = (struct Message*)realloc(msg, size);
             msg->size = size;
             error = EAGAIN;
         }
