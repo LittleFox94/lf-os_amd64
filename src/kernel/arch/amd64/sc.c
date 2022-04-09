@@ -390,5 +390,13 @@ cpu_state* syscall_handler(cpu_state* cpu) {
     sc_handle(cpu);
     scheduler_process_save(cpu);
 
-    return schedule_process(cpu);
+    cpu_state*  new_cpu = cpu; // for idle task we only change some fields,
+                               // allocating a new cpu for that is ..
+                               // correct but slow, so we just reuse the old one
+    struct vm_table* new_context = vm_current_context();
+    if(scheduler_idle_if_needed(&new_cpu, &new_context)) {
+        vm_context_activate(new_context);
+    }
+
+    return new_cpu;
 }

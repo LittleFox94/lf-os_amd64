@@ -161,6 +161,23 @@ void scheduler_process_save(cpu_state* cpu) {
     }
 }
 
+bool scheduler_idle_if_needed(cpu_state** cpu, struct vm_table** context) {
+    if(processes[scheduler_current_process].state != process_state_runnable &&
+        processes[scheduler_current_process].state != process_state_running) {
+        *context = VM_KERNEL_CONTEXT;
+        (*cpu)->rip    = (uint64_t)idle_task;
+        (*cpu)->cs     = 0x2B;
+        (*cpu)->ss     = 0x23;
+        (*cpu)->rflags = 0x200;
+
+        scheduler_current_process = -1;
+
+        return true;
+    }
+
+    return false;
+}
+
 void schedule_next(cpu_state** cpu, struct vm_table** context) {
     if(scheduler_current_process >= 0 && processes[scheduler_current_process].state == process_state_running) {
         processes[scheduler_current_process].state = process_state_runnable;
@@ -175,15 +192,7 @@ void schedule_next(cpu_state** cpu, struct vm_table** context) {
         }
     }
 
-    if(processes[scheduler_current_process].state != process_state_runnable) {
-        *context = VM_KERNEL_CONTEXT;
-        (*cpu)->rip    = (uint64_t)idle_task;
-        (*cpu)->cs     = 0x2B;
-        (*cpu)->ss     = 0x23;
-        (*cpu)->rflags = 0x200;
-
-        scheduler_current_process = -1;
-
+    if(scheduler_idle_if_needed(cpu, context)) {
         return;
     }
 
