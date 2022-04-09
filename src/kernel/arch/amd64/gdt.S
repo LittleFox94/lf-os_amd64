@@ -20,9 +20,15 @@
     pushq %r13
     pushq %r14
     pushq %r15
+
+	subq $512, %rsp
+	fxsaveq (%rsp)
 .endm
 
 .macro __popa
+	fxrstorq (%rsp)
+	addq $512, %rsp
+
     popq %r15
     popq %r14
     popq %r13
@@ -72,7 +78,6 @@ _interrupt_handler_common:
     __popa
 
     add $16, %rsp /* remove error code and interrupt from stack */
-    sti
     iretq
 
 .global _syscall_handler

@@ -113,6 +113,10 @@ pid_t setup_process() {
     process->cpu.ss      = 0x23;
     process->cpu.rflags  = 0x200;
 
+    // TODO: take these values from current registers instead of hardcoding them
+    process->cpu.mxcsr      = 0x1f80;
+    process->cpu.mxcsr_mask = 0xffff;
+
     process->heap.start = 0;
     process->heap.end   = 0;
 
