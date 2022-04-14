@@ -1,9 +1,8 @@
 #include <log.h>
 #include <string.h>
 #include <stdbool.h>
-
-#define EFIABI __attribute__((ms_abi))
-#include <efi/efi.h>
+#include <efi.h>
+#include <acpi.h>
 
 static EFI_GUID gVendorLFOSGuid = {
     0x54a97f1c, 0x4828, 0x4bb0, { 0xaa, 0xa6, 0x95, 0x84, 0x5e, 0x2d, 0xb2, 0xee }
@@ -29,6 +28,8 @@ void init_efi(struct LoaderStruct* loaderStruct) {
     else {
         loge("efi", "Could not query variable info: %d", status);
     }
+
+    init_acpi_efi(gST);
 }
 
 void efi_append_log(char* msg) {

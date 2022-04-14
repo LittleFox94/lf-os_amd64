@@ -3,6 +3,9 @@
 
 #include <loader.h>
 
+#define EFIABI __attribute__((ms_abi))
+#include <efi/efi.h>
+
 void init_efi(struct LoaderStruct* loaderStruct);
 void efi_append_log(char* msg);
 

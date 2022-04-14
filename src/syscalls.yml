@@ -391,6 +391,19 @@ groups:
       type: uint64_t
       reg:  rax
 
+- number: 5
+  name:   clock
+  desc:   Clock syscalls (time since system start, current time once a driver loaded it into the kernel, sleep, ...)
+  syscalls:
+  - number: 0
+    name:   read
+    desc:   Read nanoseconds since system start
+    returns:
+    - name: nanoseconds
+      desc: Nanoseconds since system start (or rather, since timer initialization)
+      type: uint64_t
+      reg:  rax
+
 - number: 255
   name:   debug
   desc:   Debugging syscalls (simple text output, logging, ...)

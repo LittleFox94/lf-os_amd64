@@ -11,11 +11,13 @@ add_custom_command(
 )
 
 add_executable(kernel
+    acpi.c      acpi.h
     condvar.c   condvar.h
     efi.c       efi.h
     elf.c       elf.h
     fbconsole.c fbconsole.h
     flexarray.c flexarray.h
+    hpet.c      hpet.h
     log.c       log.h
     mm.c        mm.h
     mq.c        mq.h
