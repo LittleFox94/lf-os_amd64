@@ -11,10 +11,10 @@ lfos_config(lf_os_sysroot   "${CMAKE_BINARY_DIR}/sysroot" "LF OS sysroot locatio
 
 lfos_config(kernel_log_max_buffer  "4*1024*1024" "Max size of buffer storing log messages")
 lfos_config(kernel_log_com0        "true"        "Log messages to platform first serial port")
-lfos_config(kernel_log_efi         "true"        "Log messages to EFI firmware variables to be persisted through reboots")
+lfos_config(kernel_log_efi         "false"       "Log messages to EFI firmware variables to be persisted through reboots")
 
 lfos_config(loader_lfos_path       "LFOS"        "Where shall the loader search for kernel and other files")
-lfos_config(loader_efi_rt_services 0             "Enable EFI runtime services")
+lfos_config(loader_efi_rt_services 1             "Enable EFI runtime services")
 
 lfos_config(build_userspace "init;drivers/uart" "Userspace programs to build and install")
 
