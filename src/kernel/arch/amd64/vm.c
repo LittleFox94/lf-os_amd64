@@ -249,10 +249,11 @@ void init_vm() {
         }
     }
 
-    // set up PAT table, especially setting PAT 7 to write combine
+    // set up PAT table, especially setting PAT 7 to write combine and PAT 6 to uncachable
     uint64_t pat = read_msr(0x0277);
     pat &= ~(0xFFULL << 56);
     pat |= (0x01ULL << 56);
+    pat &= ~(0xFFULL << 48);
     write_msr(0x0277, pat);
 
     logd("vm", "reserved kernel PML4 entries");
