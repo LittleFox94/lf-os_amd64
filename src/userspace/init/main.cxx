@@ -144,7 +144,7 @@ int main(int argc, char* argv[]) {
 
                 for(size_t y = 0; y < height / grid; ++y) {
                     for(size_t x = 0; x < width / grid; ++x) {
-                        fb[(ystart + y) * width + xstart + x] = *(uint32_t*)color;
+                        fb[(ystart + y) * stride + xstart + x] = *(uint32_t*)color;
                     }
                 }
 
