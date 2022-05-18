@@ -14,6 +14,10 @@ void init_pic() {
  
 	outb(PIC1 + 1, 1);
 	outb(PIC2 + 1, 1);
+
+    // unmask IRQ0 / PIT, found in the wild as masked...
+    uint8_t mask = inb(PIC1 + 1) & 0xFE;
+    outb(PIC1 + 1, mask);
 }
 
 void pic_set_handled(int interrupt) {
