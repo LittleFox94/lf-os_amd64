@@ -198,7 +198,10 @@ void scheduler_process_cleanup(pid_t pid) {
     if(processes[pid].parent >= 0) {
         process_t* parent = &processes[processes[pid].parent];
 
-        if(parent->state != process_state_empty) {
+        if(parent->state != process_state_empty  &&
+           parent->state != process_state_exited &&
+           parent->state != process_state_killed
+        ) {
             size_t user_size = sizeof(struct SignalUserData);
             size_t size      = sizeof(struct Message) + user_size;
 
