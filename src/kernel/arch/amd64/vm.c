@@ -469,6 +469,10 @@ int vm_table_get_free_index3(struct vm_table *table, int start, int end) {
 }
 
 ptr_t vm_context_get_physical_for_virtual(struct vm_table* context, ptr_t virtual) {
+    if(virtual >= ALLOCATOR_REGION_DIRECT_MAPPING.start && virtual <= ALLOCATOR_REGION_DIRECT_MAPPING.end) {
+        return virtual - ALLOCATOR_REGION_DIRECT_MAPPING.start;
+    }
+
     if(!context->entries[PML4_INDEX(virtual)].present)
         return 0;
 
