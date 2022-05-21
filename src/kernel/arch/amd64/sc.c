@@ -141,12 +141,12 @@ void set_iopb(struct vm_table* context, ptr_t new_iopb) {
     }
 
     if(!new_iopb) {
-        vm_context_map(context, iopb,         originalPages[0], 0);
-        vm_context_map(context, iopb + 4*KiB, originalPages[1], 0);
+        vm_context_map(context, ALLOCATOR_REGION_USER_IOPERM.start,         originalPages[0], 0);
+        vm_context_map(context, ALLOCATOR_REGION_USER_IOPERM.start + 4*KiB, originalPages[1], 0);
     }
     else {
-        vm_context_map(context, iopb,         new_iopb, 0);
-        vm_context_map(context, iopb + 4*KiB, new_iopb + 4*KiB, 0);
+        vm_context_map(context, ALLOCATOR_REGION_USER_IOPERM.start,         new_iopb, 0);
+        vm_context_map(context, ALLOCATOR_REGION_USER_IOPERM.start + 4*KiB, new_iopb * 4*KiB, 0);
     }
 }
 
@@ -309,13 +309,30 @@ void init_sc() {
     write_msr(0xC0000102, (ptr_t)(_cpu0));
 }
 
+static void enable_iopb(struct vm_table* context) {
+    ptr_t iopb_pages[2] = {
+        vm_context_get_physical_for_virtual(context, ALLOCATOR_REGION_USER_IOPERM.start),
+        vm_context_get_physical_for_virtual(context, ALLOCATOR_REGION_USER_IOPERM.start + 4*KiB),
+    };
+
+    ptr_t iopb = (ptr_t)&_cpu0->tss + _cpu0->tss.iopb_offset;
+
+    vm_context_map(context, iopb,         iopb_pages[0], 0);
+    vm_context_map(context, iopb + 4*KiB, iopb_pages[1], 0);
+
+    asm("invlpg (%0)"::"r"(iopb));
+    asm("invlpg (%0)"::"r"(iopb + (4*KiB)));
+}
+
 static cpu_state* schedule_process(cpu_state* old_cpu) {
     cpu_state*  new_cpu = old_cpu; // for idle task we only change some fields,
                                    // allocating a new cpu for that is ..
                                    // correct but slow, so we just reuse the old one
+
     struct vm_table* new_context;
     schedule_next(&new_cpu, &new_context);
     vm_context_activate(new_context);
+    enable_iopb(new_context);
 
     return new_cpu;
 }
@@ -394,9 +411,11 @@ cpu_state* syscall_handler(cpu_state* cpu) {
                                // allocating a new cpu for that is ..
                                // correct but slow, so we just reuse the old one
     struct vm_table* new_context = vm_current_context();
+
     if(scheduler_idle_if_needed(&new_cpu, &new_context)) {
         vm_context_activate(new_context);
     }
 
+    enable_iopb(new_context);
     return new_cpu;
 }

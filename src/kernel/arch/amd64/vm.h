@@ -15,8 +15,9 @@ typedef struct {
 // x86-64 SysV ABI defines the stack has to be 16-bytes aligned "right before the call instruction", which
 // pushes the return address onto the stack. Since we do not enter user code via call, we emulate this by
 // misaligning by 8 bytes.
-#define ALLOCATOR_REGION_USER_STACK     (region_t){ .name = "User stack",.start = 0x00003F0000001000, .end = 0x00003FFFFFFFEFF8 }
-#define ALLOCATOR_REGION_USER_HARDWARE  (region_t){ .name = "User MMIO", .start = 0x00007F0000000000, .end = 0x00007FFFFFFFFFFF }
+#define ALLOCATOR_REGION_USER_STACK     (region_t){ .name = "User stack",          .start = 0x00003F0000001000, .end = 0x00003FFFFFFFEFF8 }
+#define ALLOCATOR_REGION_USER_HARDWARE  (region_t){ .name = "User MMIO",           .start = 0x00007F0000000000, .end = 0x00007FFFFFFFDFFF }
+#define ALLOCATOR_REGION_USER_IOPERM    (region_t){ .name = "User ioperm bitmask", .start = 0x00007FFFFFFFE000, .end = 0x00007FFFFFFFFFFF }
 
 #define ALLOCATOR_REGION_SCRATCHPAD     (region_t){ .name = "Kernel scratchpad", .start = 0xFFFFFFFF80000000, .end = 0xFFFFFFFF80FFFFFF }
 #define ALLOCATOR_REGION_KERNEL_BINARY  (region_t){ .name = "Kernel binary",     .start = 0xFFFFFFFF81000000, .end = 0xFFFFFFFF88FFFFFF }
