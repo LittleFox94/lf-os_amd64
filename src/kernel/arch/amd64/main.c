@@ -26,7 +26,7 @@ extern char build_id[];
     code                         \
     logi("kernel", message);
 
-void nyi();
+void nyi(int loop);
 void bootstrap_globals();
 void init_console(struct LoaderStruct* loaderStruct);
 void init_console_backbuffer(struct LoaderStruct* loaderStruct);
