@@ -21,8 +21,8 @@ ExternalProject_Add(
         "OBJCOPY_FOR_TARGET=${lf_os_toolchain}/bin/objcopy"
         "OBJDUMP_FOR_TARGET=${lf_os_toolchain}/bin/objdump"
         "STRIP_FOR_TARGET=${lf_os_toolchain}/bin/strip"
-        "CFLAGS_FOR_TARGET=${CMAKE_C_FLAGS}"
-        "LDFLAGS_FOR_TARGET=${CMAKE_LINKER_FLAGS}"
+        "CFLAGS_FOR_TARGET=${FULL_C_FLAGS}"
+        "LDFLAGS_FOR_TARGET=${FULL_LINKER_FLAGS}"
     BUILD_ALWAYS ON
     STEP_TARGETS install
 )
