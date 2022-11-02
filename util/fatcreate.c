@@ -457,10 +457,12 @@ void fatify_name(char** dst, const char* fullname, struct directory_entry* dir, 
 
             // our compiler tries to helpfully warn us about the string being truncated,
             // but this is exactly what we want to do here - truncate the file name to 8.3
+#if defined(__GNUG__) && !defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-truncation"
             snprintf(ret, 12, "%.*s~%d%3s", prefixlen, fullname, cnt, ext);
 #pragma GCC diagnostic pop
+#endif
 
             strupr(ret);
 
