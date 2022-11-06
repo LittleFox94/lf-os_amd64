@@ -45,7 +45,7 @@ namespace LFOS {
 
             void* entry = tpa_get(_tpa, idx);
 
-            EXPECT_NE(entry, 0)        << "Entry returned";
+            EXPECT_NE(entry, (void*)0)        << "Entry returned";
             EXPECT_EQ(*(uint64_t*)entry, val) << "Correct entry value";
         }
 
@@ -53,7 +53,7 @@ namespace LFOS {
             SCOPED_TRACE("Checking retrieval of known-bad value");
 
             void* non_entry = tpa_get(_tpa, idx + 1);
-            EXPECT_EQ(non_entry, 0) << "Not existing entry returns 0";
+            EXPECT_EQ(non_entry, (void*)0) << "Not existing entry returns 0";
         }
 
         {
