@@ -22,5 +22,9 @@ function(stage_configure dest)
         set(vars ${vars} "-D${var}:STRING=${${var}}")
     endforeach()
 
-    set(${dest} ${vars} "-DCMAKE_TOOLCHAIN_FILE:FILEPATH=${lf_os_toolchain}/etc/cmake.toolchain" PARENT_SCOPE)
+    set(${dest} ${vars}
+        "-DBUILD_TESTING:BOOL=OFF"
+        "-DCMAKE_TOOLCHAIN_FILE:FILEPATH=${lf_os_toolchain}/etc/cmake.toolchain"
+        PARENT_SCOPE
+    )
 endfunction()
