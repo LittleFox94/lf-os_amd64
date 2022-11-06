@@ -2,6 +2,7 @@
 #define _MESSAGE_PASSING_H_INCLUDED
 
 #include <stdint.h>
+#include <stdbool.h>
 #include <uuid.h>
 
 struct Message {
