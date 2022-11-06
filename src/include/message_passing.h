@@ -47,6 +47,7 @@ struct Message {
 
         struct ServiceDiscoveryData {
             uuid_t   serviceIdentifier;
+            bool     response;
             uint64_t mq;
             char     discoveryData[0];
         } ServiceDiscovery;
