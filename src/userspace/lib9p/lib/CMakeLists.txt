@@ -9,6 +9,7 @@ add_library(9p
 
     helper/filesystem.cpp
     helper/server_starter.cpp
+    helper/client.cpp
 
     c/fuse.cpp
 )
@@ -24,6 +25,7 @@ set(lib9p_headers
 
     include/9p/helper/filesystem
     include/9p/helper/server_starter
+    include/9p/helper/client
 
     include/9p/fuse.h
 )
@@ -39,6 +41,7 @@ if(NOT CMAKE_SYSTEM_NAME STREQUAL "LF-OS")
 else()
     target_sources(9p PRIVATE
         transport/lf_os.cpp
+        c/stdlib.cpp
     )
     list(APPEND lib9p_headers include/9p/transports/lf_os)
 endif()

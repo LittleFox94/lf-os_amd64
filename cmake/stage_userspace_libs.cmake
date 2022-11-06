@@ -1,5 +1,4 @@
-set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   -nostdlib")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -nostdlib")
+set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
 
 add_subdirectory(src/userspace/lib9p)
 install(TARGETS 9p                  DESTINATION ${lf_os_sysroot}/lib)

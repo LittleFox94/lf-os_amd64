@@ -1,0 +1,85 @@
+// vim: ft=cpp
+#pragma once
+
+#include <unordered_map>
+
+#include <9p/transport>
+#include <9p/stat>
+
+namespace lib9p {
+    class Client : public ResponseHandler {
+        public:
+            class Entry : public Stat {
+                public:
+                    enum class Type {
+                        Invalid,
+                        File,
+                        Directory,
+                    };
+
+                    Entry(const std::string& fullPath)
+                        : _fullPath(fullPath) {
+                    }
+
+                    virtual void close() { }
+                    virtual void open() = 0;
+
+                    virtual Type getType()                   const { return _type; }
+                    virtual const std::string& getFullPath() const { return _fullPath; }
+
+                protected:
+                    const Type _type = Type::Invalid;
+
+                private:
+                    const std::string& _fullPath;
+            };
+
+            class File : public Entry {
+                public:
+                    virtual void open();
+                    virtual void close();
+
+                    std::basic_string<uint8_t> read(off_t position, size_t length);
+
+                protected:
+                    const Type _type = Type::File;
+            };
+
+            class Directory : public Entry {
+                public:
+                    virtual void open();
+                    virtual void close();
+
+                    const Stat& read();
+
+                protected:
+                    const Type _type = Type::Directory;
+
+                private:
+                    off_t _lastEntryIndex;
+            };
+
+            Client(Transport& transport);
+            void connect();
+
+            virtual void handle9pResponse(const Message* msg);
+
+            Entry* open(const std::string& path);
+        private:
+            Transport& _transport;
+            uint32_t   _msize;
+            bool       _connected;
+            std::unordered_map<uint16_t, std::function<void(const Message*)>> _pendingOperations;
+
+            uint16_t nextTag();
+
+            template<typename Type, typename... Args>
+            void sendMessage(std::function<void(const Message*)> handler, Args... a) {
+                Type msg(a...);
+                msg.setTag(nextTag());
+
+                _pendingOperations[msg.getTag()] = handler;
+                _transport.writeMessage(&msg);
+            }
+    };
+}
