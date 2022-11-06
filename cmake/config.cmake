@@ -3,7 +3,6 @@ function(lfos_config name default desc)
     set(lfos_vars ${lfos_vars} ${name} PARENT_SCOPE)
 endfunction()
 
-
 # LF OS build settings
 lfos_config(architecture    "amd64"                       "Architecture to build for (only amd64 for now)")
 lfos_config(lf_os_toolchain "/opt/lf_os/toolchain"        "LF OS toolchain location")
@@ -16,7 +15,7 @@ lfos_config(kernel_log_efi         "false"       "Log messages to EFI firmware v
 lfos_config(loader_lfos_path       "LFOS"        "Where shall the loader search for kernel and other files")
 lfos_config(loader_efi_rt_services 1             "Enable EFI runtime services")
 
-lfos_config(build_userspace "init;drivers/uart" "Userspace programs to build and install")
+lfos_config(build_userspace "fbdemo;drivers/uart" "Userspace programs to build and install")
 
 function(stage_configure dest)
     foreach(var IN ITEMS ${lfos_vars} subproject)
