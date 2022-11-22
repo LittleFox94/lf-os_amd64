@@ -48,7 +48,7 @@ variables:
 
 .docker-build: &docker-build
   image:
-    name: gcr.io/kaniko-project/executor:debug-edge
+    name: gcr.io/kaniko-project/executor:v1.9.1-debug
     entrypoint: [""]
   script:
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}, \"https://index.docker.io/v1/\":{\"username\":\"$DOCKERHUB_USER\",\"password\":\"$DOCKERHUB_PASSWORD\"}}}" > /kaniko/.docker/config.json
@@ -60,7 +60,6 @@ variables:
         --destination $IMAGE_NAME/$CI_COMMIT_REF_NAME:latest
         --cache=true
         --cache-repo $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_NAME/kaniko-cache
-        --force
         $BUILD_ARGS
   only:
   - branches
