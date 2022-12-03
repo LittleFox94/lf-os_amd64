@@ -45,11 +45,9 @@ struct LoaderStruct {
     //! Signature. always 0x17a15174545c8b4f
     uint64_t signature;
 
-    /** Size of this structure including appended structs. Should fit in an
-     *  uint16_t most of the time, but this way it's more efficient and future
-     *  proof (ramdisk anyone?).
+    /** Size of this structure, allowing us to add fields at the end for new features.
      */
-    uint64_t size;
+    uint16_t size;
 
     //! Location of framebuffer as physical address
     ptr_t fb_location;
