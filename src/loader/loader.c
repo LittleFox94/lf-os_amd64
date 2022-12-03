@@ -555,7 +555,7 @@ void initialize_virtual_memory(struct LoaderState* state) {
     }
 
     asm(
-        "mov %3,    %%cr3\n"
+        "mov %0,    %%cr3\n"
         "mov %%rax, %%rsp\n"
         "subq $16,  %%rsp\n"
         "mov %%rsp, %%rbp\n"
@@ -563,10 +563,10 @@ void initialize_virtual_memory(struct LoaderState* state) {
         "addq %%rbx, %%rax\n"
         "jmpq *%%rax"
         ::
-        "D"(loaderStructFinal),
+        "r"(pml4),
         "a"(kernelStart),
         "b"(state->kernelEntry),
-        "r"(pml4)
+        "D"(loaderStructFinal)
     );
 
     while(1);
