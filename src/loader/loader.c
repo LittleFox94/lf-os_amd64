@@ -234,8 +234,8 @@ EFI_STATUS load_files(uint16_t* path, struct LoaderState* state) {
     EFI_HANDLE deviceHandle = state->loadedImage->DeviceHandle;
 
     status = initPxeSfs(&deviceHandle);
-    if(status != EFI_SUCCESS) {
-        wprintf(L" Not booting via PXE\n", status);
+    if(status & EFI_ERR) {
+        wprintf(L" Not booting via PXE 0x%x\n", status);
     }
 
     EFI_SIMPLE_FILE_SYSTEM_PROTOCOL* volume;
@@ -247,7 +247,7 @@ EFI_STATUS load_files(uint16_t* path, struct LoaderState* state) {
     EFI_FILE_PROTOCOL* dirHandle;
     EFI_CHECK_ERROR_THISCALL_NORET(rootHandle, Open, &dirHandle, path, EFI_FILE_MODE_READ, 0);
 
-    if(status == EFI_SUCCESS) {
+    if((status & EFI_ERR) == 0) {
         size_t read = 64;
         do {
             EFI_FILE_INFO* buffer = malloc(read);
@@ -301,7 +301,7 @@ EFI_STATUS load_files(uint16_t* path, struct LoaderState* state) {
             fullPath[plen] = L'/';
             wcscpy(fullPath + plen + 1, files[i]);
 
-            if((status = load_file(state, rootHandle, fullPath, 0)) != EFI_SUCCESS) {
+            if((status = load_file(state, rootHandle, fullPath, 0)) & EFI_ERR) {
                 return status;
             }
         }
@@ -605,14 +605,14 @@ EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE* system_table) {
 
     wprintf(L"Loading files\n");
     status = load_files(WIDEN(LF_OS_LOCATION), &state);
-    if(status != EFI_SUCCESS) {
+    if(status & EFI_ERR) {
         wprintf(L"\nCould not load files: %d\n", status);
         return status;
     }
 
     wprintf(L"Preparing console ...\n");
     status = prepare_framebuffer(&state);
-    if(status != EFI_SUCCESS) {
+    if(status & EFI_ERR) {
         wprintf(L" error: %d\n", status);
         return status;
     }
@@ -623,19 +623,19 @@ EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE* system_table) {
 
     while(--try_counter) {
         wprintf(L".");
-        if(retrieve_memory_map(&state) != EFI_SUCCESS) {
+        if(retrieve_memory_map(&state) & EFI_ERR) {
             continue;
         }
 
         status = BS->ExitBootServices(image_handle, state.mapKey);
 
-        if(status == EFI_SUCCESS) {
+        if((status & EFI_ERR) == 0) {
             asm volatile("cli");
             break;
         }
     }
 
-    if(status != EFI_SUCCESS) {
+    if(status & EFI_ERR) {
         wprintf(L" ExitBootServices failed: %d\n", status);
         while(1);
     }

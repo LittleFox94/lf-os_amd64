@@ -47,7 +47,7 @@ static EFI_STATUS mk_pxefp_private(CHAR16* filename, PXE_FP_PRIVATE_DATA** fp) {
         len += strlen(parent->path);
     }
 
-    if((status = BS->AllocatePool(EfiBootServicesData, sizeof(PXE_FP_PRIVATE_DATA) + len, (VOID**)fp)) != EFI_SUCCESS) {
+    if((status = BS->AllocatePool(EfiBootServicesData, sizeof(PXE_FP_PRIVATE_DATA) + len, (VOID**)fp)) & EFI_ERR) {
         return status;
     }
 
@@ -73,7 +73,7 @@ EFI_STATUS PxeFpOpen(EFI_FILE_PROTOCOL* this, EFI_FILE_PROTOCOL** new, CHAR16* f
     EFI_STATUS status;
 
     PXE_FP_PRIVATE_DATA* fp = private;
-    if((status = mk_pxefp_private(filename, &fp)) != EFI_SUCCESS) {
+    if((status = mk_pxefp_private(filename, &fp)) & EFI_ERR) {
         return status;
     }
 
@@ -90,7 +90,7 @@ EFI_STATUS PxeFpOpen(EFI_FILE_PROTOCOL* this, EFI_FILE_PROTOCOL** new, CHAR16* f
                 EFI_TRUE
             );
 
-    if(status != EFI_SUCCESS) {
+    if(status & EFI_ERR) {
         wprintf(L" no get file size ");
 
         status = private->pxeSfsp->pxe->Mtftp(
@@ -107,7 +107,7 @@ EFI_STATUS PxeFpOpen(EFI_FILE_PROTOCOL* this, EFI_FILE_PROTOCOL** new, CHAR16* f
                 );
     }
 
-    if(status != EFI_SUCCESS) {
+    if(status & EFI_ERR) {
         wprintf(L" no read file either ");
         BS->FreePool(fp);
         return status;
@@ -119,7 +119,7 @@ EFI_STATUS PxeFpOpen(EFI_FILE_PROTOCOL* this, EFI_FILE_PROTOCOL** new, CHAR16* f
         }
 
         status = BS->AllocatePool(EfiBootServicesData, fp->bufferSize, &fp->buffer);
-        if(status != EFI_SUCCESS) {
+        if(status & EFI_ERR) {
             BS->FreePool(fp);
             return status;
         }
@@ -144,7 +144,7 @@ EFI_STATUS PxeFpOpen(EFI_FILE_PROTOCOL* this, EFI_FILE_PROTOCOL** new, CHAR16* f
         }
     } while(status == EFI_BUFFER_TOO_SMALL);
 
-    if(status != EFI_SUCCESS) {
+    if(status & EFI_ERR) {
         wprintf(L" no read file ");
 
         BS->FreePool(fp->buffer);
@@ -224,7 +224,7 @@ EFI_STATUS PxeOpenVolume(EFI_SIMPLE_FILE_SYSTEM_PROTOCOL* this, EFI_FILE_PROTOCO
     EFI_STATUS status;
 
     PXE_FP_PRIVATE_DATA* fp = 0;
-    if((status = mk_pxefp_private(L"/", &fp)) != EFI_SUCCESS) {
+    if((status = mk_pxefp_private(L"/", &fp)) & EFI_ERR) {
         return status;
     }
 
@@ -253,11 +253,11 @@ EFI_STATUS initPxeSfs(EFI_HANDLE* deviceHandle) {
     EFI_STATUS status;
 
     EFI_PXE_BASE_CODE_PROTOCOL* pxe;
-    if((status = BS->HandleProtocol(*deviceHandle, &gEfiPxeBaseCodeProtocolGuid, (void**)&pxe)) != EFI_SUCCESS) {
+    if((status = BS->HandleProtocol(*deviceHandle, &gEfiPxeBaseCodeProtocolGuid, (void**)&pxe)) & EFI_ERR) {
         return status;
     }
     PXE_SFSP_PRIVATE_DATA* private;
-    if((status = BS->AllocatePool(EfiBootServicesData, sizeof(PXE_SFSP_PRIVATE_DATA), (VOID**)&private)) != EFI_SUCCESS) {
+    if((status = BS->AllocatePool(EfiBootServicesData, sizeof(PXE_SFSP_PRIVATE_DATA), (VOID**)&private)) & EFI_ERR) {
         return status;
     }
     private->sfsp = (EFI_SIMPLE_FILE_SYSTEM_PROTOCOL){
@@ -313,7 +313,7 @@ EFI_STATUS initPxeSfs(EFI_HANDLE* deviceHandle) {
     if((status = BS->InstallMultipleProtocolInterfaces(
             deviceHandle,
             &gEfiSimpleFileSystemProtocolGuid, &private->sfsp,
-            0)) != EFI_SUCCESS) {
+            0)) & EFI_ERR) {
         return status;
     }
 
