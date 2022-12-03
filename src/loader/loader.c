@@ -464,7 +464,7 @@ void map_page(struct LoaderState* state, vm_table_t* pml4, ptr_t virtual, ptr_t 
     };
 }
 
-void initialize_virtual_memory(struct LoaderState* state, EFI_SYSTEM_TABLE* system_table) {
+void initialize_virtual_memory(struct LoaderState* state) {
     const ptr_t higherHalf = (ptr_t)0xffffffff80000000;
 
     vm_table_t* pml4 = allocate_from_loader_scratchpad(state, sizeof(vm_table_t), PAGE_SIZE);
@@ -507,57 +507,29 @@ void initialize_virtual_memory(struct LoaderState* state, EFI_SYSTEM_TABLE* syst
         filesStart += PAGE_SIZE;
     }
 
-#if LF_OS_ENABLE_EFI_RUNTIME_SERVICES
-    state->loaderStruct->firmware_info = system_table;
-
-    // Remap UEFI runtime memory
-    for(size_t i = 0; i < state->efiMemoryMapSize / state->efiMemoryMapEntrySize; ++i) {
-        EFI_MEMORY_DESCRIPTOR* desc = (EFI_MEMORY_DESCRIPTOR*)((void*)state->efiMemoryMap + (i * state->efiMemoryMapEntrySize));
-
-        if(desc->Attribute & EFI_MEMORY_RUNTIME) {
-            desc->VirtualStart = (EFI_VIRTUAL_ADDRESS)filesStart;
-
-            for(size_t j = 0; j < desc->NumberOfPages; ++j) {
-                map_page(state, pml4, filesStart, (ptr_t)desc->PhysicalStart + (j * PAGE_SIZE));
-                filesStart += PAGE_SIZE;
-            }
-        }
-    }
-
-    system_table->RuntimeServices->SetVirtualAddressMap(state->efiMemoryMapSize, state->efiMemoryMapEntrySize, state->efiMemoryMapEntryVersion, state->efiMemoryMap);
-#endif // LF_OS_ENABLE_EFI_RUNTIME_SERVICES
-
     // prepare final loaderStuct, memory map and files location
-    ptr_t loaderStructsArea = allocate_from_loader_scratchpad(state,
-        system_table->Hdr.HeaderSize +
-        state->loaderStruct->size                           +
-        state->memoryMapEntryCount * sizeof(struct MemoryRegion)   +
-        state->loaderStruct->num_files * sizeof(struct FileDescriptor),
-        4096
-    );
+    size_t loaderStructsAreaSize = state->loaderStruct->size +
+        (state->loaderStruct->num_mem_desc * sizeof(struct MemoryRegion))   +
+        (state->loaderStruct->num_files    * sizeof(struct FileDescriptor));
 
-#if LF_OS_ENABLE_EFI_RUNTIME_SERVICES
-    state->loaderStruct->firmware_info = filesStart;
+    ptr_t loaderStructsArea = allocate_from_loader_scratchpad(state, loaderStructsAreaSize, 4096);
 
     memcpy(loaderStructsArea,
-            system_table, system_table->Hdr.HeaderSize);
-#endif
+            &state->loaderStruct, state->loaderStruct->size);
+    memcpy(loaderStructsArea + state->loaderStruct->size,
+            state->memoryMapLocation, state->loaderStruct->num_mem_desc * sizeof(struct MemoryRegion));
 
-    memcpy(loaderStructsArea + system_table->Hdr.HeaderSize,
-            state->loaderStruct, state->loaderStruct->size);
-    memcpy(loaderStructsArea + system_table->Hdr.HeaderSize + state->loaderStruct->size,
-            state->memoryMapLocation, state->memoryMapEntryCount * sizeof(struct MemoryRegion));
-
-    struct LoaderStruct* loaderStructFinal = filesStart + system_table->Hdr.HeaderSize;
-    for(size_t i = 0; i < state->loaderStruct->size + system_table->Hdr.HeaderSize; i += PAGE_SIZE) {
-        map_page(state, pml4, (ptr_t)(filesStart) + i, loaderStructsArea + i);
+    struct LoaderStruct* loaderStructFinal = filesStart;
+    for(size_t i = 0; i < loaderStructsAreaSize; i += PAGE_SIZE) {
+        map_page(state, pml4, (ptr_t)filesStart, loaderStructsArea + i);
         filesStart += PAGE_SIZE;
     }
 
-    struct FileDescriptor* fileDescriptors = (struct FileDescriptor*)(loaderStructsArea +
-                                                        system_table->Hdr.HeaderSize +
-                                                        state->loaderStruct->size +
-                                                        state->memoryMapEntryCount * sizeof(struct MemoryRegion));
+    struct FileDescriptor* fileDescriptors = (struct FileDescriptor*)(
+        loaderStructsArea +
+        state->loaderStruct->size +
+        (state->loaderStruct->num_mem_desc * sizeof(struct MemoryRegion))
+    );
 
     for(size_t i = 0; i < state->loaderStruct->num_files; ++i) {
         memcpy((fileDescriptors + i)->name, (state->fileDescriptors + i)->name, 256);
@@ -613,6 +585,7 @@ EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE* system_table) {
     state.loaderStruct                = allocate_from_loader_scratchpad(&state, sizeof(struct LoaderStruct), PAGE_SIZE);
     state.loaderStruct->signature     = LFOS_LOADER_SIGNATURE;
     state.loaderStruct->size          = sizeof(struct LoaderStruct);
+    state.loaderStruct->firmware_info = system_table;
 
     wprintf(
         L"LF OS amd64 uefi loader (%u bytes at 0x%x).\n\n",
@@ -673,6 +646,6 @@ EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE* system_table) {
         while(1);
     }
 
-    initialize_virtual_memory(&state, system_table);
+    initialize_virtual_memory(&state);
     return EFI_ABORTED; // will never get here
 }
