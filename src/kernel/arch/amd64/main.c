@@ -199,11 +199,15 @@ void init_symbols(struct LoaderStruct* loaderStruct) {
 }
 
 void init_init(struct LoaderStruct* loaderStruct) {
-    struct FileDescriptor* fileDescriptors = (struct FileDescriptor*)((ptr_t)loaderStruct + loaderStruct->size + (loaderStruct->num_mem_desc * sizeof(struct MemoryRegion)));
+    struct FileDescriptor* fileDescriptors = (struct FileDescriptor*)(
+        (ptr_t)loaderStruct +
+        loaderStruct->size +
+        (loaderStruct->num_mem_desc * sizeof(struct MemoryRegion))
+    );
 
     for(size_t i = 0; i < loaderStruct->num_files; ++i) {
         struct FileDescriptor* desc = (fileDescriptors + i);
-        void*           data = (uint8_t*)((ptr_t)loaderStruct + desc->offset);
+        void*                  data = (uint8_t*)((ptr_t)loaderStruct + desc->offset);
 
         if(strcasecmp(desc->name, "kernel") != 0) {
             struct vm_table* context = vm_context_new();
