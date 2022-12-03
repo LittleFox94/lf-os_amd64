@@ -135,6 +135,8 @@ void init_console_backbuffer(struct LoaderStruct* loaderStruct) {
 }
 
 void init_mm(struct LoaderStruct* loaderStruct) {
+    logd("main.c", "loaderStruct->num_mem_desc: %lu", loaderStruct->num_mem_desc);
+
     struct MemoryRegion* memoryRegions = (struct MemoryRegion*)((ptr_t)loaderStruct + loaderStruct->size);
 
     SlabHeader* scratchpad_allocator = (SlabHeader*)ALLOCATOR_REGION_SCRATCHPAD.start;
@@ -145,17 +147,32 @@ void init_mm(struct LoaderStruct* loaderStruct) {
     uint64_t pages_free = 0;
     uint64_t pages_firmware = 0;
 
+    char desc_status[81];
+    memset(desc_status, 0, 81);
+
     for(size_t i = 0; i < loaderStruct->num_mem_desc; ++i) {
         struct MemoryRegion* desc = memoryRegions + i;
 
         if(desc->flags & MEMORY_REGION_USABLE) {
+            desc_status[i % 80] = '-';
             pages_free += desc->num_pages;
             mm_mark_physical_pages(desc->start_address, desc->num_pages, MM_FREE);
         }
         else if(desc->flags & MEMORY_REGION_FIRMWARE) {
+            desc_status[i % 80] = 'F';
             pages_firmware += desc->num_pages;
         }
+        else {
+            desc_status[i % 80] = 'X';
+        }
+
+        if((i % 80) == 79) {
+            logd("mm", "memory descriptor status: %s", desc_status);
+            memset(desc_status, 0, 81);
+        }
     }
+
+    logd("mm", "memory descriptor status: %s", desc_status);
 
     logi("mm", "%u pages (%B) free, %u (%B) firmware runtime memory",
         pages_free,     pages_free * 4096,
