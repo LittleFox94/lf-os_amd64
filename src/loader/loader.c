@@ -351,9 +351,24 @@ EFI_STATUS retrieve_memory_map(struct LoaderState* state) {
             else if(desc->Attribute & EFI_MEMORY_RUNTIME) {
                 flags = MEMORY_REGION_FIRMWARE;
 
-                if((desc->Attribute & EFI_MEMORY_XP) == 0) {
-                    flags |= MEMORY_REGION_CODE;
+            #define apply_efi_attribute(attribute)                  \
+                if(desc->Attribute & EFI_MEMORY_ ## attribute) {    \
+                    flags |= MEMORY_REGION_ ## attribute;           \
                 }
+
+                apply_efi_attribute(UC)
+                apply_efi_attribute(WC)
+                apply_efi_attribute(WT)
+                apply_efi_attribute(WB)
+                apply_efi_attribute(UCE)
+                apply_efi_attribute(WP)
+                apply_efi_attribute(RP)
+                apply_efi_attribute(XP)
+                apply_efi_attribute(NV)
+                apply_efi_attribute(MORE_RELIABLE)
+                apply_efi_attribute(RO)
+
+            #undef apply_efi_attribute
             }
 
             if(flags) {

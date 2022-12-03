@@ -5,9 +5,40 @@
 
 static const uint64_t LFOS_LOADER_SIGNATURE = 0x17a15174545c8b4f;
 
-#define MEMORY_REGION_USABLE        1ULL
-#define MEMORY_REGION_FIRMWARE      2ULL
-#define MEMORY_REGION_CODE          4ULL
+// basic "what is this memory for" attributes
+//! memory is free to be used
+#define MEMORY_REGION_USABLE        (1ULL << 0)
+//! memory is in use by the firmware
+#define MEMORY_REGION_FIRMWARE      (1ULL << 1)
+//! memory holds code
+#define MEMORY_REGION_CODE          (1ULL << 2)
+//! memory supports being mapped read-only
+#define MEMORY_REGION_RO            (1ULL << 3)
+
+// "what kinda memory is this"
+//! memory is non-volatile
+#define MEMORY_REGION_NV            (1ULL << 4)
+//! memory is more reliable than other memory in the system
+#define MEMORY_REGION_MORE_RELIABLE (1ULL << 5)
+
+// cacheability flags
+//! supports uncachable
+#define MEMORY_REGION_UC    (1ULL << 16)
+//! supports write-combine
+#define MEMORY_REGION_WC    (1ULL << 17)
+//! supports write-through
+#define MEMORY_REGION_WT    (1ULL << 18)
+//! supports write-back
+#define MEMORY_REGION_WB    (1ULL << 19)
+//! supports uncacheable, exported and "fetch and add" semaphore mechanism
+#define MEMORY_REGION_UCE   (1ULL << 20)
+
+//! Supports write-protected
+#define MEMORY_REGION_WP    (1ULL << 21)
+//! Supports read-protected
+#define MEMORY_REGION_RP    (1ULL << 22)
+//! Supports execute-protected
+#define MEMORY_REGION_XP    (1ULL << 23)
 
 //! Main interface between loader and kernel
 struct LoaderStruct {
