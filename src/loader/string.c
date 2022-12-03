@@ -8,12 +8,12 @@ static EFI_SYSTEM_TABLE* st;
 EFI_BOOT_SERVICES* BS;
 
 static void outb(uint16_t port, uint8_t data) {
-    asm("outb %0, %1"::"a"(data), "d"(port));
+    asm volatile("outb %0, %1"::"a"(data), "d"(port));
 }
 
 static uint8_t inb(uint16_t port) {
     uint8_t data = 0;
-    asm("inb %1, %0":"=a"(data):"d"(port));
+    asm volatile("inb %1, %0":"=a"(data):"d"(port));
     return data;
 }
 
