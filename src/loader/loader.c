@@ -634,10 +634,11 @@ EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE* system_table) {
 
     unsigned int try_counter = 3;
 
-    wprintf(L"Preparing memory map and exiting boot services ...");
+    wprintf(L"Preparing memory map and exiting boot services ... ");
 
-    while(--try_counter) {
-        wprintf(L".");
+    while(try_counter--) {
+        wprintf(L"%d ", 3-try_counter);
+
         if(retrieve_memory_map(&state) & EFI_ERR) {
             continue;
         }
