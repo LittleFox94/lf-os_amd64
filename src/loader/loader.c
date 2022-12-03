@@ -248,6 +248,8 @@ EFI_STATUS load_files(uint16_t* path, struct LoaderState* state) {
     EFI_CHECK_ERROR_THISCALL_NORET(rootHandle, Open, &dirHandle, path, EFI_FILE_MODE_READ, 0);
 
     if((status & EFI_ERR) == 0) {
+        size_t files_loaded = 0;
+
         size_t read = 64;
         do {
             EFI_FILE_INFO* buffer = malloc(read);
@@ -275,39 +277,44 @@ EFI_STATUS load_files(uint16_t* path, struct LoaderState* state) {
                     free(buffer);
                     return status;
                 }
+                else {
+                    ++files_loaded;
+                }
             }
 
             free(buffer);
         } while (read > 0);
 
         EFI_CHECK_ERROR_THISCALL(dirHandle, Close);
-    }
-    else {
-        // we cannot read directories, maybe we are PXE-booted
-        // lets try with a static file list instead
-        CHAR16* files[] = {
-            L"kernel",
-            L"init",
-        };
+        EFI_CHECK_ERROR_THISCALL(rootHandle, Close);
 
-        size_t plen = wcslen(path);
-        size_t fileCount = sizeof(files) / sizeof(CHAR16*);
-
-        for(size_t i = 0; i < fileCount; ++i) {
-            size_t flen = wcslen(files[i]);
-            CHAR16* fullPath = malloc(sizeof(CHAR16) * (plen + flen + 2));
-            memset(fullPath, 0, sizeof(CHAR16) * (plen + flen + 2));
-            wcscpy(fullPath, path);
-            fullPath[plen] = L'/';
-            wcscpy(fullPath + plen + 1, files[i]);
-
-            if((status = load_file(state, rootHandle, fullPath, 0)) & EFI_ERR) {
-                return status;
-            }
+        if(files_loaded) {
+            return EFI_SUCCESS;
         }
     }
 
-    EFI_CHECK_ERROR_THISCALL(rootHandle, Close);
+    // we cannot read directories, maybe we are PXE-booted
+    // lets try with a static file list instead
+    CHAR16* files[] = {
+        L"kernel",
+        L"fbdemo",
+    };
+
+    size_t plen = wcslen(path);
+    size_t fileCount = sizeof(files) / sizeof(CHAR16*);
+
+    for(size_t i = 0; i < fileCount; ++i) {
+        size_t flen = wcslen(files[i]);
+        CHAR16* fullPath = malloc(sizeof(CHAR16) * (plen + flen + 2));
+        memset(fullPath, 0, sizeof(CHAR16) * (plen + flen + 2));
+        wcscpy(fullPath, path);
+        fullPath[plen] = L'/';
+        wcscpy(fullPath + plen + 1, files[i]);
+
+        if((status = load_file(state, rootHandle, fullPath, 0)) & EFI_ERR) {
+            return status;
+        }
+    }
 
     return EFI_SUCCESS;
 }
