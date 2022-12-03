@@ -496,9 +496,9 @@ void initialize_virtual_memory(struct LoaderState* state, EFI_SYSTEM_TABLE* syst
     ptr_t originalFramebuffer = state->loaderStruct->fb_location;
 
     ptr_t filesStart = kernelEnd;
-    size_t fbSize    = state->loaderStruct->fb_width  *
-                       state->loaderStruct->fb_height *
-                       state->loaderStruct->fb_bpp;
+    size_t fbSize    = state->loaderStruct.fb_stride *
+                       state->loaderStruct.fb_height *
+                       state->loaderStruct.fb_bpp;
 
     state->loaderStruct->fb_location = filesStart;
 
