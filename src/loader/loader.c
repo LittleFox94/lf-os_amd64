@@ -421,10 +421,9 @@ EFI_STATUS prepare_framebuffer(struct LoaderState* state) {
     UINTN handle_count        = 0;
     EFI_HANDLE* handle_buffer = 0;
 
-    EFI_CHECK_ERROR_CALL(BS, LocateHandleBuffer, ByProtocol, &gEfiGraphicsOutputProtocolGuid, 0, &handle_count, &handle_buffer);
-
-    if(handle_count == 0) {
-        return EFI_UNSUPPORTED;
+    EFI_CHECK_ERROR_CALL_NORET(BS, LocateHandleBuffer, ByProtocol, &gEfiGraphicsOutputProtocolGuid, 0, &handle_count, &handle_buffer);
+    if(status == EFI_NOT_FOUND || handle_count == 0) {
+        return EFI_SUCCESS;
     }
 
     EFI_GRAPHICS_OUTPUT_PROTOCOL* gop;
@@ -519,11 +518,13 @@ void initialize_virtual_memory(struct LoaderState* state) {
                        state->loaderStruct.fb_height *
                        state->loaderStruct.fb_bpp;
 
-    state->loaderStruct.fb_location = filesStart;
+    if(originalFramebuffer) {
+        state->loaderStruct.fb_location = filesStart;
 
-    for(size_t i = 0; i < fbSize; i += PAGE_SIZE) {
-        map_page(state, pml4, filesStart, originalFramebuffer + i);
-        filesStart += PAGE_SIZE;
+        for(size_t i = 0; i < fbSize; i += PAGE_SIZE) {
+            map_page(state, pml4, filesStart, originalFramebuffer + i);
+            filesStart += PAGE_SIZE;
+        }
     }
 
     // prepare final loaderStuct, memory map and files location

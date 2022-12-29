@@ -114,6 +114,11 @@ int main(int argc, char* argv[]) {
     uint16_t width, height, stride, colorFormat;
     sc_do_hardware_framebuffer(&fb, &width, &height, &stride, &colorFormat);
 
+    if(!fb) {
+        std::cerr << "Did not get a framebuffer, exiting" << std::endl;
+        return 1;
+    }
+
     std::mutex fb_mutex;
     fb_mutex.lock();
 

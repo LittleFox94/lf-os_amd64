@@ -7,7 +7,7 @@
 extern bool fbconsole_active;
 
 void fbconsole_init(int width, int height, int stride, uint8_t* fb);
-void fbconsole_init_backbuffer(uint8_t* backbuffer);
+void fbconsole_init_backbuffer();
 
 void fbconsole_clear(int r, int g, int b);
 int  fbconsole_write(char* string, ...);

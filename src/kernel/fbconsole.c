@@ -67,6 +67,12 @@ void fbconsole_init(int width, int height, int stride, uint8_t* fb) {
         }, sizeof(int) * 16 * 3);
 
     fbconsole_active = true;
+
+    if(!fb) {
+        logi("fbconsole", "No framebuffer, will not actually render anything");
+        return;
+    }
+
     fbconsole_clear(fbconsole.background_r, fbconsole.background_g, fbconsole.background_b);
 
     logd("framebuffer", "framebuffer console @ 0x%x (0x%x) %dx%d (stride %d)",
@@ -76,7 +82,16 @@ void fbconsole_init(int width, int height, int stride, uint8_t* fb) {
     );
 }
 
-void fbconsole_init_backbuffer(uint8_t* backbuffer) {
+void fbconsole_init_backbuffer() {
+    if(!fbconsole.fb) {
+        return;
+    }
+
+    size_t backbuffer_size      = fbconsole.stride * fbconsole.height * 4;
+    size_t backbuffer_num_pages = (backbuffer_size + 4095) / 4096;
+
+    uint8_t* backbuffer = (uint8_t*)vm_context_alloc_pages(VM_KERNEL_CONTEXT, ALLOCATOR_REGION_KERNEL_HEAP, backbuffer_num_pages);
+
     memcpy(backbuffer, fbconsole.fb, fbconsole.stride * fbconsole.height * 4);
     fbconsole.backbuffer = backbuffer;
 
@@ -91,6 +106,10 @@ void fbconsole_clear(int r, int g, int b) {
         fbconsole_active = true;
     }
 
+    if(!fbconsole.fb) {
+        return;
+    }
+
     memset32((uint32_t*)fbconsole.backbuffer, (r << 16) | (g << 8) | (b << 0), fbconsole.stride * fbconsole.height);
 
     if(fbconsole.backbuffer != fbconsole.fb) {
@@ -102,6 +121,10 @@ void fbconsole_clear(int r, int g, int b) {
 }
 
 void fbconsole_blt(const uint8_t* image, uint16_t width, uint16_t height, int16_t tx, int16_t ty) {
+    if(!fbconsole.fb) {
+        return;
+    }
+
     if(tx < 0) tx = fbconsole.width + tx;
     if(ty < 0) ty = fbconsole.height + ty;
 
@@ -128,6 +151,10 @@ void fbconsole_blt(const uint8_t* image, uint16_t width, uint16_t height, int16_
 }
 
 void fbconsole_setpixel(const int x, const int y, const int r, const int g, const int b) {
+    if(!fbconsole.fb) {
+        return;
+    }
+
     int index = ((y * fbconsole.stride) + x) * 4;
     fbconsole.backbuffer[index + 2] = r;
     fbconsole.backbuffer[index + 1] = g;
@@ -141,6 +168,10 @@ void fbconsole_setpixel(const int x, const int y, const int r, const int g, cons
 }
 
 void fbconsole_draw_char(int start_x, int start_y, char c) {
+    if(!fbconsole.fb) {
+        return;
+    }
+
     for(int y = 0; y < FONT_HEIGHT && y + start_y < fbconsole.height; y++) {
         for(int x = 0; x < FONT_WIDTH && x + start_x < fbconsole.width; x++) {
             if(FONT_NAME[(c * FONT_HEIGHT) + y] & (0x80 >> x)) {
@@ -154,6 +185,10 @@ void fbconsole_draw_char(int start_x, int start_y, char c) {
 }
 
 void fbconsole_scroll(unsigned int scroll_amount) {
+    if(!fbconsole.fb) {
+        return;
+    }
+
     size_t row_start = scroll_amount * (FONT_HEIGHT + FONT_ROW_SPACING);
     size_t begin     = row_start * fbconsole.stride * 4;
     size_t end       = fbconsole.stride * fbconsole.height * 4;
@@ -172,6 +207,10 @@ void fbconsole_scroll(unsigned int scroll_amount) {
 }
 
 void fbconsole_next_line() {
+    if(!fbconsole.fb) {
+        return;
+    }
+
     fbconsole.current_col = 0;
     ++fbconsole.current_row;
 
@@ -182,6 +221,10 @@ void fbconsole_next_line() {
 }
 
 int fbconsole_write(char* string, ...) {
+    if(!fbconsole.fb) {
+        return 0;
+    }
+
     va_list args;
     char buffer[512];
     memset((uint8_t*)buffer, 0, 512);
@@ -287,10 +330,17 @@ void sc_handle_hardware_framebuffer(ptr_t *fb, uint16_t *width, uint16_t *height
         *stride = fbconsole.stride;
         *colorFormat = 0; // to be specified
 
-        *fb = scheduler_map_hardware(vm_context_get_physical_for_virtual(VM_KERNEL_CONTEXT, (ptr_t)fbconsole.fb), *stride * *height * 4);
-        fbconsole_clear(0, 0, 0);
-        fbconsole_active = false;
+        if(fbconsole.fb) {
+            *fb = scheduler_map_hardware(vm_context_get_physical_for_virtual(VM_KERNEL_CONTEXT, (ptr_t)fbconsole.fb), *stride * *height * 4);
+            fbconsole_clear(0, 0, 0);
+            fbconsole_active = false;
 
-        logd("fbconsole", "Gave up control of framebuffer, now process %d is in charge", scheduler_current_process);
+            logd("fbconsole", "Gave up control of framebuffer, now process %d is in charge", scheduler_current_process);
+        } else {
+            *fb = 0;
+
+            logd("fbconsole", "Would have gave up control of framebuffer to process %d, but we don't have one", scheduler_current_process);
+        }
+
     }
 }

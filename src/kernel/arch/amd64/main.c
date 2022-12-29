@@ -29,7 +29,6 @@ extern char build_id[];
 void nyi(int loop);
 void bootstrap_globals();
 void init_console(struct LoaderStruct* loaderStruct);
-void init_console_backbuffer(struct LoaderStruct* loaderStruct);
 void init_mm(struct LoaderStruct* loaderStruct);
 void init_symbols(struct LoaderStruct* loaderStruct);
 void init_init(struct LoaderStruct* loaderStruct);
@@ -56,7 +55,7 @@ void main(struct LoaderStruct* loaderStruct) {
 
     INIT_STEP(
         "Initialized framebuffer console backbuffer",
-        init_console_backbuffer(loaderStruct);
+        fbconsole_init_backbuffer();
     )
 
     INIT_STEP(
@@ -124,14 +123,6 @@ void init_console(struct LoaderStruct* loaderStruct) {
 
     #include "../../bootlogo.c"
     fbconsole_blt(lf_os_bootlogo.pixel_data, lf_os_bootlogo.width, lf_os_bootlogo.height, -(lf_os_bootlogo.width + 5), 5);
-}
-
-void init_console_backbuffer(struct LoaderStruct* loaderStruct) {
-    size_t backbuffer_size      = loaderStruct->fb_stride * loaderStruct->fb_height * 4;
-    size_t backbuffer_num_pages = (backbuffer_size + 4095) / 4096;
-
-    uint8_t* backbuffer = (uint8_t*)vm_context_alloc_pages(VM_KERNEL_CONTEXT, ALLOCATOR_REGION_KERNEL_HEAP, backbuffer_num_pages);
-    fbconsole_init_backbuffer(backbuffer);
 }
 
 void init_mm(struct LoaderStruct* loaderStruct) {
