@@ -27,8 +27,12 @@ ExternalProject_Add(
     STEP_TARGETS install
 )
 
+install(DIRECTORY ${CMAKE_BINARY_DIR}/install/x86_64-pc-lf_os/ DESTINATION ${lf_os_sysroot})
+
 add_subdirectory(src/userspace/libpthread)
 add_dependencies(pthread newlib)
 target_include_directories(pthread PRIVATE ${CMAKE_BINARY_DIR}/install/x86_64-pc-lf_os/include)
 
-install(DIRECTORY ${CMAKE_BINARY_DIR}/install/x86_64-pc-lf_os/ DESTINATION ${lf_os_sysroot})
+add_subdirectory(src/userspace/liblfos)
+add_dependencies(lfos newlib)
+target_include_directories(lfos PRIVATE ${CMAKE_BINARY_DIR}/install/x86_64-pc-lf_os/include)
