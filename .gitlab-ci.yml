@@ -157,8 +157,8 @@ llvm:
   image: $CI_REGISTRY_IMAGE/llvm-ci:$CI_COMMIT_SHA
   artifacts:
     paths:
-    - lf_os-toolchain_$VERSION_*.deb
-    - lf_os-toolchain_$VERSION_*_*.tar.xz
+    - lf_os-toolchain_${VERSION}_*.deb
+    - lf_os-toolchain_${VERSION}_*_*.tar.xz
 
 llvm-deploy-apt:
   extends:
@@ -221,8 +221,8 @@ build-sysroot:
     SUBPROJECT: sysroot
   artifacts:
     paths:
-    - lf_os-sysroot_$VERSION_*.deb
-    - lf_os-sysroot_$VERSION_*.tar.xz
+    - lf_os-sysroot_${VERSION}_*.deb
+    - lf_os-sysroot_${VERSION}_*.tar.xz
 
 build-system:
   extends: .cmake-build
@@ -241,9 +241,9 @@ build-system:
   - mv build/hd.img.xz lf_os_${VERSION}_amd64.img.xz
   artifacts:
     paths:
-    - lf_os_$VERSION_*.deb
-    - lf_os_$VERSION_*.tar.xz
-    - lf_os_$VERSION_*.img.xz
+    - lf_os_${VERSION}_*.deb
+    - lf_os_${VERSION}_*.tar.xz
+    - lf_os_${VERSION}_*.img.xz
 
 apt-deploy:
   extends:
