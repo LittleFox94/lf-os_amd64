@@ -11,13 +11,9 @@ add_custom_command(
 )
 
 add_executable(kernel
-    acpi.c      acpi.h
     condvar.c   condvar.h
-    efi.c       efi.h
     elf.c       elf.h
-    fbconsole.c fbconsole.h
     flexarray.c flexarray.h
-    hpet.c      hpet.h
     log.c       log.h
     mm.c        mm.h
     mq.c        mq.h
@@ -34,6 +30,11 @@ add_executable(kernel
                 cstdlib/stdbool.h
     ${PROJECT_BINARY_DIR}/syscalls.gen.c
     ${PROJECT_BINARY_DIR}/config.h
+
+    drivers/acpi.c      drivers/acpi.h
+    drivers/efi.c       drivers/efi.h
+    drivers/fbconsole.c drivers/fbconsole.h
+    drivers/hpet.c      drivers/hpet.h
 )
 
 add_subdirectory("arch/${architecture}")
@@ -42,6 +43,7 @@ configure_file(config.h.in config.h)
 target_include_directories(kernel PUBLIC
     "${PROJECT_BINARY_DIR}"
     "${PROJECT_SOURCE_DIR}"
+    "${PROJECT_SOURCE_DIR}/drivers"
     "${PROJECT_SOURCE_DIR}/cstdlib"
     "${PROJECT_SOURCE_DIR}/arch/${architecture}"
     "${PROJECT_SOURCE_DIR}/../include"
