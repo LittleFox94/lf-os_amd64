@@ -31,6 +31,7 @@ foreach(test IN LISTS test_files)
         PRIVATE
             ${CMAKE_CURRENT_SOURCE_DIR}
             ${CMAKE_CURRENT_SOURCE_DIR}/../../include
+            ${CMAKE_CURRENT_SOURCE_DIR}/../../include/sys
             ${CMAKE_CURRENT_SOURCE_DIR}/../
             ${CMAKE_CURRENT_SOURCE_DIR}/../arch/amd64
             ${GTEST_INCLUDE_DIR}
