@@ -78,4 +78,26 @@ namespace LFOS {
 
         delete[] buffer;
     }
+
+    TEST(ksnprintf, max_len_return) {
+        EXPECT_EQ(ksnprintf(0, 0, "Hello world!"),           12) << "format string only";
+        EXPECT_EQ(ksnprintf(0, 0, "What the %d", 42),        11) << "with a %d placeholder";
+        EXPECT_EQ(ksnprintf(0, 0, "What the %x", 42),        11) << "with a %x placeholder";
+        EXPECT_EQ(ksnprintf(0, 0, "What the %s", "fluff"),   14) << "with a %s placeholder";
+        EXPECT_EQ(ksnprintf(0, 0, "What the %B", 1024*1024), 13) << "with a %B placeholder";
+    }
+
+    TEST(ksnprintf, null_terminating) {
+        char buffer[5];
+        buffer[4] = 42;
+        EXPECT_EQ(ksnprintf(buffer, sizeof(buffer) - 1, "Test %s", "fooooo"), 11) << "returns correct number of characters to write";
+        EXPECT_EQ(buffer[3], 0) << "correctly early-terminates output";
+        EXPECT_EQ(buffer[4], 42) << "not writing outside given buffer size";
+    }
+
+    TEST(ksnprintf, random_actually_used_format_string) {
+        char message[256];
+        ksnprintf(message, 256, "Interrupt: 0x%02x (%s), error: 0x%04x%s", 0x0D, "General protection fault", 0, "");
+        EXPECT_STREQ(message, "Interrupt: 0x0D (General protection fault), error: 0x0000");
+    }
 }

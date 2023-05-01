@@ -227,7 +227,7 @@ int kvsnprintf(char* buffer, int buffer_size, const char* format, va_list args) 
     int minLength        = 0;
     char lengthModifier  = 0; // store length in bytes
 
-    while((c = *format++) && i < buffer_size) {
+    while((c = *format++)) {
         if(c == '%') {
             placeholder     = true;
             placeholderChar = ' ';
@@ -293,22 +293,33 @@ int kvsnprintf(char* buffer, int buffer_size, const char* format, va_list args) 
                         break;
                 }
 
-                while(length < minLength && i < buffer_size) {
-                    buffer[i++] = placeholderChar;
+                while(length < minLength) {
+                    if(i < buffer_size) {
+                        buffer[i] = placeholderChar;
+                    }
+                    ++i;
                     --minLength;
                 }
 
-                i += sputs(buffer + i, buffer_size - i, argBuffer, length);
+                sputs(buffer + i, buffer_size - i, argBuffer, length);
+                i += length;
 
                 placeholder = false;
             }
         }
         else {
-            buffer[i++] = c;
+            if(i < buffer_size) {
+                buffer[i] = c;
+            }
+            ++i;
         }
     }
 
-    buffer[i] = 0;
+    if(i < buffer_size) {
+        buffer[i] = 0;
+    } else if(buffer_size) {
+        buffer[buffer_size-1] = 0;
+    }
 
     return i;
 }
