@@ -65,6 +65,47 @@ static void acpi_process_table(struct acpi_table_header* table) {
     if(memcmp(table->signature, "HPET", 4) == 0) {
         init_hpet(table);
     }
+    else if(memcmp(table->signature, "APIC", 4) == 0) {
+        logd("acpi", "found MADT table, local APIC address %x, flags %x", *(uint32_t*)((uint8_t*)table + 0x24), *(uint32_t*)((uint8_t*)table + 0x28));
+
+        uint8_t* entry = (uint8_t*)table + 0x2C;
+        while(entry < (uint8_t*)table + table->length) {
+            uint8_t type = *entry;
+            uint8_t length = *(entry+1);
+
+            switch(type) {
+                case 0:
+                case 9:
+                    {
+                        uint64_t processor = *(entry+2);
+                        uint64_t apic  = *(entry+3);
+                        uint64_t flags = *(uint32_t*)(entry+4);
+                        const char* typeString = type == 0 ? "APIC" : "x2APIC";
+                        logd("acpi", "Processor Local %s %u for processor %u with flags %x", typeString, apic, processor, flags);
+                    }
+                    break;
+                case 1:
+                    {
+                        uint64_t apic  = *(entry+2);
+                        uint64_t addr = *(uint32_t*)(entry+4);
+                        uint64_t interrupt_base = *(uint32_t*)(entry+8);
+                        logd("acpi", "I/O APIC %u at %x, interrupt base %x", apic, addr, interrupt_base);
+                    }
+                    break;
+                case 5:
+                    {
+                        uint64_t override = *(uint64_t*)(entry+4);
+                        logd("acpi", "Local APIC address override %x", override);
+                    }
+                    break;
+                default:
+                    logd("acpi", "Unhandled MADT entry with type %u and length %u", type, length);
+                    break;
+            }
+
+            entry += length;
+        }
+    }
 }
 
 static void init_acpi_rsdp(void* rsdp_ptr) {
