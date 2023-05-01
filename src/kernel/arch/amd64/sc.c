@@ -4,7 +4,7 @@
 #include "mm.h"
 #include "cpu.h"
 #include "scheduler.h"
-#include "pic.h"
+#include "apic.h"
 #include "bluescreen.h"
 #include "vm.h"
 #include "mq.h"
@@ -373,7 +373,7 @@ cpu_state* interrupt_handler(cpu_state* cpu) {
         }
     }
     else if(cpu->interrupt >= 32 && cpu->interrupt < 48) {
-        pic_set_handled(cpu->interrupt);
+        apic_set_handled(cpu->interrupt);
 
         uint8_t irq = cpu->interrupt - 0x20;
         if(interrupt_queues[irq]) {

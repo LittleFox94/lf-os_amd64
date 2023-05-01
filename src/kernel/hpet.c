@@ -36,7 +36,7 @@ struct hpet_mmio {
 
     uint64_t _padding3[25];
 
-    uint64_t main_counter_register;
+    volatile uint64_t main_counter_register;
 
     uint64_t _padding4;
 
@@ -96,9 +96,8 @@ struct hpet_acpi_table {
     uint8_t  oem             : 4;
 }__attribute__((packed));
 
-static struct hpet_mmio* hpet;
+static volatile struct hpet_mmio* hpet;
 
-static uint64_t initialization_ticks = 0;
 static uint16_t ticks_to_ns_multiplier = 1;
 
 void init_hpet(struct acpi_table_header* header) {
@@ -130,16 +129,24 @@ void init_hpet(struct acpi_table_header* header) {
         pci_vendor, rev, num_comp, ticks_to_ns_multiplier
     );
 
+    hpet->main_counter_register = 0;
     hpet->configuration.enable_cnf = 1;
 
-    initialization_ticks = hpet->main_counter_register;
-
-    logd("hpet", "initialization_ticks = %u", initialization_ticks);
     logi("hpet", "HPET initialized, we now know the time");
 }
 
+uint64_t hpet_ns_per_tick() {
+    if(!hpet) return 0;
+
+    return ticks_to_ns_multiplier;
+}
+
+uint64_t hpet_ticks() {
+    if(!hpet) return 0;
+
+    return hpet->main_counter_register;
+}
+
 void sc_handle_clock_read(uint64_t* nanoseconds) {
-    uint64_t ticks = hpet->main_counter_register -
-                     initialization_ticks;
-    *nanoseconds   = ticks * ticks_to_ns_multiplier;
+    *nanoseconds   = hpet_ticks() * hpet_ns_per_tick();
 }

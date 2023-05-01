@@ -11,8 +11,7 @@
 #include <elf.h>
 #include <scheduler.h>
 #include <string.h>
-#include <pic.h>
-#include <pit.h>
+#include <apic.h>
 #include <slab.h>
 #include <log.h>
 #include <efi.h>
@@ -92,8 +91,7 @@ void main(struct LoaderStruct* loaderStruct) {
 
     INIT_STEP(
         "Initialized interrupt management",
-        init_pic();
-        init_pit();
+        init_apic();
     )
 
     INIT_STEP(
