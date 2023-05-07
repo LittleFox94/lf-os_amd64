@@ -135,7 +135,7 @@ void sc_handle_debug_print(char* message) {
     }
 
     char buffer[20];
-    ksnprintf(buffer, 20, "process %d", scheduler_current_process);
+    ksnprintf(buffer, sizeof(buffer), "process %d", scheduler_current_process);
 
     logd(buffer, "%s", message);
 }
