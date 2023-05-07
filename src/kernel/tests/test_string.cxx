@@ -63,7 +63,7 @@ namespace LFOS {
         EXPECT_EQ(sputui(_buffer, 20, 23, 10), 2) << "sputui return correct";
         EXPECT_STREQ(_buffer, "23")               << "sputui modified buffer correctly";
     }
-       
+
     TEST_F(SputFamilyTest, sputbytes) {
         EXPECT_EQ(sputbytes(_buffer, 20, 4096), 4) << "sputbytes return correct";
         EXPECT_STREQ(_buffer, "4KiB")              << "sputbytes modified buffer correctly";
