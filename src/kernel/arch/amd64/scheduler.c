@@ -4,7 +4,7 @@
 #include <mm.h>
 #include <sc.h>
 #include <bitmap.h>
-#include <bluescreen.h>
+#include <panic.h>
 #include <log.h>
 #include <mutex.h>
 #include <mq.h>

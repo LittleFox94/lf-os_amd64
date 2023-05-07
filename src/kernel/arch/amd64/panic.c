@@ -1,4 +1,4 @@
-#include "bluescreen.h"
+#include "panic.h"
 #include "config.h"
 #include "string.h"
 #include "fbconsole.h"

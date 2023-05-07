@@ -1,6 +1,6 @@
 #include <tpa.h>
 #include <vm.h>
-#include <bluescreen.h>
+#include <panic.h>
 #include <mutex.h>
 #include <log.h>
 #include <scheduler.h>

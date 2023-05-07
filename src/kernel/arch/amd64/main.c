@@ -2,7 +2,7 @@
 
 #include <loader.h>
 
-#include <bluescreen.h>
+#include <panic.h>
 #include <mm.h>
 #include <vm.h>
 #include <fbconsole.h>

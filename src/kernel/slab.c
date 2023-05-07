@@ -1,7 +1,7 @@
 #include "slab.h"
 #include "bitmap.h"
 #include "string.h"
-#include "bluescreen.h"
+#include "panic.h"
 
 void init_slab(ptr_t mem_start, ptr_t mem_end, size_t allocation_size) {
     size_t mem_total   = mem_end   - mem_start;

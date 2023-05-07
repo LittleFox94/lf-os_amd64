@@ -5,7 +5,7 @@
 #include "cpu.h"
 #include "scheduler.h"
 #include "pic.h"
-#include "bluescreen.h"
+#include "panic.h"
 #include "vm.h"
 #include "mq.h"
 #include "flexarray.h"

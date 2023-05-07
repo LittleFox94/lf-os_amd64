@@ -1,7 +1,7 @@
 #include <mq.h>
 #include <string.h>
 #include <tpa.h>
-#include <bluescreen.h>
+#include <panic.h>
 #include <errno.h>
 #include <scheduler.h>
 

@@ -2,7 +2,7 @@
 #include "mm.h"
 #include "vm.h"
 #include "log.h"
-#include "bluescreen.h"
+#include "panic.h"
 
 #define PRESENT_BIT 1
 

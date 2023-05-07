@@ -1,7 +1,7 @@
 #include <config.h>
 #include <stdint.h>
 #include <string.h>
-#include <bluescreen.h>
+#include <panic.h>
 #include <fbconsole.h>
 #include <log.h>
 #include <vm.h>

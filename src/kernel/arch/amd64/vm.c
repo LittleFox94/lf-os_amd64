@@ -3,7 +3,7 @@
 #include <string.h>
 #include <log.h>
 #include <slab.h>
-#include <bluescreen.h>
+#include <panic.h>
 #include <tpa.h>
 #include <msr.h>
 

@@ -99,7 +99,7 @@ EOF
 if($mode eq 'kernel') {
     print $outfh <<EOF;
 #include <scheduler.h>
-#include <bluescreen.h>
+#include <panic.h>
 #include <mq.h>
 
 EOF

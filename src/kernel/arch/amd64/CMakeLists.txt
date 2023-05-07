@@ -1,5 +1,5 @@
 target_sources(kernel PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/bluescreen.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/panic.c
     ${CMAKE_CURRENT_SOURCE_DIR}/gdt.S
     ${CMAKE_CURRENT_SOURCE_DIR}/init.S
     ${CMAKE_CURRENT_SOURCE_DIR}/main.c
