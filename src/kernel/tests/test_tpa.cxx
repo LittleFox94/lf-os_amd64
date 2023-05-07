@@ -13,6 +13,10 @@ namespace LFOS {
                 : _tpa(tpa_new(&kernel_alloc, sizeof(uint64_t), _tpa_page_size, 0)) {
             }
 
+            virtual ~TpaTest() {
+                tpa_delete(_tpa);
+            }
+
         protected:
             const size_t _tpa_page_size = 4096;
             tpa_t*       _tpa;
@@ -72,7 +76,6 @@ namespace LFOS {
 
         const size_t entry_count = (rand() / (double)RAND_MAX) * 256 * 1024;
         RecordProperty("EntryCount", entry_count);
-
 
         const size_t num_pages         = (entry_count + tpa_entries_per_page(_tpa) - 1)
                                        / tpa_entries_per_page(_tpa);

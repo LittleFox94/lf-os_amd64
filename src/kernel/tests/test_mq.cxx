@@ -32,6 +32,7 @@ namespace LFOS {
             ~MessageQueueTest() {
                 mq_destroy(_messageQueue);
                 kernel_alloc.dealloc(&kernel_alloc, mqs);
+                free(_message);
             }
 
         protected:
@@ -83,6 +84,8 @@ namespace LFOS {
         msg->size = sizeof(Message) + 1;
 
         EXPECT_EQ(mq_pop(_messageQueue, msg), ENOMSG) << "Popping again gives no message but correct error code";
+
+        free(msg);
     }
 
     TEST_F(MessageQueueTest, ManyMessageTest) {
@@ -95,6 +98,8 @@ namespace LFOS {
             msg->user_data.raw[0] = i % 255;
 
             EXPECT_EQ(mq_push(_messageQueue, msg), 0) << "Pushed message to queue";
+
+            free(msg);
         }
 
         for(size_t i = 0; i < num_messages; ++i) {
