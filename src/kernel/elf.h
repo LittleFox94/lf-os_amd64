@@ -3,6 +3,7 @@
 
 #include "stdint.h"
 #include "vm.h"
+#include "allocator.h"
 
 #define ELF_MAGIC 0x464c457f
 
@@ -99,5 +100,32 @@ ptr_t load_elf(ptr_t elf, struct vm_table* context, ptr_t* data_start, ptr_t* da
  * \returns    Pointer to elf_section_header_t if found, NULL otherwise
  */
 elf_section_header_t* elf_section_by_name(const char* name, const void* elf);
+
+/**
+ * Load symbols of the provided ELF file.
+ *
+ * \param elf   ELF file already loaded into memory
+ * \param alloc Allocator to use for dynamically allocating memory
+ * \returns     Pointer to a opaque data structure containing the symbols,
+ *              use elf_symbolize to retrieve the symbol for a given address
+ */
+void* elf_load_symbols(ptr_t elf, allocator_t* alloc);
+
+/**
+ * Get the symbol name (and offset) for a given address from the data loaded with
+ * elf_load_symbols.
+ *
+ * \param symbols       Opaque data structure returned by elf_load_symbols
+ * \param addr          Address to symbolize
+ * \param symbol_length Input for size of the buffer where to write symbol, output actual
+ *                      size of either the data written into the buffer or the size needed
+ *                      for the buffer
+ * \param symbol        Output buffer where to write the symbol
+ * \returns             true if a symbol was found and the output buffer had enough space,
+ *                      false if no symbol was found or output buffer was too small. Output
+ *                      buffer to small can be recognized by symbol_length being set to a
+ *                      non-zero value.
+ */
+bool elf_symbolize(void* symbols, ptr_t addr, size_t* symbol_length, char* symbol);
 
 #endif

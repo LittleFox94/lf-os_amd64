@@ -88,3 +88,87 @@ elf_section_header_t* elf_section_by_name(const char* name, const void* elf) {
 
     return 0;
 }
+
+struct Symbol {
+    uint64_t address;
+    uint32_t name;
+};
+
+struct SymbolData {
+    allocator_t*  alloc;
+    uint64_t      numSymbols;
+    char*         symbolNames;
+    struct Symbol symbols[0];
+};
+
+void* elf_load_symbols(ptr_t elf, allocator_t* alloc) {
+    elf_section_header_t* symtab = elf_section_by_name(".symtab", (void*)elf);
+    elf_section_header_t* strtab = elf_section_by_name(".strtab", (void*)elf);
+
+    if(symtab == 0 && strtab == 0) {
+        logw("elf", "Unable to load symbols as either symtab (0x%x) or strtab (0x%x) are missing", symtab, strtab);
+        return 0;
+    }
+
+    uint64_t numSymbols = symtab->size / symtab->entrySize;
+
+    size_t dataSize = sizeof(struct SymbolData) + ((sizeof(struct Symbol) * numSymbols)) + strtab->size;
+    void* data      = alloc->alloc(alloc, dataSize);
+
+    struct SymbolData* header = (struct SymbolData*)data;
+    header->alloc       = alloc;
+    header->numSymbols  = numSymbols;
+    header->symbolNames = (char*)(data + sizeof(struct SymbolData) + (sizeof(struct Symbol) * numSymbols));
+
+    memcpy(header->symbolNames, (void*)elf + strtab->offset, strtab->size);
+
+    for(size_t i = 0; i < numSymbols; ++i) {
+        elf_symbol_t* elfSymbol = (elf_symbol_t*)(elf + symtab->offset + (i * symtab->entrySize));
+        struct Symbol* symbol   = (struct Symbol*)(data + sizeof(struct SymbolData) + (sizeof(struct Symbol) * i));
+
+        symbol->address = elfSymbol->addr;
+        symbol->name    = elfSymbol->name;
+    }
+
+    return (void*)data;
+}
+
+bool elf_symbolize(void* symbol_data, ptr_t addr, size_t* symbol_size, char* symbol) {
+    if(!symbol_data) {
+        *symbol_size = 0;
+        return false;
+    }
+
+    struct SymbolData* symbols = (struct SymbolData*)symbol_data;
+
+    int64_t best_difference = ~(1ULL<<63);
+    struct Symbol* best     = 0;
+
+    for(size_t i = 0; i < symbols->numSymbols; ++i) {
+        struct Symbol* current = &symbols->symbols[i];
+        int64_t diff           = addr - current->address;
+
+        if(diff > 0 && diff < best_difference) {
+            best            = current;
+            best_difference = diff;
+        }
+    }
+
+    if(!best) {
+        *symbol_size = 0;
+        return false;
+    }
+
+    char* best_name = symbols->symbolNames + best->name;
+    size_t max_size = *symbol_size;
+
+    if(best_difference) {
+        *symbol_size = ksnprintf(symbol, *symbol_size, "%s(+0x%x)", best_name, best_difference);
+    } else {
+        *symbol_size = strlen(best_name) + 1;
+
+        strncpy(symbol, best_name, max_size);
+    }
+
+    return *symbol_size <= max_size;
+}

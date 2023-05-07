@@ -176,15 +176,10 @@ void init_symbols(struct LoaderStruct* loaderStruct) {
 
     for(size_t i = 0; i < loaderStruct->num_files; ++i) {
         struct FileDescriptor* desc = (fileDescriptors + i);
-        void*           data = (uint8_t*)((ptr_t)loaderStruct + desc->offset);
+        ptr_t kernel                = (ptr_t)loaderStruct + desc->offset;
 
-        if(strcmp(desc->name, "kernel") == 0) {
-            elf_section_header_t* symtab = elf_section_by_name(".symtab", data);
-            elf_section_header_t* strtab = elf_section_by_name(".strtab", data);
-
-            if(symtab != 0 && strtab != 0) {
-                bluescreen_load_symbols(data, symtab, strtab);
-            }
+        if(strcasecmp(desc->name, "kernel") == 0) {
+            kernel_symbols = elf_load_symbols(kernel, &kernel_alloc);
         }
     }
 }
