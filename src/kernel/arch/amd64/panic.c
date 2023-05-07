@@ -3,6 +3,7 @@
 #include "string.h"
 #include "fbconsole.h"
 #include "elf.h"
+#include "qr.h"
 
 extern const char* LAST_INIT_STEP;
 
@@ -53,6 +54,35 @@ static void panic_message_impl(const char* message, uint64_t rbp, bool rbp_given
         }
     }
 }
+
+static void panic_qr() {
+    qr_data qr;
+    uint8_t modules = qr_log(qr);
+
+    uint8_t px_per_module = 4; // squared! 4 meaning 4x4
+
+    uint32_t img[(modules + 8)*(modules + 8)*px_per_module*px_per_module]; // 177x177 modules from qr, adding 4 modules quiet area on all sides
+    memset(img, 0xFF, sizeof(img));
+
+    for(uint8_t y = 0; y < modules; ++y) {
+        for(uint8_t x = 0; x < modules; ++x) {
+            uint8_t d = qr[(y*177)+x];
+            if(d & 1) {
+                for(uint8_t iy = 0; iy < px_per_module; ++iy) {
+                    for(uint8_t ix = 0; ix < px_per_module; ++ix) {
+                        uint16_t fx = (x * px_per_module) + ix + (4 * px_per_module);
+                        uint16_t fy = (y * px_per_module) + iy + (4 * px_per_module);
+                        img[(fy * (modules + 8) * px_per_module) + fx] = 0x00000000;
+                    }
+                }
+            }
+        }
+    }
+
+    uint16_t img_size = (modules + 8) * px_per_module;
+
+    fbconsole_blt((uint8_t*)img, img_size, img_size, -img_size, -img_size);
+}
 // \endcond
 
 void panic(void) {
@@ -64,6 +94,9 @@ void panic(void) {
 void panic_message(const char* message) {
     // \cond panic_functions
     panic_message_impl(message, 0, false);
+
+    panic_qr();
+
     while(1) {
         asm("hlt");
     }
@@ -136,6 +169,8 @@ void panic_cpu(const cpu_state* cpu) {
     logi("panic", "RIP: 0x%016x %s", cpu->rip, symbol);
 
     DUMP_CPU(cpu);
+
+    panic_qr();
 
     while(1) {
         asm("hlt");

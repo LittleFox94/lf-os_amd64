@@ -112,6 +112,7 @@ void main(struct LoaderStruct* loaderStruct) {
     )
 
     logi("kernel", "Kernel initialization complete");
+    panic_message("QR test!");
 
     LAST_INIT_STEP = "Kernel initialization complete";
     asm("sti");
