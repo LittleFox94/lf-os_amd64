@@ -337,40 +337,49 @@ static cpu_state* schedule_process(cpu_state* old_cpu) {
     return new_cpu;
 }
 
+static bool handle_userspace_exception(cpu_state* cpu) {
+    if(cpu->interrupt == 0x0e) {
+        ptr_t fault_address;
+        asm("mov %%cr2, %0":"=r"(fault_address));
+
+        if(scheduler_handle_pf(fault_address, cpu->error_code)) {
+            return true;
+        }
+    }
+
+    logw("sc", "Process %d caused exception %u for reason %u at 0x%x, cpu dump below", scheduler_current_process, cpu->interrupt,cpu->error_code, cpu->rip);
+    DUMP_CPU(cpu);
+
+    // exception in user space
+    if(cpu->interrupt == 14) {
+        scheduler_kill_current(kill_reason_segv);
+    }
+    else {
+        scheduler_kill_current(kill_reason_abort);
+    }
+
+    return true;
+}
+
 __attribute__ ((force_align_arg_pointer))
 cpu_state* interrupt_handler(cpu_state* cpu) {
     scheduler_process_save(cpu);
 
     if(cpu->interrupt < 32) {
-        bool handled = false;
-
         if((cpu->rip & 0x0000800000000000) == 0) {
-            if(cpu->interrupt == 0x0e) {
-                ptr_t fault_address;
-                asm("mov %%cr2, %0":"=r"(fault_address));
+            if(handle_userspace_exception(cpu)) {
+                cpu_state*       new_cpu     = cpu;
+                struct vm_table* new_context = vm_current_context();
 
-                if(scheduler_handle_pf(fault_address, cpu->error_code)) {
-                    return cpu;
+                if(scheduler_idle_if_needed(&new_cpu, &new_context)) {
+                    vm_context_activate(new_context);
                 }
-            }
 
-            logw("sc", "Process %d caused exception %u for reason %u at 0x%x, cpu dump below", scheduler_current_process, cpu->interrupt,cpu->error_code, cpu->rip);
-            DUMP_CPU(cpu);
-
-            // exception in user space
-            if(cpu->interrupt == 14) {
-                scheduler_kill_current(kill_reason_segv);
+                return new_cpu;
             }
-            else {
-                scheduler_kill_current(kill_reason_abort);
-            }
-
-            handled = true;
         }
 
-        if(!handled) {
-            panic_cpu(cpu);
-        }
+        panic_cpu(cpu);
     }
     else if(cpu->interrupt >= 32 && cpu->interrupt < 48) {
         pic_set_handled(cpu->interrupt);
