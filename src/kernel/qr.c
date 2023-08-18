@@ -92,7 +92,8 @@ static uint16_t qr_userdata(uint8_t version) {
 
 static uint8_t qr_version(size_t data_len) {
     for(size_t i = 1; i < sizeof(qr_versions) / sizeof(struct qr_version_data); ++i) {
-        if(qr_userdata(i) >= data_len) {
+        // > and not >= for the mode indicator nibble
+        if(qr_userdata(i) > data_len) {
             return i;
         }
     }
@@ -238,21 +239,63 @@ static inline bool qr_is_data(qr_data out, uint8_t version, uint8_t x, uint8_t y
     return true;
 }
 
+static bool qr_mask_pattern0(uint8_t x, uint8_t y) {
+    return ((x+y) % 2) == 0;
+}
+
+static bool qr_mask_pattern1(uint8_t x, uint8_t y) {
+    return (y % 2) == 0;
+}
+
+static bool qr_mask_pattern2(uint8_t x, uint8_t y) {
+    return (x % 3) == 0;
+}
+
+static bool qr_mask_pattern3(uint8_t x, uint8_t y) {
+    return ((x+y) % 3) == 0;
+}
+
+static bool qr_mask_pattern4(uint8_t x, uint8_t y) {
+    return (((y / 2) + (x / 3)) % 2) == 0;
+}
+
+static bool qr_mask_pattern5(uint8_t x, uint8_t y) {
+    return (((y * x) % 2) + ((y * x) % 3)) == 0;
+}
+
+static bool qr_mask_pattern6(uint8_t x, uint8_t y) {
+    return ((((y * x) % 2) + ((y * x) % 3)) % 2) == 0;
+}
+
+static bool qr_mask_pattern7(uint8_t x, uint8_t y) {
+    return ((((y + x) % 2) + ((y * x) % 3)) % 2) == 0;
+}
+
 static void qr_mask(qr_data out, uint8_t version, uint8_t pattern) {
+    if(pattern > 7) {
+        loge("qr", "QR pattern %u not implemented", (unsigned)pattern);
+    }
+
     uint8_t modules = qr_modules(version);
+
+    bool(*patterns[])(uint8_t x, uint8_t y) = {
+        qr_mask_pattern0,
+        qr_mask_pattern1,
+        qr_mask_pattern2,
+        qr_mask_pattern3,
+        qr_mask_pattern4,
+        qr_mask_pattern5,
+        qr_mask_pattern6,
+        qr_mask_pattern7,
+    };
 
     for(uint8_t y = 0; y < modules; ++y) {
         for(uint8_t x = 0; x < modules; ++x) {
             if(qr_is_data(out, modules, x, y)) {
-                switch(pattern) {
-                case 0:
-                    if((x + y) % 2 == 0) {
-                        qr_flip(out, x, y);
-                    }
-                    break;
-                default:
-                    loge("qr", "QR pattern %u not implemented", (unsigned)pattern);
-                    return;
+                bool flip = patterns[pattern](x, y);
+
+                if(flip) {
+                    qr_flip(out, x, y);
                 }
             }
         }
@@ -447,15 +490,18 @@ static void qr_encode_data(qr_data out, uint8_t version, const uint8_t* data, si
 
     uint8_t final_codewords[qr_all_codewords(version)];
     memset(final_codewords, 0, sizeof(final_codewords));
+
+    size_t total_blocks = qr_versions[version].block_sizes[0] + qr_versions[version].block_sizes[2];
     size_t total_block = 0, si = 0;
     uint8_t* blocks = qr_versions[version].block_sizes;
+
     while(*blocks) {
         uint8_t block_count = blocks[0];
         uint8_t block_size  = blocks[1];
         for(uint8_t block = 0; block < block_count; ++block && ++total_block) {
             // XXX: magic to get EC codewords for data_codewords[si-block_size] to data_codewords[di]
             uint8_t ec_codewords[qr_versions[version].ec_codewords_per_block];
-            memset(ec_codewords, 42 + total_block, sizeof(ec_codewords));
+            memset(ec_codewords, total_block, sizeof(ec_codewords));
 
             for(uint8_t i = 0; i < block_size; ++i) {
                 size_t di = qr_interleaved_data_index(version, si);
@@ -465,10 +511,7 @@ static void qr_encode_data(qr_data out, uint8_t version, const uint8_t* data, si
 
             for(uint8_t i = 0; i < sizeof(ec_codewords); ++i) {
                 size_t di = sizeof(data_codewords)
-                          + (
-                                   (qr_versions[version].block_sizes[0] + qr_versions[version].block_sizes[2])
-                                  * i
-                            )
+                          + (total_blocks * i)
                           + total_block;
                 final_codewords[di] = ec_codewords[i];
             }
