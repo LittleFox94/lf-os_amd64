@@ -482,8 +482,13 @@ void fatify_name(char** dst, const char* fullname, struct directory_entry* dir, 
 }
 
 void stat2fat(struct directory_entry* entry, struct stat* stat) {
+    // We are using st_{c,a,m}time instead of st_atim.tv_spec, even though they
+    // are documented in Linux' stat(3types) as backward compatibility because
+    // there is a quite backwards OS out there that needs it: macOS.
+    // -- LittleFox, 2023-09-01, after a nice debugging session at MRMCD23 with k4m1
+
     struct tm ctime;
-    localtime_r(&stat->st_ctim.tv_sec, &ctime);
+    localtime_r(&stat->st_ctime, &ctime);
     entry->create_time_seconds = ctime.tm_sec / 2;
     entry->create_time_minutes = ctime.tm_min;
     entry->create_time_hours   = ctime.tm_hour;
@@ -492,13 +497,13 @@ void stat2fat(struct directory_entry* entry, struct stat* stat) {
     entry->create_time_year    = ctime.tm_year - 80;
 
     struct tm atime;
-    localtime_r(&stat->st_atim.tv_sec, &atime);
+    localtime_r(&stat->st_atime, &atime);
     entry->last_access_time_day     = atime.tm_mday;
     entry->last_access_time_month   = atime.tm_mon + 1;
     entry->last_access_time_year    = atime.tm_year - 80;
 
     struct tm mtime;
-    localtime_r(&stat->st_mtim.tv_sec, &mtime);
+    localtime_r(&stat->st_mtime, &mtime);
     entry->last_modify_time_seconds = mtime.tm_sec / 2;
     entry->last_modify_time_minutes = mtime.tm_min;
     entry->last_modify_time_hours   = mtime.tm_hour;
