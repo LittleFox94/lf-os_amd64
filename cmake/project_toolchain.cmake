@@ -1,5 +1,7 @@
-set(lf_os_toolchain "/opt/lf_os/toolchain")
-set(lf_os_sysroot   "/opt/lf_os/sysroot")
+set(lf_os_sysroot        "/opt/lf_os/sysroot"   CACHE PATH "Default location where to find LF OS sysroot to compile and link userspace appliations")
+set(CMAKE_INSTALL_PREFIX "/opt/lf_os/toolchain" CACHE PATH "Location where LF OS toolchain is installed to")
+
+set(lf_os_toolchain "${CMAKE_INSTALL_PREFIX}")
 
 find_program(clang   NAMES clang-13   clang   HINTS /usr/bin /bin)
 if(clang)
