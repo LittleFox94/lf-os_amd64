@@ -1,6 +1,10 @@
 #ifndef _LFOS_DLINKEDLIST_H_INCLUDED
 #define _LFOS_DLINKEDLIST_H_INCLUDED
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct lfos_dlinkedlist;
 struct lfos_dlinkedlist_iterator;
 
@@ -16,8 +20,15 @@ int lfos_dlinkedlist_insert_after(struct lfos_dlinkedlist_iterator* it, void* da
 
 struct lfos_dlinkedlist_iterator* lfos_dlinkedlist_next(struct lfos_dlinkedlist_iterator* it);
 struct lfos_dlinkedlist_iterator* lfos_dlinkedlist_prev(struct lfos_dlinkedlist_iterator* it);
+
+int lfos_dlinkedlist_forward(struct lfos_dlinkedlist_iterator* it);
+int lfos_dlinkedlist_backward(struct lfos_dlinkedlist_iterator* it);
+
 void* lfos_dlinkedlist_data(struct lfos_dlinkedlist_iterator* it);
 int lfos_dlinkedlist_unlink(struct lfos_dlinkedlist_iterator* it);
 
+#ifdef __cplusplus
+} // extern "C"
+#endif
 
 #endif // _LFOS_DLINKEDLIST_H_INCLUDED
