@@ -1,4 +1,7 @@
+cmake_minimum_required(VERSION 3.20)
 project(liblfos LANGUAGES C)
+
+include(CTest)
 
 add_library(
     lfos
@@ -22,5 +25,14 @@ target_sources(lfos
 )
 target_include_directories(lfos PRIVATE ${PROJECT_SOURCE_DIR}/include)
 
+if(NOT DEFINED LF_OS)
+    target_include_directories(lfos PRIVATE ${PROJECT_SOURCE_DIR}/../../include)
+endif()
+
 install(TARGETS lfos                  DESTINATION "${lf_os_sysroot}/lib")
 install(TARGETS lfos FILE_SET headers DESTINATION "${lf_os_sysroot}/include")
+
+if(${BUILD_TESTING})
+    enable_testing()
+    add_subdirectory(tests)
+endif()

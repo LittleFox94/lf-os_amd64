@@ -1,5 +1,6 @@
 #include <lfos/dlinkedlist.h>
 
+#include <string.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -87,10 +88,6 @@ int lfos_dlinkedlist_insert_before(struct lfos_dlinkedlist_iterator* it, void* d
         it->item = item;
     }
 
-    ++it->list->generation;
-    // prepending before this iterator does not invalidate it
-    it->generation = it->list->generation;
-
     return 0;
 }
 
@@ -107,7 +104,7 @@ int lfos_dlinkedlist_insert_after(struct lfos_dlinkedlist_iterator* it, void* da
     item->data = data;
 
     if(it->item) {
-        item->prev = it->item;
+        item->next = it->item->next;
         if(it->item->next) {
             it->item->next->prev = item;
         }
@@ -123,10 +120,6 @@ int lfos_dlinkedlist_insert_after(struct lfos_dlinkedlist_iterator* it, void* da
         it->list->back = item;
         it->item = item;
     }
-
-    ++it->list->generation;
-    // appending after this iterator does not invalidate it
-    it->generation = it->list->generation;
 
     return 0;
 }
@@ -159,6 +152,14 @@ int lfos_dlinkedlist_unlink(struct lfos_dlinkedlist_iterator* it) {
         item->next->prev = item->prev;
     }
 
+    if(it->list->front == item) {
+        it->list->front = item->prev ? item->prev : item->next;
+    }
+
+    if(it->list->back == item) {
+        it->list->back = item->next ? item->next : item->prev;
+    }
+
     free(item->data);
     free(item);
 
@@ -174,40 +175,50 @@ struct lfos_dlinkedlist_iterator* lfos_dlinkedlist_back(struct lfos_dlinkedlist*
 }
 
 struct lfos_dlinkedlist_iterator* lfos_dlinkedlist_prev(struct lfos_dlinkedlist_iterator* it) {
-    if(it->list->generation != it->generation) {
+    struct lfos_dlinkedlist_iterator *new = malloc(sizeof(struct lfos_dlinkedlist_iterator));
+    if(!new) {
         return 0;
     }
 
-    if(it->item && it->item->prev) {
-        return lfos_dlinkedlist_iterator_for_element(it->list, it->item->prev);
+    memcpy(new, it, sizeof(struct lfos_dlinkedlist_iterator));
+
+    if(lfos_dlinkedlist_backward(new) == 0) {
+        return new;
     }
+
+    free(new);
     return 0;
 }
 
 struct lfos_dlinkedlist_iterator* lfos_dlinkedlist_next(struct lfos_dlinkedlist_iterator* it) {
-    if(it->list->generation != it->generation) {
-
-        // see comment in lfos_dlinkedlist_unlink, basically we allow fetching
-        // the next item from an interator who's item was unlinked
-        if(it->list->generation == it->unlinked_generation) {
-            return lfos_dlinkedlist_iterator_for_element(it->list, it->item);
-        }
-
+    struct lfos_dlinkedlist_iterator *new = malloc(sizeof(struct lfos_dlinkedlist_iterator));
+    if(!new) {
         return 0;
     }
 
-    if(it->item && it->item->next) {
-        return lfos_dlinkedlist_iterator_for_element(it->list, it->item->next);
+    memcpy(new, it, sizeof(struct lfos_dlinkedlist_iterator));
+
+    if(lfos_dlinkedlist_forward(new) == 0) {
+        return new;
     }
+
+    free(new);
     return 0;
 }
 
 int lfos_dlinkedlist_forward(struct lfos_dlinkedlist_iterator* it) {
     if(it->generation != it->list->generation) {
+        // see comment in lfos_dlinkedlist_unlink, basically we allow fetching
+        // the next item from an interator who's item was unlinked
+        if(it->list->generation == it->unlinked_generation) {
+            it->generation = it->list->generation;
+            return 0;
+        }
+
         return ESTALE;
     }
 
-    if(it->item->next) {
+    if(it->item && it->item->next) {
         it->item = it->item->next;
     } else {
         return ENOENT;
@@ -221,7 +232,7 @@ int lfos_dlinkedlist_backward(struct lfos_dlinkedlist_iterator* it) {
         return ESTALE;
     }
 
-    if(it->item->prev) {
+    if(it->item && it->item->prev) {
         it->item = it->item->prev;
     } else {
         return ENOENT;
