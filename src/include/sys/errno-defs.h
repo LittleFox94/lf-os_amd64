@@ -32,6 +32,7 @@
 #define EILSEQ       84
 #define EMSGSIZE     90
 #define ENOTSUP      95
+#define ESTALE      116
 
 // user defined after this
 #define __ELASTERROR 2000

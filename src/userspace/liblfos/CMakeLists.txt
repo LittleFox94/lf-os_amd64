@@ -4,11 +4,13 @@ add_library(
     lfos
 
     lib/mq-router.c
+    lib/dlinkedlist.c
 )
 set(
     lfos_headers
 
     include/lfos/mq-router.h
+    include/lfos/dlinkedlist.h
 )
 
 target_sources(lfos
