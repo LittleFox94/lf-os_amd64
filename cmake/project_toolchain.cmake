@@ -1,5 +1,8 @@
 set(lf_os_sysroot        "/opt/lf_os/sysroot"   CACHE PATH "Default location where to find LF OS sysroot to compile and link userspace appliations")
-set(CMAKE_INSTALL_PREFIX "/opt/lf_os/toolchain" CACHE PATH "Location where LF OS toolchain is installed to")
+
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+    set(CMAKE_INSTALL_PREFIX "/opt/lf_os/toolchain" CACHE PATH "Location where LF OS toolchain is installed to" FORCE)
+endif()
 
 set(lf_os_toolchain "${CMAKE_INSTALL_PREFIX}")
 
