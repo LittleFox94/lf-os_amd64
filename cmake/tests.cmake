@@ -1,6 +1,9 @@
 include(CTest)
 
 if(${BUILD_TESTING})
+    set(CMAKE_C_FLAGS_PROFILE   "--coverage")
+    set(CMAKE_CXX_FLAGS_PROFILE "--coverage")
+
     add_subdirectory(src/kernel/tests)
     add_subdirectory(src/lib/tiny-stl)
     add_subdirectory(src/userspace/liblfos)

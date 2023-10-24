@@ -73,7 +73,7 @@ variables:
   before_script: &cmake-build-before-script
   - '[ -z "$CCACHE_DIR" ] && export CCACHE_DIR=$(pwd)/.ccache'
   script: &cmake-build-script
-  - cmake -Dsubproject=$SUBPROJECT $CMAKE_DEFINES -G Ninja -DCPACK_PACKAGE_VERSION=$VERSION -DCMAKE_BUILD_TYPE=Release -B build -S .
+  - cmake -Dsubproject=$SUBPROJECT $CMAKE_DEFINES -G Ninja -DCPACK_PACKAGE_VERSION=$VERSION -DCMAKE_BUILD_TYPE=$BUILD_TYPE -B build -S .
   - ninja -C build ${TARGETS:-package}
   - test "$CMAKE_NO_COPY" || mv build/*.deb build/*.tar.xz .
   variables:
@@ -81,6 +81,7 @@ variables:
     GIT_SUBMODULE_STRATEGY: recursive
     ARTIFACT_COMPRESSION_LEVEL: fastest
     KUBERNETES_CPU_LIMIT: 7
+    BUILD_TYPE: Release
   cache:
     paths:
     - .ccache
@@ -212,6 +213,10 @@ unittest:
     KUBERNETES_CPU_LIMIT: 2
     KUBERNETES_MEMORY_REQUEST: 2Gi
     KUBERNETES_MEMORY_LIMIT: 2Gi
+    BUILD_TYPE: PROFILE
+  after_script:
+  - cd build && gcovr --xml-pretty --exclude-unreachable-branches --print-summary -o coverage.xml --root ${CI_PROJECT_DIR}
+  coverage: /^\s*lines:\s*\d+.\d+\%/
   artifacts:
     when: always
     reports:
@@ -220,6 +225,9 @@ unittest:
       - build/runtime-test_*.xml
       - build/tinystl_tests.xml
       - build/liblfos_tests.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: build/coverage.xml
 
 build-sysroot:
   extends: .cmake-build
