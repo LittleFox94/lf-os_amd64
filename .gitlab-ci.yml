@@ -67,7 +67,7 @@ variables:
 .cmake-build:
   extends:
   - .source-job
-  image: $CI_REGISTRY_IMAGE/ci/$CI_COMMIT_REF_NAME:latest
+  image: $CI_REGISTRY_IMAGE/ci:$CI_COMMIT_SHA
   interruptible: true
   before_script: &cmake-build-before-script
   - '[ -z "$CCACHE_DIR" ] && export CCACHE_DIR=$(pwd)/.ccache'
