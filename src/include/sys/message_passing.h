@@ -14,6 +14,10 @@
 #include <stdbool.h>
 #include <uuid.h>
 
+#ifndef __kernel
+#   include <sys/types.h>
+#endif
+
 enum MessageType {
     //! Invalid message, only size is valid
     MT_Invalid,
