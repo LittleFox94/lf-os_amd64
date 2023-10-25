@@ -316,3 +316,19 @@ TEST_F(dlinkedlistTest, InsertingBackwards) {
     checkFullListForward(items);
     checkFullListBackward(items);
 }
+
+TEST_F(dlinkedlistTest, ForwardDeletedWhenNoItemFollowing) {
+    int error = 0;
+
+    lfos_dlinkedlist_iterator* it = lfos_dlinkedlist_front(dlinkedlist);
+    error = lfos_dlinkedlist_insert_after(it, getTestString());
+    EXPECT_EQ(error, 0) << "Expect inserting to succeed";
+
+    error = lfos_dlinkedlist_unlink(it);
+    EXPECT_EQ(error, 0) << "Expect unlinking to succeed";
+
+    error = lfos_dlinkedlist_forward(it);
+    EXPECT_EQ(error, ENOENT) << "Expect forwarding to fail with ENOENT";
+
+    free(it);
+}
