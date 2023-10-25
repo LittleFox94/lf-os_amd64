@@ -211,8 +211,12 @@ int lfos_dlinkedlist_forward(struct lfos_dlinkedlist_iterator* it) {
         // see comment in lfos_dlinkedlist_unlink, basically we allow fetching
         // the next item from an interator who's item was unlinked
         if(it->list->generation == it->unlinked_generation) {
-            it->generation = it->list->generation;
-            return 0;
+            if(it->item) {
+                it->generation = it->list->generation;
+                return 0;
+            } else {
+                return ENOENT;
+            }
         }
 
         return ESTALE;
