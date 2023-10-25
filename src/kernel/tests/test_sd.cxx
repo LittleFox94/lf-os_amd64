@@ -7,8 +7,6 @@ namespace LFOS {
         #include <message_passing.h>
         #include "../cstdlib/string.h"
 
-        #define MT_Invalid Message::MT_Invalid
-
         #include "../sd.c"
         #include "../mq.c"
         #include "../tpa.c"
@@ -40,7 +38,7 @@ namespace LFOS {
         struct Message msgA = {
             .size   = sizeof(Message),
             .sender = 0x1337A,
-            .type   = Message::MT_ServiceDiscovery,
+            .type   = MT_ServiceDiscovery,
         };
 
         EXPECT_EQ(sd_send(&a, &msgA), 1) << "Message sent to registered queue for a";
@@ -48,7 +46,7 @@ namespace LFOS {
         struct Message msgB = {
             .size   = sizeof(Message),
             .sender = 0x1337B,
-            .type   = Message::MT_ServiceDiscovery,
+            .type   = MT_ServiceDiscovery,
         };
 
         EXPECT_EQ(sd_send(&b, &msgB), 2) << "Message sent to all two reqistered queues for b";
@@ -56,7 +54,7 @@ namespace LFOS {
         struct Message msgA2 = {
             .size   = sizeof(Message),
             .sender = 0x1337A2,
-            .type   = Message::MT_ServiceDiscovery,
+            .type   = MT_ServiceDiscovery,
         };
 
         EXPECT_EQ(sd_send(&a2, &msgA2), 1) << "Message sent to reqistered queue for a2";

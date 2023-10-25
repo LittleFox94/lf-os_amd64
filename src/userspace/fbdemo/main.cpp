@@ -191,7 +191,7 @@ int main(int argc, char* argv[]) {
     }
     else {
         switch(msg->type) {
-            case Message::MT_Signal:
+            case MT_Signal:
                 std::cout << "Signal " << msg->user_data.Signal.signal << std::endl;
                 break;
             default:

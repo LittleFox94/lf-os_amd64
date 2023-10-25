@@ -17,7 +17,7 @@ void wait_transmitter_empty() {
         sc_do_ipc_mq_poll(0, true, msg, &error);
     } while(
         error == EAGAIN ||
-        (error == 0 && msg->type != Message::MT_HardwareInterrupt)
+        (error == 0 && msg->type != MT_HardwareInterrupt)
     );
 
     if(error) {

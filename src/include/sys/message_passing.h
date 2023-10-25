@@ -1,9 +1,30 @@
 #ifndef _MESSAGE_PASSING_H_INCLUDED
 #define _MESSAGE_PASSING_H_INCLUDED
 
+// XXX: I'm very much not happy with this file, the definitions in here and the
+//      names in the global namespace this uses.
+//      Sadly, this is a very core part of the system ..
+//      Still, expect random changes to those definitions, their names and co -
+//      the overall logic of message passing in LF OS feels sensible though, so
+//      far at least.
+//
+//      -- Fox, 2023-10-25
+
 #include <stdint.h>
 #include <stdbool.h>
 #include <uuid.h>
+
+enum MessageType {
+    //! Invalid message, only size is valid
+    MT_Invalid,
+
+    MT_IO,
+    MT_Signal,
+    MT_HardwareInterrupt,
+    MT_ServiceDiscovery,
+
+    MT_UserDefined = 1024,
+};
 
 struct Message {
     //! Size of the message, including metadata
@@ -16,17 +37,7 @@ struct Message {
     pid_t sender;
 
     //! Type of the message
-    enum {
-        //! Invalid message, only size is valid
-        MT_Invalid,
-
-        MT_IO,
-        MT_Signal,
-        MT_HardwareInterrupt,
-        MT_ServiceDiscovery,
-
-        MT_UserDefined = 1024,
-    } type;
+    enum MessageType type;
 
     union UserData {
         struct IOUserData {

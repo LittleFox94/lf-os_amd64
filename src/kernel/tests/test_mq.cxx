@@ -3,9 +3,6 @@
 namespace LFOS {
     #include <message_passing.h>
 
-    #define MT_Invalid     Message::MT_Invalid
-    #define MT_UserDefined Message::MT_UserDefined
-
     extern "C" {
         #include <mq.c>
         #include <tpa.c>
