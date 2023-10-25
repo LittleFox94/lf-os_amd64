@@ -6,6 +6,7 @@
 #endif
 
 #include <errno.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -15,6 +16,8 @@ struct lfos_mq_router {
 
     struct lfos_dlinkedlist* messages;
     struct lfos_dlinkedlist* handlers;
+
+    bool has_requeued_messages;
 };
 
 struct lfos_mq_router_handler_entry {
@@ -59,14 +62,14 @@ int lfos_mq_router_destroy(struct lfos_mq_router* mq_router) {
     return 0;
 }
 
-static void lfos_mq_router_handle(struct lfos_mq_router* mq_router, struct lfos_dlinkedlist_iterator* msg_it, struct Message* msg) {
+static lfos_mq_router_handler lfos_mq_router_handler_by_message_type(struct lfos_mq_router* mq_router, enum MessageType type) {
     struct lfos_dlinkedlist_iterator* it = lfos_dlinkedlist_front(mq_router->handlers);
 
     int error = 0;
     lfos_mq_router_handler handler = 0;
     while(!error) {
         struct lfos_mq_router_handler_entry* entry = lfos_dlinkedlist_data(it);
-        if(entry && entry->type == msg->type) {
+        if(entry && entry->type == type) {
             handler = entry->handler;
             break;
         }
@@ -75,15 +78,32 @@ static void lfos_mq_router_handle(struct lfos_mq_router* mq_router, struct lfos_
     }
     free(it);
 
-    if(!error && handler) {
+    return handler;
+}
+
+static void lfos_mq_router_handle(struct lfos_mq_router* mq_router, struct lfos_dlinkedlist_iterator* msg_it, struct Message* msg) {
+    lfos_mq_router_handler handler = lfos_mq_router_handler_by_message_type(mq_router, msg->type);
+
+    int error = 0;
+    bool queue = !handler;
+
+    if(handler) {
         error = handler(msg);
 
-        if(error != EAGAIN && msg_it) {
+        if(error == EAGAIN) {
+            mq_router->has_requeued_messages = true;
+
+            if(!msg_it) {
+                queue = true;
+            }
+        } else if(msg_it) {
             error = lfos_dlinkedlist_unlink(msg_it);
         } else {
             free(msg);
         }
-    } else if (!handler) {
+    }
+
+    if(queue) {
         struct lfos_dlinkedlist_iterator* back = lfos_dlinkedlist_back(mq_router->messages);
         error = lfos_dlinkedlist_insert_after(back, msg);
         free(back);
@@ -132,7 +152,31 @@ static int lfos_mq_router_receive_message(struct lfos_mq_router* mq_router) {
     return error;
 }
 
+static void lfos_mq_router_process_requeued_messages(struct lfos_mq_router* mq_router) {
+    if(!mq_router->has_requeued_messages) {
+        return;
+    }
+
+    mq_router->has_requeued_messages = false;
+
+    struct lfos_dlinkedlist_iterator* it = lfos_dlinkedlist_front(mq_router->messages);
+    int error = 0;
+    while(!error) {
+        struct Message* msg = lfos_dlinkedlist_data(it);
+        if(msg) {
+            lfos_mq_router_handle(mq_router, it, msg);
+        } else {
+            break;
+        }
+
+        error = lfos_dlinkedlist_forward(it);
+    }
+    free(it);
+}
+
 int lfos_mq_router_receive_messages(struct lfos_mq_router* mq_router) {
+    lfos_mq_router_process_requeued_messages(mq_router);
+
     int error = 0;
     do {
         error = lfos_mq_router_receive_message(mq_router);
