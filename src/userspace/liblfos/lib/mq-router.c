@@ -47,8 +47,11 @@ struct lfos_mq_router* lfos_mq_router_init(uint64_t mq) {
 int lfos_mq_router_destroy(struct lfos_mq_router* mq_router) {
     struct lfos_dlinkedlist_iterator* front = lfos_dlinkedlist_front(mq_router->messages);
     if(lfos_dlinkedlist_data(front)) {
+        free(front);
         return EBUSY;
     }
+
+    free(front);
 
     lfos_dlinkedlist_destroy(mq_router->messages);
     lfos_dlinkedlist_destroy(mq_router->handlers);
@@ -56,57 +59,34 @@ int lfos_mq_router_destroy(struct lfos_mq_router* mq_router) {
     return 0;
 }
 
-static int lfos_mq_router_receive_message(struct lfos_mq_router* mq_router) {
-    size_t size = sizeof(struct Message);
-    struct Message* msg = calloc(1, size);
-    msg->size = size;
+static void lfos_mq_router_handle(struct lfos_mq_router* mq_router, struct lfos_dlinkedlist_iterator* msg_it, struct Message* msg) {
+    struct lfos_dlinkedlist_iterator* it = lfos_dlinkedlist_front(mq_router->handlers);
 
-    uint64_t error = EMSGSIZE;
-
-    do {
-        if(size != msg->size) {
-            size = msg->size;
-            msg = realloc(msg, size);
-        }
-
-        sc_do_ipc_mq_poll(mq_router->mq, false, msg, &error);
-    } while(error == EMSGSIZE);
-
-    if(!error)  {
-        struct lfos_dlinkedlist_iterator* it = lfos_dlinkedlist_back(mq_router->messages);
-        lfos_dlinkedlist_insert_after(it, msg);
-    }
-
-    return error;
-}
-
-int lfos_mq_router_receive_messages(struct lfos_mq_router* mq_router) {
     int error = 0;
+    lfos_mq_router_handler handler = 0;
     while(!error) {
-        error = lfos_mq_router_receive_message(mq_router);
-#if defined(DEBUG)
-        if(error != EAGAIN) {
-            fprintf(stderr, "liblfos/mq-router: unexpected error while receiving message: %d\n", error);
+        struct lfos_mq_router_handler_entry* entry = lfos_dlinkedlist_data(it);
+        if(entry && entry->type == msg->type) {
+            handler = entry->handler;
+            break;
         }
-#endif
-    }
 
-    if(error == EAGAIN) {
-        return 0;
+        error = lfos_dlinkedlist_forward(it);
     }
+    free(it);
 
-    return error;
-}
+    if(!error && handler) {
+        error = handler(msg);
 
-void lfos_mq_router_handle(struct lfos_mq_router* mq_router, struct lfos_dlinkedlist_iterator* msg_it, struct Message* msg, lfos_mq_router_handler handler) {
-    int error = 0;
-    int ret = handler(msg);
-    if(ret != EAGAIN && msg_it) {
-        error = lfos_dlinkedlist_unlink(msg_it);
-    }
-    else if(ret == EAGAIN && !msg_it) {
+        if(error != EAGAIN && msg_it) {
+            error = lfos_dlinkedlist_unlink(msg_it);
+        } else {
+            free(msg);
+        }
+    } else if (!handler) {
         struct lfos_dlinkedlist_iterator* back = lfos_dlinkedlist_back(mq_router->messages);
         error = lfos_dlinkedlist_insert_after(back, msg);
+        free(back);
     }
 
 #if defined(DEBUG)
@@ -114,6 +94,60 @@ void lfos_mq_router_handle(struct lfos_mq_router* mq_router, struct lfos_dlinked
         fprintf(stderr, "liblfos/mq-router: unexpected error after handling message: %d\n", error);
     }
 #endif
+}
+
+static int lfos_mq_router_receive_message(struct lfos_mq_router* mq_router) {
+    size_t size = sizeof(struct Message);
+    struct Message* msg = calloc(1, size);
+    if(!msg) {
+        return errno;
+    }
+
+    msg->size = size;
+
+    uint64_t error = EMSGSIZE;
+
+    do {
+        if(size != msg->size) {
+            size = msg->size;
+            struct Message* new_msg = realloc(msg, size);
+            if(!new_msg) {
+                error = errno;
+                free(msg);
+                return error;
+            }
+
+            msg = new_msg;
+        }
+
+        sc_do_ipc_mq_poll(mq_router->mq, false, msg, &error);
+    } while(error == EMSGSIZE);
+
+    if(!error)  {
+        lfos_mq_router_handle(mq_router, 0, msg);
+    } else {
+        free(msg);
+    }
+
+    return error;
+}
+
+int lfos_mq_router_receive_messages(struct lfos_mq_router* mq_router) {
+    int error = 0;
+    do {
+        error = lfos_mq_router_receive_message(mq_router);
+#if defined(DEBUG)
+        if(error != EAGAIN) {
+            fprintf(stderr, "liblfos/mq-router: unexpected error while receiving message: %d\n", error);
+        }
+#endif
+    } while(!error && error != EAGAIN);
+
+    if(error == EAGAIN) {
+        return 0;
+    }
+
+    return error;
 }
 
 int lfos_mq_router_set_handler(struct lfos_mq_router* mq_router, enum MessageType type, lfos_mq_router_handler handler) {
@@ -127,35 +161,45 @@ int lfos_mq_router_set_handler(struct lfos_mq_router* mq_router, enum MessageTyp
 
     struct lfos_dlinkedlist_iterator* it = lfos_dlinkedlist_front(mq_router->handlers);
 
-    while(it) {
-        struct lfos_dlinkedlist_iterator* next = lfos_dlinkedlist_next(it);
-
+    int error = 0;
+    while(!error) {
         struct lfos_mq_router_handler_entry* entry = lfos_dlinkedlist_data(it);
         if(entry && entry->type == type) {
             return EEXIST;
         }
 
-        if(!next) {
-            lfos_dlinkedlist_insert_after(it, new_entry);
-            break;
-        }
-        else if(!entry || entry->type > type) {
+        if(!entry || entry->type > type) {
             lfos_dlinkedlist_insert_before(it, new_entry);
             break;
         }
 
-        it = next;
+        error = lfos_dlinkedlist_forward(it);
+        struct lfos_mq_router_handler_entry* nextEntry = lfos_dlinkedlist_data(it);
+
+        if(error) {
+            lfos_dlinkedlist_insert_after(it, new_entry);
+            break;
+        }
     }
 
+    free(it);
+
+    error = 0;
     it = lfos_dlinkedlist_front(mq_router->messages);
-    while(it) {
+    while(!error) {
         struct Message* msg = lfos_dlinkedlist_data(it);
-        if(msg->type == type) {
-            lfos_mq_router_handle(mq_router, it, msg, handler);
+        if(!msg) {
+            // nothing queued
+            break;
         }
 
-        it = lfos_dlinkedlist_next(it);
+        if(msg->type == type) {
+            lfos_mq_router_handle(mq_router, it, msg);
+        }
+
+        error = lfos_dlinkedlist_forward(it);
     }
+    free(it);
 
     return 0;
 }
