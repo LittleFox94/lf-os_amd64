@@ -142,3 +142,31 @@ TEST_F(mqRouterTest, RoutingDifferentTypes) {
     lfos_mq_router_set_handler(router, MT_Signal, mqRouterTest::static_message_handler);
     lfos_mq_router_set_handler(router, MT_IO, mqRouterTest::static_message_handler);
 }
+
+TEST_F(mqRouterTest, ReprocessingRequeuedMessages) {
+    auto ioMessageGenerator = [](struct Message* msg) { msg->type = MT_IO; };
+
+    queueMessage(0, ioMessageGenerator);
+    queueMessage(EAGAIN);
+    queueMessage(0, ioMessageGenerator);
+    queueMessage(EAGAIN);
+
+    testing::Expectation requeueingHandler = EXPECT_CALL(*this, message_handler)
+        .With(MessageType(MT_IO))
+        .WillOnce(testing::Return(EAGAIN))
+        .RetiresOnSaturation();
+
+    EXPECT_CALL(*this, message_handler)
+        .With(MessageType(MT_IO))
+        .Times(testing::Exactly(2))
+        .After(requeueingHandler)
+        .WillRepeatedly(testing::Return(0));
+
+    lfos_mq_router_set_handler(router, MT_IO, mqRouterTest::static_message_handler);
+
+    int error = lfos_mq_router_receive_messages(router);
+    EXPECT_EQ(error, 0) << "receiving messages should succeed";
+
+    error = lfos_mq_router_receive_messages(router);
+    EXPECT_EQ(error, 0) << "receiving messages should succeed";
+}
