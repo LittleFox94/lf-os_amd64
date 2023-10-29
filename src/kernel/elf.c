@@ -36,21 +36,17 @@ ptr_t load_elf(ptr_t start, struct vm_table* context, ptr_t* data_start, ptr_t* 
             vm_context_map(context, (ptr_t)programHeader->vaddr + j, physical, 0);
 
             if(j < programHeader->fileLength) {
-                size_t offset = 0;
+                size_t offset = (programHeader->vaddr + j) & 0xFFF;
                 size_t toCopy = programHeader->fileLength - j;
-                if(toCopy > 0x1000) toCopy = 0x1000;
 
-                if((programHeader->vaddr + j) & 0xFFF) {
-                    if(toCopy > ((programHeader->vaddr + j) & 0xFFF))
-                        toCopy -= (programHeader->vaddr + j) & 0xFFF;
-
-                    offset  = (programHeader->vaddr + j) & 0xFFF;
+                if(toCopy > (0x1000 - offset)) {
+                    toCopy = 0x1000 - offset;
                 }
 
                 memcpy((void*)(offset + physical + ALLOCATOR_REGION_DIRECT_MAPPING.start), (void*)(start + programHeader->offset + j), toCopy);
 
-                if((programHeader->vaddr + j) & 0xFFF) {
-                    j -= (programHeader->vaddr + j) & 0xFFF;
+                if(offset) {
+                    j -= offset;
                 }
             }
 
