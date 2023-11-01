@@ -223,6 +223,8 @@ void scheduler_process_cleanup(pid_t pid) {
             vm_free(signal);
         }
     }
+
+    mq_destroy(processes[pid].mq);
 }
 
 void scheduler_kill_current(enum kill_reason reason) {
