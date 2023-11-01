@@ -180,8 +180,9 @@ void schedule_next(cpu_state** cpu, struct vm_table** context) {
         processes[scheduler_current_process].state = process_state_runnable;
     }
 
+    static pid_t last_scheduled = -1;
     for(int i = 1; i <= MAX_PROCS; ++i) {
-        pid_t pid = (scheduler_current_process + i) % MAX_PROCS;
+        pid_t pid = (last_scheduled + i) % MAX_PROCS;
 
         if(processes[pid].state == process_state_runnable) {
             scheduler_current_process = pid;
@@ -192,6 +193,8 @@ void schedule_next(cpu_state** cpu, struct vm_table** context) {
     if(scheduler_idle_if_needed(cpu, context)) {
         return;
     }
+
+    last_scheduled = scheduler_current_process;
 
     processes[scheduler_current_process].state = process_state_running;
     *cpu     = &processes[scheduler_current_process].cpu;
