@@ -6,6 +6,7 @@ namespace LFOS {
     extern "C" {
         #include <mq.c>
         #include <tpa.c>
+        #include <flexarray.c>
     }
 
     void scheduler_waitable_done(enum wait_reason r, union wait_data d, size_t m) {

@@ -16,7 +16,7 @@ flexarray_t new_flexarray(size_t member_size, size_t initial_alloc, allocator_t*
         initial_alloc = 8;
     }
 
-    flexarray_t res  = alloc->alloc(alloc, sizeof(struct flexarray));
+    flexarray_t res  = (flexarray_t)alloc->alloc(alloc, sizeof(struct flexarray));
     res->member_size = member_size;
     res->alloc       = initial_alloc;
     res->count       = 0;
@@ -42,7 +42,7 @@ static void flexarray_grow(flexarray_t array, size_t copy_offset) {
     size_t new_size  = new_alloc * array->member_size;
 
     void* new_data = array->allocator->alloc(array->allocator, new_size);
-    memcpy(new_data, array->data + (copy_offset * array->member_size), old_size);
+    memcpy(new_data, (uint8_t*)array->data + (copy_offset * array->member_size), old_size);
     array->allocator->dealloc(array->allocator, array->data);
 
     array->data  = new_data;
@@ -50,7 +50,7 @@ static void flexarray_grow(flexarray_t array, size_t copy_offset) {
 }
 
 static void* flexarray_data(flexarray_t array, uint64_t idx) {
-    return array->data + (idx * array->member_size);
+    return (uint8_t*)array->data + (idx * array->member_size);
 }
 
 uint64_t flexarray_append(flexarray_t array, void* data) {

@@ -11,6 +11,7 @@ namespace LFOS {
         #include "../mq.c"
         #include "../tpa.c"
         #include "../uuid.c"
+        #include "../flexarray.c"
     }
 
     void scheduler_waitable_done(enum wait_reason r, union wait_data d, size_t m) {
