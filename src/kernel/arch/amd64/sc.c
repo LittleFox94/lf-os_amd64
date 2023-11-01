@@ -9,6 +9,7 @@
 #include "vm.h"
 #include "mq.h"
 #include "flexarray.h"
+#include "errno.h"
 
 #define GDT_ACCESSED   0x01
 #define GDT_RW         0x02
@@ -207,6 +208,21 @@ void init_gdt() {
     asm("ltr %%ax"::"a"(6 << 3));
 }
 
+void interrupt_del_queue(uint8_t interrupt, uint64_t mq) {
+    flexarray_t array;
+    uint64_t idx;
+
+    if((array = interrupt_queues[interrupt]) && (idx = flexarray_find(array, &mq)) != -1) {
+        flexarray_remove(array, idx);
+    }
+}
+
+static void interrupt_delall_queue(uint64_t mq) {
+    for(size_t i = 0; i < sizeof(interrupt_queues) / sizeof(interrupt_queues[0]); i++) {
+        interrupt_del_queue(i, mq);
+    }
+}
+
 void interrupt_add_queue(uint8_t interrupt, uint64_t mq) {
     flexarray_t array;
 
@@ -215,16 +231,11 @@ void interrupt_add_queue(uint8_t interrupt, uint64_t mq) {
         interrupt_queues[interrupt] = array;
     }
 
-    flexarray_append(array, &mq);
-}
-
-void interrupt_del_queue(uint8_t interrupt, uint64_t mq) {
-    flexarray_t array;
-    uint64_t idx;
-
-    if((array = interrupt_queues[interrupt]) && (idx = flexarray_find(array, &mq)) != -1) {
-        flexarray_remove(array, idx);
+    int error;
+    if((error = mq_notify_teardown(mq, interrupt_delall_queue)) && error != EEXIST) {
+        logw("sc", "error adding message queue teardown notify while adding mq %llu to interrupt queues for interrupt %u: $llu", mq, (uint64_t)interrupt, error);
     }
+    flexarray_append(array, &mq);
 }
 
 static void _set_idt_entry(int index, ptr_t base) {
