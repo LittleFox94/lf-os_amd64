@@ -2,7 +2,6 @@
 #include <unistd.h>
 #include <cstdint>
 #include <cmath>
-#include <mutex>
 
 #if   defined(__LF_OS__)
 #include <sys/syscalls.h>
@@ -119,9 +118,6 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    std::mutex fb_mutex;
-    fb_mutex.lock();
-
     const uint16_t forks = 4;
     const uint16_t grid  = std::sqrt(forks);
 
@@ -143,8 +139,6 @@ int main(int argc, char* argv[]) {
             color[3] = 0;
 
             while(true) {
-                const std::lock_guard<std::mutex> lock(fb_mutex);
-
                 hsv_to_rgb(h, s, v, &color[2], &color[1], &color[0]);
 
                 for(size_t y = 0; y < height / grid; ++y) {
@@ -153,7 +147,7 @@ int main(int argc, char* argv[]) {
                     }
                 }
 
-                h += 5;
+                h += 170;
                 while(h > 360) {
                     h -= 360;
                 }
@@ -161,11 +155,11 @@ int main(int argc, char* argv[]) {
 #if defined(__linux)
                 return EXIT_SUCCESS;
 #endif
+
+                usleep(500000);
             }
         }
     }
-
-    fb_mutex.unlock();
 
     if(!fork()) {
         return 1;
