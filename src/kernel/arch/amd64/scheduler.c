@@ -217,6 +217,17 @@ void schedule_next(cpu_state** cpu, struct vm_table** context) {
     *context =  processes[scheduler_current_process].context;
 }
 
+bool schedule_next_if_needed(cpu_state** cpu, struct vm_table** context) {
+    if(processes[scheduler_current_process].state != process_state_runnable &&
+        processes[scheduler_current_process].state != process_state_running) {
+        schedule_next(cpu, context);
+        return true;
+    }
+
+    return false;
+}
+
+
 void scheduler_process_cleanup(pid_t pid) {
     mutex_unlock_holder(pid);
 

@@ -382,7 +382,7 @@ cpu_state* interrupt_handler(cpu_state* cpu) {
                 cpu_state*       new_cpu     = cpu;
                 struct vm_table* new_context = vm_current_context();
 
-                if(scheduler_idle_if_needed(&new_cpu, &new_context)) {
+                if(schedule_next_if_needed(&new_cpu, &new_context)) {
                     vm_context_activate(new_context);
                 }
 
@@ -432,7 +432,7 @@ cpu_state* syscall_handler(cpu_state* cpu) {
                                // correct but slow, so we just reuse the old one
     struct vm_table* new_context = vm_current_context();
 
-    if(scheduler_idle_if_needed(&new_cpu, &new_context)) {
+    if(schedule_next_if_needed(&new_cpu, &new_context)) {
         vm_context_activate(new_context);
     }
 

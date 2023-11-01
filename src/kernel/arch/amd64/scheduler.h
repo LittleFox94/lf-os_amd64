@@ -33,8 +33,8 @@ void init_scheduler();
 void start_task(struct vm_table* context, ptr_t entry, ptr_t data_start, ptr_t data_end, const char* name);
 
 void schedule_next(cpu_state** cpu, struct vm_table** context);
+bool schedule_next_if_needed(cpu_state** cpu, struct vm_table** context);
 void scheduler_process_save(cpu_state* cpu);
-bool scheduler_idle_if_needed(cpu_state** cpu, struct vm_table** context);
 
 bool scheduler_handle_pf(ptr_t fault_address, uint64_t error_code);
 void scheduler_kill_current(enum kill_reason kill_reason);
