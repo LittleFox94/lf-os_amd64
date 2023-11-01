@@ -188,7 +188,7 @@ void schedule_next(cpu_state** cpu, struct vm_table** context) {
     for(int i = 1; i <= MAX_PROCS; ++i) {
         pid_t pid = (last_scheduled + i) % MAX_PROCS;
 
-        process_t* process = &processes[i];
+        process_t* process = &processes[pid];
 
         if(process->state == process_state_waiting && process->waiting_for == wait_reason_time) {
             if(process->waiting_data.timestamp_ns_since_boot && !timestamp_ns_since_boot) {
