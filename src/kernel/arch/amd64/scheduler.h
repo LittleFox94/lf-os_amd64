@@ -14,6 +14,7 @@ enum wait_reason {
     wait_reason_mutex,
     wait_reason_condvar,
     wait_reason_message,
+    wait_reason_time,
 };
 
 extern volatile pid_t scheduler_current_process;
@@ -25,6 +26,7 @@ union wait_data {
     mutex_t   mutex;
     condvar_t condvar;
     uint64_t  message_queue;
+    uint64_t  timestamp_ns_since_boot;
 };
 
 void init_scheduler();

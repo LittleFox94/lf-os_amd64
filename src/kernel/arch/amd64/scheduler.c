@@ -11,6 +11,8 @@
 #include <signal.h>
 #include <sd.h>
 
+extern void sc_handle_clock_read(uint64_t* nanoseconds);
+
 typedef enum {
     process_state_empty = 0,
     process_state_waiting,
@@ -180,9 +182,23 @@ void schedule_next(cpu_state** cpu, struct vm_table** context) {
         processes[scheduler_current_process].state = process_state_runnable;
     }
 
+    uint64_t timestamp_ns_since_boot = 0;
+
     static pid_t last_scheduled = -1;
     for(int i = 1; i <= MAX_PROCS; ++i) {
         pid_t pid = (last_scheduled + i) % MAX_PROCS;
+
+        process_t* process = &processes[i];
+
+        if(process->state == process_state_waiting && process->waiting_for == wait_reason_time) {
+            if(process->waiting_data.timestamp_ns_since_boot && !timestamp_ns_since_boot) {
+                sc_handle_clock_read(&timestamp_ns_since_boot); // the kernel calling a syscall handler ... oh deer, but why not? :>
+            }
+
+            if(process->waiting_data.timestamp_ns_since_boot <= timestamp_ns_since_boot) {
+                process->state = process_state_runnable;
+            }
+        }
 
         if(processes[pid].state == process_state_runnable) {
             scheduler_current_process = pid;
@@ -357,6 +373,9 @@ void scheduler_waitable_done(enum wait_reason reason, union wait_data data, size
                         p->state = process_state_runnable;
                     }
                     break;
+                case wait_reason_time:
+                    // handled in schedule_next instead
+                    break;
             }
         }
     }
@@ -388,8 +407,18 @@ void sc_handle_memory_sbrk(int64_t inc, ptr_t* data_end) {
     *data_end = old_end;
 }
 
-void sc_handle_scheduler_yield() {
-    // no-op
+void sc_handle_scheduler_sleep(uint64_t nanoseconds) {
+    union wait_data wait_data;
+    wait_data.timestamp_ns_since_boot = 0;
+
+    if(nanoseconds) {
+        uint64_t current_timestamp = 0;
+        sc_handle_clock_read(&current_timestamp); // the kernel calling a syscall handler ... oh deer, but why not? :>
+
+        wait_data.timestamp_ns_since_boot = current_timestamp + nanoseconds;
+    }
+
+    scheduler_wait_for(scheduler_current_process, wait_reason_time, wait_data);
 }
 
 void sc_handle_hardware_ioperm(uint16_t from, uint16_t num, bool turn_on, uint16_t* error) {

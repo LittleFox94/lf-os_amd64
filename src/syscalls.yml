@@ -32,8 +32,13 @@ groups:
       reg:  rax
 
   - number: 2
-    name:  yield
-    desc:  Yield, scheduler another process
+    name:  sleep
+    desc:  Sleep for the given time or yield CPU time to another process, if given time is 0
+    parameters:
+    - name: nanoseconds
+      desc: Nanoseconds until first normally scheduling the process again
+      type: uint64_t
+      reg:  rax
 
   - number: 3
     name:  get_pid
