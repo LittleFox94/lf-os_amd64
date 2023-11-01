@@ -66,11 +66,8 @@ void* process_alloc(allocator_t* alloc, size_t size) {
 }
 
 void process_dealloc(allocator_t* alloc, void* ptr) {
-    if(!alloc ||
-        (processes[alloc->tag].state != process_state_runnable &&
-         processes[alloc->tag].state != process_state_running)
-    ) {
-        logw("scheduler", "process_alloc called for invalid process %u\n", alloc->tag);
+    if(!alloc || processes[alloc->tag].state == process_state_empty) {
+        logw("scheduler", "process_dealloc called for invalid process %u\n", alloc->tag);
         return;
     }
 
