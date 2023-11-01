@@ -99,15 +99,14 @@ _syscall_handler:
 
     add $16, %rsp  # ignore bogus error and interrupt
 
-    pop %rcx       # user rip
-    add $8, %rsp   # ignore cs
-    pop %r11       # restore flags
-    pop %rbx       # restore original stack pointer
-    add $8, %rsp   # ignore ss
-
+    # we return with iretq instead of sysret to not clobber registers in
+    # the exit part of _syscall_handler, allowing us to activate a process
+    # that was deactivated by a schedule while handling an interrupt.
+    # In theory, it would be nice if we checked if another task is active
+    # now and only use iretq in that case, but it apparently works in all
+    # cases anyway
     swapgs
-    mov %rbx, %rsp
-    sysretq
+    iretq
 
 # interrupt vectors
 
