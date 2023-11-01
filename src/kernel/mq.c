@@ -1,6 +1,7 @@
 #include <mq.h>
 #include <string.h>
 #include <tpa.h>
+#include <flexarray.h>
 #include <panic.h>
 #include <errno.h>
 #include <scheduler.h>
@@ -57,6 +58,8 @@ struct MessageQueue {
 
     //! Pointer to last page for pushing
     struct MessageQueuePage* last_page;
+
+    flexarray_t notify_teardown;
 };
 
 void init_mq(allocator_t* alloc) {
@@ -78,7 +81,8 @@ uint64_t mq_create(allocator_t* alloc) {
         .alloc = alloc,
 
         .first_page = 0,
-        .last_page  = 0
+        .last_page  = 0,
+        .notify_teardown = new_flexarray(sizeof(mq_notifier), 0, alloc),
     };
 
     tpa_set(mqs, next_mq, &mq);
@@ -93,12 +97,23 @@ void mq_destroy(uint64_t mq) {
         return;
     }
 
+    size_t teardown_notifiers = flexarray_length(data->notify_teardown);
+    for(size_t i = 0; i < teardown_notifiers; ++i) {
+        mq_notifier notif = 0;
+        flexarray_get(data->notify_teardown, &notif, i);
+        if(notif) {
+            notif(mq);
+        }
+    }
+
     struct MessageQueuePage* current = data->first_page;
     while(current) {
         struct MessageQueuePage* next = current->next;
         data->alloc->dealloc(data->alloc, current);
         current = next;
     }
+
+    delete_flexarray(data->notify_teardown);
 
     tpa_set(mqs, mq, 0);
 }
@@ -222,4 +237,24 @@ uint64_t mq_peek(uint64_t mq, struct Message* msg) {
         msg->type = MT_Invalid;
         return EMSGSIZE;
     }
+}
+
+uint64_t mq_notify_teardown(mq_id_t mq, mq_notifier notifier) {
+    struct MessageQueue* data = (struct MessageQueue*)tpa_get(mqs, mq);
+
+    if(!data) {
+        return ENOENT;
+    }
+
+    size_t teardown_notifiers = flexarray_length(data->notify_teardown);
+    for(size_t i = 0; i < teardown_notifiers; ++i) {
+        mq_notifier existing = 0;
+        flexarray_get(data->notify_teardown, &existing, i);
+        if(existing == notifier) {
+            return EEXIST;
+        }
+    }
+
+    flexarray_append(data->notify_teardown, &notifier);
+    return 0;
 }
