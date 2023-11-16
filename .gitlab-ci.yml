@@ -93,8 +93,8 @@ variables:
     GIT_STRATEGY: none
   before_script:
   - apk add -u --no-cache curl
-  only:
-    variables:
+  rules:
+    if:
     - $APT_DEPLOY_TOKEN != ""
   script:
   - |
