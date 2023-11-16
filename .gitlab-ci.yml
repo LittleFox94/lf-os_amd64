@@ -93,9 +93,9 @@ variables:
     GIT_STRATEGY: none
   before_script:
   - apk add -u --no-cache curl
-  rules:
-    if:
-    - $APT_DEPLOY_TOKEN != ""
+  except:
+    variables:
+    - $APT_DEPLOY_TOKEN == ""
   script:
   - |
     for package in *.deb; do
