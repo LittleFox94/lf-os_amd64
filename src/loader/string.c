@@ -316,21 +316,43 @@ int wprintf(const CHAR16* fmt, ...) {
     return len;
 }
 
+static void init_uart() {
+    // stolen from osdev
+    outb(0x3F8 + 1, 0x00);    // Disable all interrupts
+    outb(0x3F8 + 3, 0x80);    // Enable DLAB (set baud rate divisor)
+    outb(0x3F8 + 0, 0x0c);    // Set divisor to 12 (lo byte) 9600 baud
+    outb(0x3F8 + 1, 0x00);    //                   (hi byte)
+    outb(0x3F8 + 3, 0x03);    // 8 bits, no parity, one stop bit
+
+    outb(0x3F8 + 2, 0xC7);    // Enable FIFO, clear them, with 14 byte threshold
+
+    // configure for loopback and check if actually present
+    uint8_t mcr = inb(0x3F8 + 4);
+
+    outb(0x3F8 + 4, mcr | 0x10);    // Set to loopback mode
+    outb(0x3F8 + 0, '\n');          // send LF and read it back next line
+    if(inb(0x3F8) == '\n') {
+        outb(0x3F8 + 4, mcr);      // configure for normal operation
+
+        // .. some firmwares already log everything to serial already but I
+        // don't have a way to recognize this so I had the workaround to check
+        // if the vendor is "EDK II", since all of those seem to do that and
+        // good enough for debugging - but then Debian decided to change the
+        // vendor string, annoying me in my test runs so this test is now
+        // awfully specific.
+        if(wcscmp(st->FirmwareVendor, L"Debian distribution of EDK II") != 0) {
+            uart_out = true;
+        }
+
+        wprintf(L"UART configured and output%senabled\n", uart_out ? L" " : L" NOT ");
+        wprintf(L"Firmware vendor: %s\n", st->FirmwareVendor);
+    }
+}
+
 void init_stdlib(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE* system_table) {
     st = system_table;
     BS = st->BootServices;
     st->ConOut->ClearScreen(st->ConOut);
 
-    if(wcscmp(st->FirmwareVendor, L"EDK II") != 0) {
-        uart_out = true;
-
-        // stolen from osdev
-        outb(0x3F8 + 1, 0x00);    // Disable all interrupts
-        outb(0x3F8 + 3, 0x80);    // Enable DLAB (set baud rate divisor)
-        outb(0x3F8 + 0, 0x0c);    // Set divisor to 12 (lo byte) 9600 baud
-        outb(0x3F8 + 1, 0x00);    //                   (hi byte)
-        outb(0x3F8 + 3, 0x03);    // 8 bits, no parity, one stop bit
-
-        wprintf(L"UART output enabled\n");
-    }
+    init_uart();
 }
