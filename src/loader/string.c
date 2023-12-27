@@ -254,8 +254,8 @@ int wprintf(const CHAR16* fmt, ...) {
         else {
             switch(c) {
                 case '%':
-                    conwrite(L"\r\n");
-                    len += 2;
+                    conwrite(L"%");
+                    ++len;
                     break;
                 case 'b':
                     CHAR16* b = __builtin_va_arg(args, int) ? L"true" : L"false";
