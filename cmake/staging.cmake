@@ -42,10 +42,11 @@ function(multistage)
                     "${CMAKE_SOURCE_DIR}"
                 DEPENDS
                     ${prev_stage}
-                USES_TERMINAL_CONFIGURE ON
-                USES_TERMINAL_BUILD     ON
-                USES_TERMINAL_INSTALL   ON
-                BUILD_ALWAYS            ON
+                USES_TERMINAL_CONFIGURE     ON
+                USES_TERMINAL_BUILD         ON
+                USES_TERMINAL_INSTALL       ON
+                BUILD_ALWAYS                ON
+                CONFIGURE_HANDLED_BY_BUILD  ON
             )
 
             set(prev_stage "stage_${s}")
