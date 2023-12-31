@@ -10,3 +10,6 @@
 	path = src/include/efi
 	branch = master
 	url = https://github.com/yoppeh/efi.git
+[submodule "src/userspace/term/3rd-party/spleen"]
+	path = src/userspace/term/3rd-party/spleen
+	url = https://github.com/fcambus/spleen

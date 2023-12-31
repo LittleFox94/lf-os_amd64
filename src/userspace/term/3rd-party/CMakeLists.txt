@@ -1,0 +1,17 @@
+add_library(vterm
+    libvterm/src/encoding.c
+    libvterm/src/keyboard.c
+    libvterm/src/mouse.c
+    libvterm/src/parser.c
+    libvterm/src/pen.c
+    libvterm/src/screen.c
+    libvterm/src/state.c
+    libvterm/src/unicode.c
+    libvterm/src/vterm.c
+)
+target_include_directories(vterm
+    PUBLIC
+        libvterm/include
+    PRIVATE
+        libvterm/src
+)
