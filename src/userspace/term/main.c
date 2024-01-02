@@ -70,13 +70,13 @@ static void render_cell(lfos_term_state *state, int row, int col, VTermScreenCel
         for(int x = 0; x < FONT_WIDTH && x + start_x < state->fb.width; x++) {
             uint32_t* pixel = state->fb.fb + ((y + start_y) * state->fb.stride) + (x + start_x);
 
-            uint64_t leftmost = 0x8000000000000000ULL;
+            uint64_t leftmost = 1ULL << 63;
             if(FONT_WIDTH <= 8) {
-                leftmost = 0x80;
+                leftmost = 1 << 7;
             } else if(FONT_WIDTH <= 16) {
-                leftmost = 0x8000;
+                leftmost = 1 << 15;
             } else if(FONT_WIDTH <= 32) {
-                leftmost = 0x80000000;
+                leftmost = 1 << 31;
             }
 
             bool pixel_lit = glyph->bitmap[y] & (leftmost >> x);
