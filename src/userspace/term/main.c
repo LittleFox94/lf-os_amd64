@@ -123,6 +123,7 @@ int main(int argc, char* argv[]) {
     vterm_screen_reset(state.vtermScreen, 1);
 
     VTermScreenCallbacks screenCallbacks;
+    bzero(&screenCallbacks, sizeof(screenCallbacks));
     screenCallbacks.damage = vterm_damage;
     vterm_screen_set_callbacks(state.vtermScreen, &screenCallbacks, (void*)&state);
 
