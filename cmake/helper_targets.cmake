@@ -72,5 +72,5 @@ add_custom_target(doc
 configure_file(Doxyfile.in Doxyfile)
 
 set(GDB_COMMANDS build_userspace)
-list(TRANSFORM GDB_COMMANDS PREPEND "add-symbol-file shared/LFOS/")
+list(TRANSFORM GDB_COMMANDS PREPEND "add-symbol-file shared/userspace/")
 configure_file(gdbinit.in gdbinit)

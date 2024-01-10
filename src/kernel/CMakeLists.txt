@@ -67,4 +67,4 @@ target_link_options(kernel PRIVATE
     -flto -fuse-ld=lld -nostdlib -Wl,--image-base,0xffffffff81000000
 )
 
-install(TARGETS kernel DESTINATION LFOS)
+install(TARGETS kernel DESTINATION kernel)

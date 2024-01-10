@@ -45,5 +45,4 @@ target_link_options(loader PRIVATE
 
 set_target_properties(loader PROPERTIES OUTPUT_NAME loader.efi)
 
-install(FILES $<TARGET_FILE:loader> DESTINATION EFI/LFOS RENAME BOOTX64.efi)
-install(FILES $<TARGET_FILE:loader> DESTINATION EFI/BOOT RENAME BOOTX64.efi)
+install(FILES $<TARGET_FILE:loader> DESTINATION loader)

@@ -36,6 +36,6 @@ if(CMAKE_CROSSCOMPILING)
     )
     target_link_libraries(term PUBLIC vterm)
     target_include_directories(term PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-    install(TARGETS term DESTINATION LFOS)
+    install(TARGETS term DESTINATION userspace)
 endif()
 

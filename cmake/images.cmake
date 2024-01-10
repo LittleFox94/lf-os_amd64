@@ -7,27 +7,64 @@ math(EXPR image_size_hd_sectors "${image_size_hd} * 1024 * 1024 / 512")
 # Partition starts at sector 2048 (1MiB) and leaves enough space for backup GPT at the end
 math(EXPR boot_fs_sectors "${image_size_hd_sectors} - 2048 - 33")
 
-add_custom_target(bootfs.img
-    COMMAND $<TARGET_FILE:fatcreate>
-        -s ${boot_fs_sectors}
-        -o bootfs.img
-        ${CMAKE_BINARY_DIR}/shared/*
+function(make_bootable_image destination)
+    set(dest_dir "${CMAKE_BINARY_DIR}/images/${destination}.contents")
+
+    set(targets ${ARGN})
+
+    list(TRANSFORM targets PREPEND "${CMAKE_BINARY_DIR}/")
+    list(JOIN targets ";" targets_string)
+
+    add_custom_target(${destination}
+        COMMAND ${CMAKE_COMMAND}
+            -Ddest_dir=${dest_dir}
+            -Dkernel=${CMAKE_BINARY_DIR}/shared/kernel/kernel
+            -Dloader=${CMAKE_BINARY_DIR}/shared/loader/loader.efi
+            "-Dtargets=\"${targets_string}\""
+            -P ${CMAKE_SOURCE_DIR}/cmake/image_contents.cmake
+        COMMAND $<TARGET_FILE:fatcreate>
+            -s ${boot_fs_sectors}
+            -o ${destination}.fat32
+            ${dest_dir}/*
+        COMMAND ${dd}
+            if=/dev/zero
+            of=${destination}
+            bs=512
+            count=${image_size_hd_sectors}
+            conv=sparse
+        COMMAND ${sgdisk}
+            -Z -o
+            -n 1:2048:+${boot_fs_sectors}
+            -t 1:ef00
+            ${destination}
+        COMMAND ${dd}
+            if=${destination}.fat32
+            of=${destination}
+            bs=512
+            seek=2048
+            conv=notrunc,sparse
+    )
+
+    add_custom_target(${destination}.xz
+        DEPENDS ${destination}
+        COMMAND ${xz} -k ${CMAKE_BINARY_DIR}/${destination}
+    )
+endfunction()
+
+set(package_userspace ${build_userspace})
+list(TRANSFORM package_userspace PREPEND shared/userspace/)
+make_bootable_image(
+    hd.img
+    ${package_userspace}
 )
 
-add_custom_target(hd.img
-    DEPENDS bootfs.img
-    COMMAND ${dd} if=/dev/zero of=hd.img bs=512 count=${image_size_hd_sectors} conv=sparse
-    COMMAND ${sgdisk} -Z -o -n 1:2048:+${boot_fs_sectors} -t 1:ef00 hd.img
-    COMMAND ${dd} if=bootfs.img of=hd.img bs=512 seek=2048 conv=notrunc,sparse
-)
+install(FILES ${CMAKE_BINARY_DIR}/shared/loader/loader.efi   DESTINATION boot/efi/EFI/LFOS RENAME BOOTX64.EFI)
+install(FILES ${CMAKE_BINARY_DIR}/shared/kernel/kernel       DESTINATION boot/efi/LFOS)
 
-add_custom_target(hd.img.xz
-    DEPENDS hd.img
-    COMMAND ${xz} -k ${CMAKE_BINARY_DIR}/hd.img
-)
+foreach(userspace IN LISTS build_userspace)
+    install(FILES ${CMAKE_BINARY_DIR}/shared/userspace/${userspace}  DESTINATION boot/efi/LFOS)
+endforeach()
 
-install(DIRECTORY ${CMAKE_BINARY_DIR}/shared/EFI/LFOS DESTINATION boot/efi/EFI)
-install(DIRECTORY ${CMAKE_BINARY_DIR}/shared/LFOS     DESTINATION boot/efi)
 install(PROGRAMS util/osprobe RENAME 20lfos           DESTINATION usr/lib/os-probes/mounted/efi)
 
 set(CPACK_PACKAGE_NAME lf_os)
