@@ -140,7 +140,7 @@ sub render_syscall_func {
                . "\n" . join("\n", map { " *  \\param[out] $_->{name} $_->{desc}" } $syscall->{returns}->@*)
                . "\n */\n";
 
-    print $outfh ($mode eq 'user' ? 'static inline ' : '') . "void $name(";
+    print $outfh ($mode eq 'user' ? 'static inline __attribute__((artificial)) ' : '') . "void $name(";
 
     print $outfh join(', ', map { "$_->{type} $_->{name}" } (
             $syscall->{parameters}->@*,
