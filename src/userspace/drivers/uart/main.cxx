@@ -38,7 +38,7 @@ int main(int argc, char* argv[]) {
 
     outb(base_port + 1, 0x02); // enable interrupts on transmitter empty
 
-    std::string message = "Hello world from userspace uart driver!";
+    std::string message = "Hello world from userspace uart driver!\n";
 
     for(size_t i = 0; i < message.length(); ++i) {
         outb(0x3F8, message[i]);
