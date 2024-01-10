@@ -5,7 +5,7 @@ find_program(kvm      NAMES kvm                DOC "QEMU for x86_64 emulation wi
 find_program(gdb      NAMES gdb                DOC "GNU debugger")
 
 set(QEMU_MEMORY 512M)
-set(QEMU_FLAGS      -pflash firmware.qcow2 -m ${QEMU_MEMORY} -d int,guest_errors --serial file:log.txt -s -device qemu-xhci --device isa-debugcon,iobase=0x402,chardev=debug -chardev file,id=debug,path=debug.log)
+set(QEMU_FLAGS      -pflash firmware.qcow2 -m ${QEMU_MEMORY} -d int,guest_errors --serial file:log.txt -device qemu-xhci --device isa-debugcon,iobase=0x402,chardev=debug -chardev file,id=debug,path=debug.log)
 set(QEMU_FLAGS_NVME -drive format=raw,file=hd.img,if=none,id=boot_drive -device nvme,drive=boot_drive,serial=1234)
 set(QEMU_FLAGS_PXE  -netdev user,id=net0,tftp=${CMAKE_BINARY_DIR}/shared,bootfile=/EFI/LFOS/BOOTX64.efi -device virtio-net,netdev=net0,romfile=)
 
@@ -15,23 +15,23 @@ add_custom_target(firmware.qcow2
 )
 
 add_custom_target(debug
-    COMMAND ${qemu} ${QEMU_FLAGS} ${QEMU_FLAGS_NVME} --daemonize -S
-    COMMAND ${gdb} -ix ${CMAKE_SOURCE_DIR}/.gdbinit
-    DEPENDS hd.img .gdbinit firmware.qcow2
+    COMMAND ${qemu} ${QEMU_FLAGS} ${QEMU_FLAGS_NVME} --daemonize -s -S
+    COMMAND ${gdb} -ix gdbinit
+    DEPENDS hd.img gdbinit firmware.qcow2
     USES_TERMINAL
 )
 
 add_custom_target(debug-pxe
-    COMMAND ${qemu} ${QEMU_FLAGS} ${QEMU_FLAGS_PXE} --daemonize -S
-    COMMAND ${gdb} -ix ${CMAKE_SOURCE_DIR}/.gdbinit
-    DEPENDS hd.img .gdbinit firmware.qcow2
+    COMMAND ${qemu} ${QEMU_FLAGS} ${QEMU_FLAGS_PXE} --daemonize -s -S
+    COMMAND ${gdb} -ix gdbinit
+    DEPENDS hd.img gdbinit firmware.qcow2
     USES_TERMINAL
 )
 
 add_custom_target(debug-kvm
-    COMMAND ${kvm} ${QEMU_FLAGS} ${QEMU_FLAGS_NVME} --daemonize -S
-    COMMAND ${gdb} -ix ${CMAKE_SOURCE_DIR}/.gdbinit
-    DEPENDS hd.img .gdbinit firmware.qcow2
+    COMMAND ${kvm} ${QEMU_FLAGS} ${QEMU_FLAGS_NVME} --daemonize -s -S
+    COMMAND ${gdb} -ix gdbinit
+    DEPENDS hd.img gdbinit firmware.qcow2
     USES_TERMINAL
 )
 
@@ -49,7 +49,7 @@ add_custom_target(run-pxe
 
 add_custom_target(run-kvm
     COMMAND ${kvm} ${QEMU_FLAGS} ${QEMU_FLAGS_NVME}
-    DEPENDS hd.img .gdbinit firmware.qcow2
+    DEPENDS hd.img firmware.qcow2
     USES_TERMINAL
 )
 
@@ -70,3 +70,7 @@ add_custom_target(doc
 )
 
 configure_file(Doxyfile.in Doxyfile)
+
+set(GDB_COMMANDS build_userspace)
+list(TRANSFORM GDB_COMMANDS PREPEND "add-symbol-file shared/LFOS/")
+configure_file(gdbinit.in gdbinit)
