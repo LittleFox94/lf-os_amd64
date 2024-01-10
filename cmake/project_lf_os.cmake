@@ -27,8 +27,9 @@ if(${current_stage} STREQUAL "root")
     enable_language(C CXX)
     add_subdirectory(util)
 
-    include(tests)
     include(images)
     include(helper_targets)
+    include(tests)
+
     add_dependencies(hd.img stage_userspace)
 endif()
