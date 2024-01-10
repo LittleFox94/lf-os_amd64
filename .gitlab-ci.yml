@@ -205,7 +205,7 @@ unittest:
     CTEST_OUTPUT_ON_FAILURE: "1"
     GIT_STRATEGY: fetch
     SUBPROJECT: lf_os
-    TARGETS: test-kernel
+    TARGETS: tests
     CMAKE_NO_COPY: transrightsarehumanrights # any non-empty string
     KUBERNETES_CPU_REQUEST: 2
     KUBERNETES_CPU_LIMIT: 2
@@ -216,6 +216,7 @@ unittest:
     reports:
       junit:
       - build/kernel_tests.xml
+      - build/runtime-test_*.xml
 
 build-sysroot:
   extends: .cmake-build
