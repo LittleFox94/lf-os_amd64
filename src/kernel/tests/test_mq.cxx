@@ -23,8 +23,6 @@ namespace LFOS {
                 _message->user_size        = 1;
                 _message->type             = MT_UserDefined;
                 _message->user_data.raw[0] = rand() % 0xFF;
-
-                RecordProperty("RandomMessageContent", _message->user_data.raw[0]);
             }
 
             ~MessageQueueTest() {
