@@ -6,6 +6,7 @@
 	path = src/llvm
 	url = https://praios.lf-net.org/littlefox/llvm-project.git
 	branch = lf-os
+	shallow = true
 [submodule "src/loader/efi"]
 	path = src/include/efi
 	branch = master
