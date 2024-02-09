@@ -73,7 +73,7 @@ namespace LFOS {
         char* buffer = new char[64];
         size_t len = uuid_fmt(buffer, 64, (uuid_t*)&FileSystemDriverUUID);
 
-        EXPECT_EQ(len, 37)                                           << "correct length";
+        EXPECT_EQ(len, 36)                                           << "correct length";
         EXPECT_STREQ(buffer, "74347BC9-1DE4-4D8B-BFC9-1718F5D0AA6A") << "UUID formatted correctly";
 
         delete[] buffer;
