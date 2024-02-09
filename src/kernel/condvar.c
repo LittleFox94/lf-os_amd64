@@ -3,6 +3,7 @@
 #include <vm.h>
 #include <log.h>
 #include <scheduler.h>
+#include <unused_param.h>
 
 struct condvar_data {
     //! Number of processes currently waiting on this condvar
@@ -12,7 +13,7 @@ struct condvar_data {
 static tpa_t*   condvars;
 static uint64_t next_condvar = 1;
 
-void init_condvar() {
+void init_condvar(void) {
     condvars = tpa_new(&kernel_alloc, sizeof(struct condvar_data), 4080, 0);
 }
 
@@ -68,7 +69,9 @@ void sc_handle_locking_signal_condvar(uint64_t condvar, uint64_t amount, uint64_
     }
 }
 
-void sc_handle_locking_wait_condvar(uint64_t condvar, uint64_t timeout /* XXX: not yet implemented */, uint64_t* e) {
+void sc_handle_locking_wait_condvar(uint64_t condvar, uint64_t timeout, uint64_t* e) {
+    UNUSED_PARAM(timeout);
+
     struct condvar_data* data = tpa_get(condvars, condvar);
 
     if(!data) {

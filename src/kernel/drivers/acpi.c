@@ -139,7 +139,7 @@ void init_acpi_efi(EFI_SYSTEM_TABLE* efiST) {
 
         if(memcmp(&ct->VendorGuid, &efi_acpi_table_guid, sizeof(EFI_GUID)) == 0) {
             logi("acpi", "EFI configuration table %d is an ACPI table");
-            init_acpi_rsdp(ct->VendorTable + ALLOCATOR_REGION_DIRECT_MAPPING.start);
+            init_acpi_rsdp((char*)ct->VendorTable + ALLOCATOR_REGION_DIRECT_MAPPING.start);
         }
     }
 }

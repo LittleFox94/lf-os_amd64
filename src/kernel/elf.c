@@ -71,11 +71,12 @@ ptr_t load_elf(ptr_t start, struct vm_table* context, ptr_t* data_start, ptr_t* 
 elf_section_header_t* elf_section_by_name(const char* name, const void* elf) {
     elf_file_header_t* eh = (elf_file_header_t*)elf;
 
-    elf_section_header_t* shSectionNames = (elf_section_header_t*)(elf + eh->sectionHeaderOffset + (eh->sectionHeaderEntrySize * eh->sectionHeaderSectionNameIndex));
-    char* sectionNames                   = (char*)(elf + shSectionNames->offset);
+    // "Oh deer, who wrote this code" -- littlefox 2024-02-10 
+    elf_section_header_t* shSectionNames = (elf_section_header_t*)((char*)elf + eh->sectionHeaderOffset + (eh->sectionHeaderEntrySize * eh->sectionHeaderSectionNameIndex));
+    char* sectionNames                   = (char*)elf + shSectionNames->offset;
 
     for(size_t i = 0; i < eh->sectionHeaderCount; ++i) {
-        elf_section_header_t* sh = (elf_section_header_t*)(elf + eh->sectionHeaderOffset + (eh->sectionHeaderEntrySize * i));
+        elf_section_header_t* sh = (elf_section_header_t*)((char*)elf + eh->sectionHeaderOffset + (eh->sectionHeaderEntrySize * i));
 
         if(strcmp(sectionNames + sh->name, name) == 0) {
             return sh;
@@ -114,13 +115,13 @@ void* elf_load_symbols(ptr_t elf, allocator_t* alloc) {
     struct SymbolData* header = (struct SymbolData*)data;
     header->alloc       = alloc;
     header->numSymbols  = numSymbols;
-    header->symbolNames = (char*)(data + sizeof(struct SymbolData) + (sizeof(struct Symbol) * numSymbols));
+    header->symbolNames = (char*)data + sizeof(struct SymbolData) + (sizeof(struct Symbol) * numSymbols);
 
-    memcpy(header->symbolNames, (void*)elf + strtab->offset, strtab->size);
+    memcpy(header->symbolNames, (char*)elf + strtab->offset, strtab->size);
 
     for(size_t i = 0; i < numSymbols; ++i) {
         elf_symbol_t* elfSymbol = (elf_symbol_t*)(elf + symtab->offset + (i * symtab->entrySize));
-        struct Symbol* symbol   = (struct Symbol*)(data + sizeof(struct SymbolData) + (sizeof(struct Symbol) * i));
+        struct Symbol* symbol   = (struct Symbol*)((char*)data + sizeof(struct SymbolData) + (sizeof(struct Symbol) * i));
 
         symbol->address = elfSymbol->addr;
         symbol->name    = elfSymbol->name;

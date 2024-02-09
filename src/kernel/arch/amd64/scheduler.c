@@ -10,6 +10,7 @@
 #include <mq.h>
 #include <signal.h>
 #include <sd.h>
+#include <unused_param.h>
 
 extern void sc_handle_clock_read(uint64_t* nanoseconds);
 
@@ -79,15 +80,15 @@ void process_dealloc(allocator_t* alloc, void* ptr) {
     processes[alloc->tag].allocatedMemory -= size;
 }
 
-__attribute__((naked)) static void idle_task() {
+__attribute__((naked)) static void idle_task(void) {
     asm("jmp .");
 }
 
-void init_scheduler() {
+void init_scheduler(void) {
     memset((uint8_t*)processes, 0, sizeof(process_t) * MAX_PROCS);
 }
 
-pid_t free_pid() {
+pid_t free_pid(void) {
     pid_t i;
     for(i = 0; i < MAX_PROCS; ++i) {
         if(processes[i].state == process_state_empty) {
@@ -98,7 +99,7 @@ pid_t free_pid() {
     return -1;
 }
 
-pid_t setup_process() {
+pid_t setup_process(void) {
     pid_t pid = free_pid();
     if(pid == -1) {
         panic_message("Out of PIDs!");
@@ -495,11 +496,19 @@ void sc_handle_hardware_interrupt_notify(uint8_t interrupt, bool enable, uint64_
 }
 
 void sc_handle_ipc_mq_create(bool global_read, bool global_write, size_t msg_limit, size_t data_limit, uint64_t* mq, uint64_t* error) {
-    *error = 0;
+    UNUSED_PARAM(global_read);
+    UNUSED_PARAM(global_write);
+    UNUSED_PARAM(msg_limit);
+    UNUSED_PARAM(data_limit);
+    UNUSED_PARAM(mq);
+
+    *error = -ENOSYS;
 }
 
 void sc_handle_ipc_mq_destroy(uint64_t mq, uint64_t* error) {
-    *error = 0;
+    UNUSED_PARAM(mq);
+
+    *error = -ENOSYS;
 }
 
 void sc_handle_ipc_mq_poll(uint64_t mq, bool wait, struct Message* msg, uint64_t* error) {

@@ -55,7 +55,12 @@ target_include_directories(kernel PUBLIC
 target_compile_definitions(kernel PRIVATE __kernel)
 
 target_compile_options(kernel PRIVATE
-    -Wall -Werror -std=gnu11
+    -Wall -Wextra -Wpedantic -Werror -std=gnu11
+    -Wno-gnu-zero-variadic-macro-arguments
+    -Wno-zero-length-array
+    -Wno-language-extension-token
+    -Wno-gnu-folding-constant
+    -Wno-overlength-strings
     -mno-omit-leaf-frame-pointer -fno-omit-frame-pointer
     -fno-stack-protector -mno-red-zone
     -fno-builtin -ffreestanding -nostdinc -fshort-wchar

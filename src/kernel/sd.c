@@ -29,7 +29,7 @@ struct sd {
 
 static struct sd sd_global_data;
 
-void init_sd() {
+void init_sd(void) {
     memset(sd_global_data.entry_shortcut, 0, sizeof(sd_global_data.entry_shortcut));
 }
 

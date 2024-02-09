@@ -31,7 +31,7 @@ struct logging_page* log_last       = &log_initial_page;
 uint64_t             log_page_count = 1;
 uint64_t             log_count      = 0;
 
-void log_append_page() {
+void log_append_page(void) {
     struct logging_page* new = (struct logging_page*)vm_alloc(logging_page_size);
     memset((void*)new, 0, logging_page_size);
     new->prev = log_last;
@@ -96,7 +96,7 @@ void log_append(char level, char* component, char* message) {
                 break;
         }
 
-        fbconsole_write("\e[38;5;%dm[%c] %s: %s\n", color_code, level, component, message);
+        fbconsole_write("\x1b[38;5;%dm[%c] %s: %s\n", color_code, level, component, message);
     }
 
     if(LOG_COM0) {

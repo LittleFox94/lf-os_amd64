@@ -49,10 +49,10 @@ void mm_mark_physical_pages(ptr_t start, uint64_t count, mm_page_status_t status
  */
 void mm_make_writeable(ptr_t address, int writeable);
 
-void mm_print_physical_free_regions();
+void mm_print_physical_free_regions(void);
 
 void mm_bootstrap(ptr_t usable_page);
 
-ptr_t mm_highest_address();
+ptr_t mm_highest_address(void);
 
 #endif

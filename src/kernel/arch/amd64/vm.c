@@ -7,6 +7,8 @@
 #include <tpa.h>
 #include <msr.h>
 
+#include <unused_param.h>
+
 void load_cr3(ptr_t cr3);
 
 static bool vm_direct_mapping_initialized = false;
@@ -41,7 +43,7 @@ struct vm_table {
     struct vm_table_entry entries[512];
 }__attribute__((packed));
 
-#define BASE_TO_PHYS(x)          ((void*)(x << 12))
+#define BASE_TO_PHYS(x)          ((char*)(x << 12))
 #define BASE_TO_DIRECT_MAPPED(x) ((vm_direct_mapping_initialized ? ALLOCATOR_REGION_DIRECT_MAPPING.start : 0) + BASE_TO_PHYS(x))
 #define BASE_TO_TABLE(x)         ((struct vm_table*)BASE_TO_DIRECT_MAPPED(x))
 
@@ -201,6 +203,8 @@ void vm_ref_dec(ptr_t physical) {
 }
 
 void* vm_page_alloc(uint32_t flags, uint8_t size) {
+    UNUSED_PARAM(flags);
+
     void* ret;
     switch(size) {
         case PageSize4KiB:
@@ -221,7 +225,7 @@ void* vm_page_alloc(uint32_t flags, uint8_t size) {
     return ret;
 }
 
-void init_vm() {
+void init_vm(void) {
     vm_setup_direct_mapping_init(VM_KERNEL_CONTEXT);
     logd("vm", "direct mapping set up");
 
@@ -241,7 +245,7 @@ void init_vm() {
     for(int i = 256; i < 512; ++i) {
         if(!VM_KERNEL_CONTEXT->entries[i].present) {
             void* page = vm_page_alloc(PageUsageKernel|PageUsagePagingStructure, PageSize4KiB);
-            memset(page + ALLOCATOR_REGION_DIRECT_MAPPING.start, 0, 4*KiB);
+            memset((char*)page + ALLOCATOR_REGION_DIRECT_MAPPING.start, 0, 4*KiB);
             VM_KERNEL_CONTEXT->entries[i].next_base = (ptr_t)page >> 12;
             VM_KERNEL_CONTEXT->entries[i].present   = 1;
             VM_KERNEL_CONTEXT->entries[i].huge      = 0;
@@ -327,7 +331,7 @@ void init_vm() {
     logd("vm", "set up descriptors for early pages");
 }
 
-void cleanup_boot_vm() {
+void cleanup_boot_vm(void) {
     size_t ret = 0;
 
     // XXX: check higher half mappings if this page is mapped elsewhere
@@ -374,7 +378,7 @@ void cleanup_boot_vm() {
     logi("vm", "Cleaned %B", ret);
 }
 
-struct vm_table* vm_context_new() {
+struct vm_table* vm_context_new(void) {
     struct vm_table* context = (struct vm_table*)vm_context_alloc_pages(VM_KERNEL_CONTEXT, ALLOCATOR_REGION_KERNEL_HEAP, 1);
     memcpy((void*)context, VM_KERNEL_CONTEXT, 4096);
 
@@ -389,7 +393,7 @@ static void vm_ensure_table(struct vm_table* table, uint16_t index) {
     struct vm_table_entry* entry = &table->entries[index];
 
     if(!entry->present) {
-        ptr_t nt = (ptr_t)(ALLOCATOR_REGION_DIRECT_MAPPING.start + vm_page_alloc(PageUsageKernel|PageUsagePagingStructure, PageSize4KiB));
+        ptr_t nt = (ptr_t)(ALLOCATOR_REGION_DIRECT_MAPPING.start + (char*)vm_page_alloc(PageUsageKernel|PageUsagePagingStructure, PageSize4KiB));
         memset((void*)nt, 0, 4096);
 
         entry->next_base = (nt - ALLOCATOR_REGION_DIRECT_MAPPING.start) >> 12;
@@ -695,15 +699,15 @@ void* vm_alloc(size_t size) {
 
     void* ptr                    = (uint64_t*)vm_context_alloc_pages(VM_KERNEL_CONTEXT, ALLOCATOR_REGION_KERNEL_HEAP, pages);
     *(uint64_t*)ptr              = size;
-    *(uint64_t*)(ptr + size + 8) = ~size;
+    *(uint64_t*)((char*)ptr + size + 8) = ~size;
 
-    return (void*)ptr + 8;
+    return (char*)ptr + 8;
 }
 
 void vm_free(void* ptr) {
     //! \todo clear and unmap pages
-    uint64_t size       = *(uint64_t*)(ptr - 8);
-    uint64_t validation = *(uint64_t*)(ptr + size);
+    uint64_t size       = *(uint64_t*)((char*)ptr - 8);
+    uint64_t validation = *(uint64_t*)((char*)ptr + size);
 
     if(size != ~validation) {
         panic_message("VM corruption detected!");
@@ -736,12 +740,12 @@ allocator_t kernel_alloc = (allocator_t){
     .tag     = 0,
 };
 
-struct vm_table* vm_current_context() {
+struct vm_table* vm_current_context(void) {
     struct vm_table* current;
     asm("mov %%cr3, %0":"=r"(current));
 
     if(vm_direct_mapping_initialized) {
-        return (void*)current + ALLOCATOR_REGION_DIRECT_MAPPING.start;
+        return (void*)((char*)current + ALLOCATOR_REGION_DIRECT_MAPPING.start);
     }
     else {
         return current;

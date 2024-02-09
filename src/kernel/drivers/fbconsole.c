@@ -82,7 +82,7 @@ void fbconsole_init(int width, int height, int stride, uint8_t* fb) {
     );
 }
 
-void fbconsole_init_backbuffer() {
+void fbconsole_init_backbuffer(void) {
     if(!fbconsole.fb) {
         return;
     }
@@ -206,7 +206,7 @@ void fbconsole_scroll(unsigned int scroll_amount) {
     }
 }
 
-void fbconsole_next_line() {
+void fbconsole_next_line(void) {
     if(!fbconsole.fb) {
         return;
     }

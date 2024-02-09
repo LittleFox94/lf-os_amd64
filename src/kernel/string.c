@@ -189,12 +189,12 @@ int sputbytes(char* buffer, int buffer_size, int64_t number) {
     const char *prefixes = " KMGT";
     static const int div = 1024;
 
-    int prefix = 0;
-    int exact  = 1;
+    size_t prefix = 0;
+    bool exact  = true;
 
     while(number / div >= 1 && prefix < strlen(prefixes)) {
         if((number / div) * div != number) {
-            exact = 0;
+            exact = false;
         }
 
         number /= div;
@@ -219,8 +219,8 @@ int sputbytes(char* buffer, int buffer_size, int64_t number) {
     return len;
 }
 
-int kvsnprintf(char* buffer, int buffer_size, const char* format, va_list args) {
-    int i                = 0;
+size_t kvsnprintf(char* buffer, size_t buffer_size, const char* format, va_list args) {
+    size_t i             = 0;
     char c               = 0;
     bool placeholder     = false;
     char placeholderChar = ' ';
@@ -324,10 +324,10 @@ int kvsnprintf(char* buffer, int buffer_size, const char* format, va_list args) 
     return i;
 }
 
-int ksnprintf(char* buffer, int buffer_size, const char* format, ...) {
+size_t ksnprintf(char* buffer, size_t buffer_size, const char* format, ...) {
     va_list args;
     va_start(args, format);
-    int count = kvsnprintf(buffer, buffer_size, format, args);
+    size_t count = kvsnprintf(buffer, buffer_size, format, args);
     va_end(args);
 
     return count;

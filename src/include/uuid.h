@@ -2,7 +2,6 @@
 #define _SYS_UUID_H_INCLUDE
 
 #include <stdint.h>
-#include <string.h>
 
 typedef union {
     struct {
@@ -22,7 +21,7 @@ typedef uint8_t uuid_key_t;
 
 uuid_key_t uuid_key(uuid_t* uuid);
 int uuid_cmp(uuid_t* a, uuid_t* b);
-int uuid_fmt(char* buffer, size_t len, uuid_t* uuid);
+size_t uuid_fmt(char* buffer, size_t len, uuid_t* uuid);
 #endif
 
 #endif

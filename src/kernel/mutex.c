@@ -17,11 +17,11 @@ struct mutex_data {
     pid_t holder;
 };
 
-void init_mutex() {
+void init_mutex(void) {
     mutexes = tpa_new(&kernel_alloc, sizeof(struct mutex_data), 4080, 0);
 }
 
-mutex_t mutex_create() {
+mutex_t mutex_create(void) {
     if(!next_mutex) {
         panic_message("Mutex namespace overflow!");
     }

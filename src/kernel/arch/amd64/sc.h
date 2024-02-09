@@ -4,8 +4,8 @@
 #include <stdint.h>
 #include <vm.h>
 
-void init_gdt();
-void init_sc();
+void init_gdt(void);
+void init_sc(void);
 
 void interrupt_add_queue(uint8_t interrupt, uint64_t mq);
 void interrupt_del_queue(uint8_t interrupt, uint64_t mq);

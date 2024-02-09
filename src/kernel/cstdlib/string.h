@@ -15,8 +15,8 @@ int strcmp(const char* s1, const char* s2);
 int strcasecmp(const char* s1, const char* s2);
 char* strncpy(char* s1, const char* s2, size_t n);
 
-int ksnprintf(char* buffer, int buffer_size, const char* format, ...);
-int kvsnprintf(char* buffer, int buffer_size, const char* format, va_list args);
+size_t ksnprintf(char* buffer, size_t buffer_size, const char* format, ...);
+size_t kvsnprintf(char* buffer, size_t buffer_size, const char* format, va_list args);
 
 int sputs(char* buffer, int buffer_size, char* string, int length);
 int sputui(char* buffer, int buffer_size, uint64_t number, int base);

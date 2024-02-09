@@ -59,7 +59,7 @@ mm_page_list_entry_t* mm_get_page_list_entry(mm_page_list_entry_t* start) {
 
     mm_page_list_entry_t* new = (mm_page_list_entry_t*)vm_context_alloc_pages(VM_KERNEL_CONTEXT, ALLOCATOR_REGION_KERNEL_HEAP, 1);
 
-    for(int i = 0; i < 4096 / sizeof(mm_page_list_entry_t); i++) {
+    for(unsigned long i = 0; i < 4096 / sizeof(mm_page_list_entry_t); i++) {
         new[i].start  = 0;
         new[i].count  = 0;
         new[i].status = MM_UNKNOWN;
@@ -80,7 +80,7 @@ void mm_bootstrap(ptr_t usable_page) {
     mm_page_list_entry_t* page_list = (mm_page_list_entry_t*)usable_page;
     mm_physical_page_list = page_list;
 
-    for(int i = 0; i < 4096 / sizeof(mm_page_list_entry_t); i++) {
+    for(unsigned long i = 0; i < 4096 / sizeof(mm_page_list_entry_t); i++) {
         page_list[i].start  = 0;
         page_list[i].count  = 0;
         page_list[i].status = MM_UNKNOWN;
@@ -151,7 +151,7 @@ void mm_mark_physical_pages(ptr_t start, uint64_t count, mm_page_status_t status
     new->status = status;
 }
 
-void mm_print_physical_free_regions() {
+void mm_print_physical_free_regions(void) {
     mm_page_list_entry_t* current = mm_physical_page_list;
 
     while(current) {
@@ -163,7 +163,7 @@ void mm_print_physical_free_regions() {
     }
 }
 
-ptr_t mm_highest_address() {
+ptr_t mm_highest_address(void) {
     ptr_t res = 0;
     mm_page_list_entry_t* current = mm_physical_page_list;
 

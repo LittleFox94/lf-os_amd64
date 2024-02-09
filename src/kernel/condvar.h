@@ -5,6 +5,6 @@
 
 typedef uint64_t condvar_t;
 
-void init_condvar();
+void init_condvar(void);
 
 #endif

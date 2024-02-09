@@ -74,57 +74,57 @@ typedef struct {
 
 extern void sc_handle(cpu_state* cpu);
 
-extern void _syscall_handler();
-extern void reload_cs();
+extern void _syscall_handler(void);
+extern void reload_cs(void);
 
-extern void idt_entry_0();
-extern void idt_entry_1();
-extern void idt_entry_2();
-extern void idt_entry_3();
-extern void idt_entry_4();
-extern void idt_entry_5();
-extern void idt_entry_6();
-extern void idt_entry_7();
-extern void idt_entry_8();
-extern void idt_entry_9();
-extern void idt_entry_10();
-extern void idt_entry_11();
-extern void idt_entry_12();
-extern void idt_entry_13();
-extern void idt_entry_14();
-extern void idt_entry_15();
-extern void idt_entry_16();
-extern void idt_entry_17();
-extern void idt_entry_18();
-extern void idt_entry_19();
-extern void idt_entry_20();
-extern void idt_entry_21();
-extern void idt_entry_22();
-extern void idt_entry_23();
-extern void idt_entry_24();
-extern void idt_entry_25();
-extern void idt_entry_26();
-extern void idt_entry_27();
-extern void idt_entry_28();
-extern void idt_entry_29();
-extern void idt_entry_30();
-extern void idt_entry_31();
-extern void idt_entry_32();
-extern void idt_entry_33();
-extern void idt_entry_34();
-extern void idt_entry_35();
-extern void idt_entry_36();
-extern void idt_entry_37();
-extern void idt_entry_38();
-extern void idt_entry_39();
-extern void idt_entry_40();
-extern void idt_entry_41();
-extern void idt_entry_42();
-extern void idt_entry_43();
-extern void idt_entry_44();
-extern void idt_entry_45();
-extern void idt_entry_46();
-extern void idt_entry_47();
+extern void idt_entry_0(void);
+extern void idt_entry_1(void);
+extern void idt_entry_2(void);
+extern void idt_entry_3(void);
+extern void idt_entry_4(void);
+extern void idt_entry_5(void);
+extern void idt_entry_6(void);
+extern void idt_entry_7(void);
+extern void idt_entry_8(void);
+extern void idt_entry_9(void);
+extern void idt_entry_10(void);
+extern void idt_entry_11(void);
+extern void idt_entry_12(void);
+extern void idt_entry_13(void);
+extern void idt_entry_14(void);
+extern void idt_entry_15(void);
+extern void idt_entry_16(void);
+extern void idt_entry_17(void);
+extern void idt_entry_18(void);
+extern void idt_entry_19(void);
+extern void idt_entry_20(void);
+extern void idt_entry_21(void);
+extern void idt_entry_22(void);
+extern void idt_entry_23(void);
+extern void idt_entry_24(void);
+extern void idt_entry_25(void);
+extern void idt_entry_26(void);
+extern void idt_entry_27(void);
+extern void idt_entry_28(void);
+extern void idt_entry_29(void);
+extern void idt_entry_30(void);
+extern void idt_entry_31(void);
+extern void idt_entry_32(void);
+extern void idt_entry_33(void);
+extern void idt_entry_34(void);
+extern void idt_entry_35(void);
+extern void idt_entry_36(void);
+extern void idt_entry_37(void);
+extern void idt_entry_38(void);
+extern void idt_entry_39(void);
+extern void idt_entry_40(void);
+extern void idt_entry_41(void);
+extern void idt_entry_42(void);
+extern void idt_entry_43(void);
+extern void idt_entry_44(void);
+extern void idt_entry_45(void);
+extern void idt_entry_46(void);
+extern void idt_entry_47(void);
 
 static cpu_local_data*  _cpu0;
 static struct idt_entry _idt[256];
@@ -151,10 +151,10 @@ void set_iopb(struct vm_table* context, ptr_t new_iopb) {
     }
 }
 
-void init_gdt() {
+void init_gdt(void) {
     _cpu0 = (cpu_local_data*)vm_context_alloc_pages(VM_KERNEL_CONTEXT, ALLOCATOR_REGION_KERNEL_HEAP, 4);
     memset(_cpu0, 0, 4*KiB);
-    memset((void*)_cpu0 + 4*KiB, 0xFF, 12*KiB);
+    memset((char*)_cpu0 + 4*KiB, 0xFF, 12*KiB);
 
     ptr_t kernel_stack = vm_context_alloc_pages(VM_KERNEL_CONTEXT, ALLOCATOR_REGION_KERNEL_HEAP, 1) + 4096;
 
@@ -212,7 +212,7 @@ void interrupt_del_queue(uint8_t interrupt, uint64_t mq) {
     flexarray_t array;
     uint64_t idx;
 
-    if((array = interrupt_queues[interrupt]) && (idx = flexarray_find(array, &mq)) != -1) {
+    if((array = interrupt_queues[interrupt]) && (idx = flexarray_find(array, &mq)) != -1ULL) {
         flexarray_remove(array, idx);
     }
 }
@@ -247,7 +247,7 @@ static void _set_idt_entry(int index, ptr_t base) {
     _idt[index].ist      = 1;
 }
 
-static void _setup_idt() {
+static void _setup_idt(void) {
     memset((uint8_t*)_idt, 0, sizeof(_idt));
 
     _set_idt_entry( 0, (ptr_t) idt_entry_0);
@@ -306,7 +306,7 @@ static void _setup_idt() {
     asm("lidt %0"::"m"(idtp));
 }
 
-void init_sc() {
+void init_sc(void) {
     _setup_idt();
 
     asm("mov $0xC0000080, %%rcx\n"

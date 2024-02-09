@@ -4,7 +4,7 @@
 #define PIC1 0x20
 #define PIC2 0xA0
 
-void init_pic() {
+void init_pic(void) {
 	outb(PIC1,     0x11);  // starts the initialization sequence (in cascade mode)
 	outb(PIC2,     0x11);
 	outb(PIC1 + 1, 0x20);  // ICW2: Master PIC vector offset

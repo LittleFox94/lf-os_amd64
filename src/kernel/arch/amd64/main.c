@@ -27,7 +27,7 @@ extern char build_id[];
     logi("kernel", message);
 
 void nyi(int loop);
-void bootstrap_globals();
+void bootstrap_globals(void);
 void init_console(struct LoaderStruct* loaderStruct);
 void init_mm(struct LoaderStruct* loaderStruct);
 void init_symbols(struct LoaderStruct* loaderStruct);
@@ -211,7 +211,7 @@ void init_init(struct LoaderStruct* loaderStruct) {
     }
 }
 
-void bootstrap_globals() {
+void bootstrap_globals(void) {
     VM_KERNEL_CONTEXT = vm_current_context();
 }
 
@@ -221,6 +221,6 @@ __attribute__((noinline)) void nyi(int loop) {
         panic_message("Not yet implemented");
     }
     else {
-        fbconsole_write("\n\e[38;5;9mNot yet implemented. Continuing");
+        fbconsole_write("\n\x1b[38;5;9mNot yet implemented. Continuing");
     }
 }

@@ -55,7 +55,7 @@ static void panic_message_impl(const char* message, uint64_t rbp, bool rbp_given
 }
 // \endcond
 
-void panic() {
+void panic(void) {
     // \cond panic_functions
     panic_message("Unknown error");
     // \endcond

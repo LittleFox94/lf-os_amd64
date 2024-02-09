@@ -44,8 +44,8 @@ static const uint8_t  PageSize1GiB = 2;
 struct vm_table;
 extern struct vm_table* VM_KERNEL_CONTEXT;
 
-void init_vm();
-void cleanup_boot_vm();
+void init_vm(void);
+void cleanup_boot_vm(void);
 
 //! Like malloc but allocates full pages only. 16 byte data overhead.
 void* vm_alloc(size_t size);
@@ -53,8 +53,9 @@ void* vm_alloc(size_t size);
 //! the matching free() like function for vm_alloc
 void  vm_free(void* ptr);
 
-struct vm_table* vm_context_new();
-struct vm_table* vm_current_context();
+struct vm_table* vm_context_new(void);
+
+struct vm_table* vm_current_context(void);
 
 void vm_context_activate(struct vm_table* context);
 
