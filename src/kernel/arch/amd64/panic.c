@@ -3,7 +3,7 @@
 #include "string.h"
 #include "fbconsole.h"
 #include "elf.h"
-#include "qr.h"
+#include "../../qr/qr.h"
 
 extern const char* LAST_INIT_STEP;
 

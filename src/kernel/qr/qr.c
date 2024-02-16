@@ -1,4 +1,5 @@
-#include <qr.h>
+#include "qr.h"
+
 #include <stdint.h>
 #include <string.h>
 #include <stdbool.h>
