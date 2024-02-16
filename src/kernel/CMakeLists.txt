@@ -18,7 +18,7 @@ add_executable(kernel
     mm.c        mm.h
     mq.c        mq.h
     mutex.c     mutex.h
-    qr.c        qr.h
+    qr/qr.c     qr/qr.h     qr/rs.c
     sd.c        sd.h
     slab.c      slab.h
     string.c    cstdlib/string.h

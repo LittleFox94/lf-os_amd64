@@ -5,6 +5,8 @@
 #include <log.h>
 #include <bitmap.h>
 
+void qr_block_ec_generate(uint8_t* block, size_t block_size, uint8_t* ec_result, size_t num_ec_words);
+
 struct qr_version_data {
     uint32_t version_info;
     uint8_t  ec_codewords_per_block;
@@ -491,6 +493,7 @@ static void qr_encode_data(qr_data out, uint8_t version, const uint8_t* data, si
     uint8_t final_codewords[qr_all_codewords(version)];
     memset(final_codewords, 0, sizeof(final_codewords));
 
+    size_t num_ec_codewords = qr_versions[version].ec_codewords_per_block;
     size_t total_blocks = qr_versions[version].block_sizes[0] + qr_versions[version].block_sizes[2];
     size_t total_block = 0, si = 0;
     uint8_t* blocks = qr_versions[version].block_sizes;
@@ -499,9 +502,8 @@ static void qr_encode_data(qr_data out, uint8_t version, const uint8_t* data, si
         uint8_t block_count = blocks[0];
         uint8_t block_size  = blocks[1];
         for(uint8_t block = 0; block < block_count; ++block && ++total_block) {
-            // XXX: magic to get EC codewords for data_codewords[si-block_size] to data_codewords[di]
-            uint8_t ec_codewords[qr_versions[version].ec_codewords_per_block];
-            memset(ec_codewords, total_block, sizeof(ec_codewords));
+            uint8_t ec_codewords[num_ec_codewords];
+            qr_block_ec_generate(data_codewords + si, block_size, ec_codewords, num_ec_codewords);
 
             for(uint8_t i = 0; i < block_size; ++i) {
                 size_t di = qr_interleaved_data_index(version, si);
