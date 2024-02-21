@@ -543,6 +543,7 @@ static uint8_t qr_encode(qr_data out, const uint8_t* data, size_t data_length) {
 }
 
 uint8_t qr_log(qr_data out) {
-    const char* data = "LF OS rocks!\nwith quite some more random text and data to get a bigger QR code that might just decode without error correction coding?";
+    //const char* data = "LF OS rocks!\nwith quite some more random text and data to get a bigger QR code that might just decode without error correction coding?";
+    const char *data = "Hello world";
     return qr_encode(out, (const uint8_t*)data, strlen(data));
 }

@@ -217,15 +217,15 @@ void scalar_to_polynomial(polynomial *ret, uint8_t a) {
  * We'll take uint8_t x as the value for evaluating 'x' in our 
  * polynomial.
  */
-uint8_t polynomial_to_scalar(polynomial *p, uint8_t x) {
-    uint8_t ret;
-    int i;
-
-    for (ret = p->coefficients[0], i = 1; i < p->size; i++) {
-        ret = ff_add(p->coefficients[i], ff_mul(ret, x));
-    }
-    return ret;
-}
+// uint8_t polynomial_to_scalar(polynomial *p, uint8_t x) {
+//     uint8_t ret;
+//     int i;
+// 
+//     for (ret = p->coefficients[0], i = 1; i < p->size; i++) {
+//         ret = ff_add(p->coefficients[i], ff_mul(ret, x));
+//     }
+//     return ret;
+// }
 
 /* Multiply polynomial by another one,
  * whenever you multiply two polynomials, the highest coefficient will be
@@ -351,11 +351,12 @@ void qr_block_ec_generate(uint8_t *block, size_t block_size, uint8_t *out, size_
 
     // Initialize message polynomial
     poly_init(&msg, (block_size + gen.size - 1));
-    memcpy(&msg, block, block_size);
+    memcpy(&msg.coefficients, block, block_size);
 
     // Encode message
     rs_encode(&msg, &gen, out);
 
+    dump_uint8_t_p(block, block_size);
     dump_uint8_t_p(out, nsym);
 }
 
