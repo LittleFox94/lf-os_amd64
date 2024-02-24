@@ -115,7 +115,7 @@ static uint8_t ff_mul(uint8_t a, uint8_t b) {
     }
 
     off = ff_log_table[a] + ff_log_table[b];
-    off = off & 0x00FF;
+    off = off % 255;
     return ff_exp_table[off];
 }
 
@@ -129,7 +129,7 @@ static uint8_t ff_mul(uint8_t a, uint8_t b) {
 //    if (!a) return 0;
 //
 //    uint16_t off = (ff_log_table[a] + 255) - ff_log_table[b];
-//    off = off & 0x00FF;
+//    off = off % 255;
 //    return ff_exp_table[off];
 //}
 //
@@ -152,7 +152,7 @@ static uint8_t ff_exp(uint8_t a, uint8_t b) {
     }
 
     off = ff_log_table[a] * b;
-    off = off & 0x00FF;
+    off = off % 255;
     return ff_exp_table[off];
 }
 
