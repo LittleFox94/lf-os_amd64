@@ -1,4 +1,4 @@
-/* Implement reed-solomon error correcting codes 
+/* Implement reed-solomon error correcting codes
  * and related mathematics.
  *
  */
@@ -11,9 +11,9 @@
 #include <string.h>
 
 /* Since our whole number system only goes from 0 to 255, it's not too big of a
- * sacrifice to have precomputed logarithm and exponent tables for all things 
+ * sacrifice to have precomputed logarithm and exponent tables for all things
  * multiplication&divison. This makes implementing most of finite field arithmetics
- * so So much more convenient. 
+ * so So much more convenient.
  */
 static uint8_t ff_exp_table[256];
 static uint8_t ff_log_table[256];
@@ -36,9 +36,9 @@ static void init_ff_lookup_tables(void) {
         // Multiply b by 2
         b = b << 1;
         if (b & 0x100) {
-            // if b goes above our finite field bounds (above 256), 
+            // if b goes above our finite field bounds (above 256),
             // XOR it with our first irreducible/prime polynomial above 256, which is
-            // 285. This should clear bits above 0xFF and set remainder for us.. 
+            // 285. This should clear bits above 0xFF and set remainder for us..
             //
             b ^= 285;
         }
@@ -46,7 +46,7 @@ static void init_ff_lookup_tables(void) {
 }
 
 /* Our finite field is from 0 to 255 (unsigned char), it's base
- * number is 2, so our field is GF(2^8). For all groups GF(2^n) 
+ * number is 2, so our field is GF(2^8). For all groups GF(2^n)
  * addition and subtraction are just essentially XOR, since as
  *
  *    a + a = 0
@@ -82,10 +82,10 @@ static uint8_t ff_add(uint8_t a, uint8_t b) {
  *
  * uint8_t mul(uint8_t a, uint8_t b) {
  *     uint16_t ret = (a * b);
- *     if (ret > 256) 
+ *     if (ret > 256)
  *         ret = ret ^ 285;
  *     return ret;
- * } 
+ * }
  *
  * We can also rely on the fact that on our finite field, every number can be
  * represented as 2^n, this means that:
@@ -105,7 +105,7 @@ static uint8_t ff_add(uint8_t a, uint8_t b) {
  * If we just set up our lookup tables sensibly, we can also do this in a way
  * where a and b can be used as offsets to our tables, reducing whole
  * multiplication process into single addition and few memory accesses
- * 
+ *
  */
 static uint8_t ff_mul(uint8_t a, uint8_t b) {
     uint16_t off;
@@ -134,7 +134,7 @@ static uint8_t ff_mul(uint8_t a, uint8_t b) {
 //}
 //
 /* Exponents are just table lookups too, since
- * we did precompute all of this already. 
+ * we did precompute all of this already.
  *
  * Inverse is just 1 / base, so nothing too unusual there either
  */
@@ -150,7 +150,7 @@ static uint8_t ff_exp(uint8_t a, uint8_t b) {
     if (b == 1) {
         return a;
     }
-    
+
     off = ff_log_table[a] * b;
     off = off & 0x00FF;
     return ff_exp_table[off];
@@ -160,13 +160,13 @@ static uint8_t ff_exp(uint8_t a, uint8_t b) {
  * essentially eg: 1011 0011 is to be represented as
  * x^7 + 0 + x^5 + x^4 + 0 + 0 + x + 1
  *
- * we can't reasonably deal with unknown variables in C, so 
+ * we can't reasonably deal with unknown variables in C, so
  * instead we'll only take coefficients as a list; so
  *  [1, 0, 1, 1, 0, 0, 1, 1]
  *
  * Now, since we're doing mathematics on the polynomials, we might
  * and will end up to situations where our polynomial is eg.
- * 8x^7 + 4x^5 
+ * 8x^7 + 4x^5
  * which will then just be
  *  [8, 0, 4, 0, 0, 0, 0, 0]
  *
@@ -214,13 +214,13 @@ void scalar_to_polynomial(polynomial *ret, uint8_t a) {
  * 2^8, our scalar values must remain within our finite field, so
  * we'll return uint8_t.
  *
- * We'll take uint8_t x as the value for evaluating 'x' in our 
+ * We'll take uint8_t x as the value for evaluating 'x' in our
  * polynomial.
  */
 // uint8_t polynomial_to_scalar(polynomial *p, uint8_t x) {
 //     uint8_t ret;
 //     int i;
-// 
+//
 //     for (ret = p->coefficients[0], i = 1; i < p->size; i++) {
 //         ret = ff_add(p->coefficients[i], ff_mul(ret, x));
 //     }
@@ -308,7 +308,7 @@ static void rs_encode(polynomial *a, polynomial *b, uint8_t *out) {
  * g(b): for all (j = 1; j < (n - k); j++) {
  *  result *= (b - x^j)
  * }
- * where x is primitive element, n is number of error correcting symbols, and  k is 
+ * where x is primitive element, n is number of error correcting symbols, and  k is
  * size of the message
  */
 static void generator(polynomial *g, int n) {

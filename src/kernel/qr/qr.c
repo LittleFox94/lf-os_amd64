@@ -412,13 +412,16 @@ static inline void qr_store_bit(qr_data out, uint8_t version, uint8_t *x, uint8_
     qr_next_module(out, version, x, y);
 }
 
-static void qr_store_data(qr_data out, uint8_t version, const bitmap_t data) {
+static void qr_store_data(qr_data out, uint8_t version, const uint8_t* data) {
     uint8_t modules = qr_modules(version);
     uint8_t y       = modules - 1;
     uint8_t x       = modules - 1;
 
-    for(size_t i = 0; i < qr_all_codewords(version) * 8; ++i) {
-        qr_store_bit(out, version, &x, &y, bitmap_get(data, i));
+    for(size_t byte = 0; byte < qr_all_codewords(version) * 8; ++byte) {
+        uint8_t v = data[byte];
+        for(size_t bit = 0; bit < 8; ++bit) {
+            qr_store_bit(out, version, &x, &y, v & (0x80 >> bit));
+        }
     }
 }
 
@@ -456,21 +459,21 @@ static void qr_encode_data(qr_data out, uint8_t version, const uint8_t* data, si
 
     uint8_t mode_indicator = 4; // binary data
     for(size_t i = 0; i < 4; ++i && ++bit) {
-        if(mode_indicator & (1 << (3 - i))) {
+        if(mode_indicator & (1 << i)) {
             bitmap_set((bitmap_t)data_codewords, bit);
         }
     }
 
     size_t datalen_bits = version <= 9 ? 8 : 16;
     for(size_t i = 0; i < datalen_bits; ++i && ++bit) {
-        if(data_length & (1 << (datalen_bits - i - 1))) {
+        if(data_length & (1 << i)) {
             bitmap_set((bitmap_t)data_codewords, bit);
         }
     }
 
     for(size_t i = 0; i < data_length; ++i) {
         for(size_t j = 0; j < 8; ++j && ++bit) {
-            if(data[i] & (1 << (7 - j))) {
+            if(data[i] & (1 << j)) {
                 bitmap_set((bitmap_t)data_codewords, bit);
             }
         }
@@ -485,7 +488,7 @@ static void qr_encode_data(qr_data out, uint8_t version, const uint8_t* data, si
         uint8_t byte = i % 2 ? 17 : 236;
 
         for(size_t j = 0; j < 8; ++j && ++bit) {
-            if(byte & (1 << (7 - j))) {
+            if(byte & (1 << j)) {
                 bitmap_set((bitmap_t)data_codewords, bit);
             }
         }
