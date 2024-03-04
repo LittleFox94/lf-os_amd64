@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <log.h>
 #include <bitmap.h>
+#include <unused_param.h>
 
 void qr_block_ec_generate(uint8_t* block, size_t block_size, uint8_t* ec_result, size_t num_ec_words);
 
@@ -247,10 +248,12 @@ static bool qr_mask_pattern0(uint8_t x, uint8_t y) {
 }
 
 static bool qr_mask_pattern1(uint8_t x, uint8_t y) {
+    UNUSED_PARAM(x);
     return (y % 2) == 0;
 }
 
 static bool qr_mask_pattern2(uint8_t x, uint8_t y) {
+    UNUSED_PARAM(y);
     return (x % 3) == 0;
 }
 
@@ -349,6 +352,8 @@ static void qr_fixed_patterns(qr_data out, uint8_t version) {
 }
 
 static uint8_t qr_determine_mask(qr_data out, uint8_t version) {
+    UNUSED_PARAM(out);
+    UNUSED_PARAM(version);
     return 0;
 }
 

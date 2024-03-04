@@ -55,7 +55,7 @@ static void panic_message_impl(const char* message, uint64_t rbp, bool rbp_given
     }
 }
 
-static void panic_qr() {
+static void panic_qr(void) {
     qr_data qr;
     uint8_t modules = qr_log(qr);
 
