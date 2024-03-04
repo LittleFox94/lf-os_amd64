@@ -355,9 +355,6 @@ void qr_block_ec_generate(uint8_t *block, size_t block_size, uint8_t *out, size_
 
     // Encode message
     rs_encode(&msg, &gen, out);
-
-    dump_uint8_t_p(block, block_size);
-    dump_uint8_t_p(out, nsym);
 }
 
 
