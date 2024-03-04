@@ -412,16 +412,13 @@ static inline void qr_store_bit(qr_data out, uint8_t version, uint8_t *x, uint8_
     qr_next_module(out, version, x, y);
 }
 
-static void qr_store_data(qr_data out, uint8_t version, const uint8_t* data) {
+static void qr_store_data(qr_data out, uint8_t version, const bitmap_t data) {
     uint8_t modules = qr_modules(version);
     uint8_t y       = modules - 1;
     uint8_t x       = modules - 1;
 
-    for(size_t byte = 0; byte < qr_all_codewords(version) * 8; ++byte) {
-        uint8_t v = data[byte];
-        for(size_t bit = 0; bit < 8; ++bit) {
-            qr_store_bit(out, version, &x, &y, v & (0x80 >> bit));
-        }
+    for(size_t bit = 0; bit < qr_all_codewords(version) * 8; ++bit) {
+        qr_store_bit(out, version, &x, &y, bitmap_get(data, bit));
     }
 }
 
@@ -451,6 +448,27 @@ static size_t qr_interleaved_data_index(uint8_t version, size_t codeword_index) 
     }
 }
 
+static void qr_endianness_swap(uint8_t* in, uint8_t* out, size_t len) {
+    for(size_t byte = 0; byte < len; ++byte) {
+        uint8_t val = in[byte];
+        out[byte] = 0;
+
+        for(size_t bit = 0; bit < 8; ++bit) {
+            if(bitmap_get(&val, bit)) {
+                bitmap_set(out, (byte * 8) + (7 - bit));
+            }
+        }
+    }
+}
+
+static void qr_add_bits(bitmap_t out, uint64_t value, size_t bits, size_t* position) {
+    for(size_t i = 0; i < bits; ++i && ++(*position)) {
+        if(value & (1 << (bits - i - 1))) {
+            bitmap_set(out, *position);
+        }
+    }
+}
+
 static void qr_encode_data(qr_data out, uint8_t version, const uint8_t* data, size_t data_length) {
     uint8_t data_codewords[qr_data_codewords(version)];
     memset(data_codewords, 0, sizeof(data_codewords));
@@ -458,25 +476,13 @@ static void qr_encode_data(qr_data out, uint8_t version, const uint8_t* data, si
     size_t bit = 0;
 
     uint8_t mode_indicator = 4; // binary data
-    for(size_t i = 0; i < 4; ++i && ++bit) {
-        if(mode_indicator & (1 << i)) {
-            bitmap_set((bitmap_t)data_codewords, bit);
-        }
-    }
+    qr_add_bits(data_codewords, mode_indicator, 4, &bit);
 
     size_t datalen_bits = version <= 9 ? 8 : 16;
-    for(size_t i = 0; i < datalen_bits; ++i && ++bit) {
-        if(data_length & (1 << i)) {
-            bitmap_set((bitmap_t)data_codewords, bit);
-        }
-    }
+    qr_add_bits(data_codewords, data_length, datalen_bits, &bit);
 
     for(size_t i = 0; i < data_length; ++i) {
-        for(size_t j = 0; j < 8; ++j && ++bit) {
-            if(data[i] & (1 << j)) {
-                bitmap_set((bitmap_t)data_codewords, bit);
-            }
-        }
+        qr_add_bits(data_codewords, data[i], 8, &bit);
     }
 
     // terminator bits to pad to full bytes - this is a shortcut we can take
@@ -486,12 +492,7 @@ static void qr_encode_data(qr_data out, uint8_t version, const uint8_t* data, si
 
     for(size_t i = 0; bit < sizeof(data_codewords) * 8; ++i) {
         uint8_t byte = i % 2 ? 17 : 236;
-
-        for(size_t j = 0; j < 8; ++j && ++bit) {
-            if(byte & (1 << j)) {
-                bitmap_set((bitmap_t)data_codewords, bit);
-            }
-        }
+        qr_add_bits(data_codewords, byte, 8, &bit);
     }
 
     uint8_t final_codewords[qr_all_codewords(version)];
@@ -506,8 +507,12 @@ static void qr_encode_data(qr_data out, uint8_t version, const uint8_t* data, si
         uint8_t block_count = blocks[0];
         uint8_t block_size  = blocks[1];
         for(uint8_t block = 0; block < block_count; ++block && ++total_block) {
+            uint8_t block_data_for_ec[block_size];
+            qr_endianness_swap(data_codewords + si, block_data_for_ec, block_size);
+
             uint8_t ec_codewords[num_ec_codewords];
-            qr_block_ec_generate(data_codewords + si, block_size, ec_codewords, num_ec_codewords);
+            qr_block_ec_generate(block_data_for_ec, block_size, ec_codewords, num_ec_codewords);
+            qr_endianness_swap(ec_codewords, ec_codewords, num_ec_codewords);
 
             for(uint8_t i = 0; i < block_size; ++i) {
                 size_t di = qr_interleaved_data_index(version, si);
@@ -546,7 +551,6 @@ static uint8_t qr_encode(qr_data out, const uint8_t* data, size_t data_length) {
 }
 
 uint8_t qr_log(qr_data out) {
-    //const char* data = "LF OS rocks!\nwith quite some more random text and data to get a bigger QR code that might just decode without error correction coding?";
-    const char *data = "Hello world";
+    const char* data = "LF OS rocks!\nwith quite some more random text and data to get a bigger QR code that might just decode without error correction coding?";
     return qr_encode(out, (const uint8_t*)data, strlen(data));
 }
