@@ -255,6 +255,7 @@ apt-deploy:
   needs:
   - build-sysroot
   - build-system
+  - unittest
 
 generic-deploy:
   extends:
@@ -262,12 +263,15 @@ generic-deploy:
   needs:
   - build-sysroot
   - build-system
+  - unittest
 
 pages:
   extends:
   - .cmake-build
   - .deploy-job
   stage: deploy
+  needs:
+  - unittest
   only:
     changes:
     - src/**/*
