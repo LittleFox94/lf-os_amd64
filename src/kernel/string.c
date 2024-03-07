@@ -121,8 +121,10 @@ void* memmove(void* dest, const void* src, size_t n) {
 int sputs(char* buffer, int buffer_size, char* string, int length) {
     int i;
 
-    for(i = 0; i < length && i < buffer_size; ++i) {
-        buffer[i] = string[i];
+    for(i = 0; i < length; ++i) {
+        if(i < buffer_size) {
+            buffer[i] = string[i];
+        }
     }
 
     return i;
@@ -255,7 +257,7 @@ size_t kvsnprintf(char* buffer, size_t buffer_size, const char* format, va_list 
                 size_t argSize = buffer_size - i;
                 char* argDestination = buffer + i;
 
-                if(minLength) {
+                if(minLength || !buffer) {
                     argSize = sizeof(argBuffer);
                     argDestination = argBuffer;
                     memset((void*)argBuffer, 0, argSize);
@@ -300,7 +302,7 @@ size_t kvsnprintf(char* buffer, size_t buffer_size, const char* format, va_list 
                         break;
                 }
 
-                if(minLength) {
+                if(argDestination == argBuffer) {
                     while(length < minLength) {
                         if(i < buffer_size) {
                             buffer[i] = placeholderChar;
