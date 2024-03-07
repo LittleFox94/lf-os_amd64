@@ -252,56 +252,66 @@ size_t kvsnprintf(char* buffer, size_t buffer_size, const char* format, va_list 
                 char argBuffer[256];
                 int  length;
 
-                memset((void*)argBuffer, 0, 256);
+                size_t argSize = buffer_size - i;
+                char* argDestination = buffer + i;
+
+                if(minLength) {
+                    argSize = sizeof(argBuffer);
+                    argDestination = argBuffer;
+                    memset((void*)argBuffer, 0, argSize);
+                }
 
                 switch(c) {
                     case 'c':
-                        argBuffer[0] = va_arg(args, int);
+                        *argDestination = va_arg(args, int);
                         length = 1;
                         break;
                     case 'u':
-                        length = sputui(argBuffer, 256, va_arg(args, uint64_t), 10);
+                        length = sputui(argDestination, argSize, va_arg(args, uint64_t), 10);
                         break;
                     case 'd':
-                        length = sputi(argBuffer, 256, va_arg(args, int), 10);
+                        length = sputi(argDestination, argSize, va_arg(args, int), 10);
                         break;
                     case 'x':
-                        length = sputui(argBuffer, 256, va_arg(args, uint64_t), 16);
+                        length = sputui(argDestination, argSize, va_arg(args, uint64_t), 16);
                         break;
                     case 'B':
-                        length = sputbytes(argBuffer, 256, va_arg(args, long));
+                        length = sputbytes(argDestination, argSize, va_arg(args, long));
                         break;
                     case 's':
                         switch(lengthModifier) {
                             case 0:
                                 {
                                     char* sarg = va_arg(args, char*);
-                                    length = sputs(argBuffer, 256, sarg, strlen(sarg));
+                                    length = sputs(argDestination, argSize, sarg, strlen(sarg));
                                 }
                                 break;
                             case 16:
                                 {
                                     wchar_t* lsarg = va_arg(args, wchar_t*);
-                                    length = sputls(argBuffer, 256, lsarg, wcslen(lsarg));
+                                    length = sputls(argDestination, argSize, lsarg, wcslen(lsarg));
                                 }
                                 break;
                         }
                         break;
                     default:
                         length = 1;
-                        argBuffer[0] = c;
+                        argDestination[0] = c;
                         break;
                 }
 
-                while(length < minLength) {
-                    if(i < buffer_size) {
-                        buffer[i] = placeholderChar;
+                if(minLength) {
+                    while(length < minLength) {
+                        if(i < buffer_size) {
+                            buffer[i] = placeholderChar;
+                        }
+                        ++i;
+                        --minLength;
                     }
-                    ++i;
-                    --minLength;
+
+                    sputs(buffer + i, buffer_size - i, argBuffer, length);
                 }
 
-                sputs(buffer + i, buffer_size - i, argBuffer, length);
                 i += length;
 
                 placeholder = false;

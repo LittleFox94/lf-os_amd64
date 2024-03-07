@@ -119,11 +119,11 @@ void log_append(char level, char* component, char* message) {
 
 void log(char level, char* component, char* fmt, ...) {
     va_list args;
-    char buffer[512];
-    memset((uint8_t*)buffer, 0, 512);
+    char buffer[logging_page_size];
+    memset((uint8_t*)buffer, 0, sizeof(buffer));
 
     va_start(args, fmt);
-    kvsnprintf(buffer, 512, fmt, args);
+    kvsnprintf(buffer, sizeof(buffer), fmt, args);
     va_end(args);
 
     log_append(level, component, buffer);
