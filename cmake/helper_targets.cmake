@@ -10,6 +10,18 @@ set(QEMU_FLAGS_NVME -drive format=raw,file=hd.img,if=none,id=boot_drive -device 
 set(QEMU_FLAGS_PXE  -netdev user,id=net0,tftp=${CMAKE_BINARY_DIR}/shared,bootfile=/EFI/LFOS/BOOTX64.efi -device virtio-net,netdev=net0,romfile=)
 
 add_custom_command(
+    OUTPUT ${PROJECT_BINARY_DIR}/syscalls.h
+    COMMAND src/syscall-generator.pl src/syscalls.yml ${PROJECT_BINARY_DIR}/syscalls.h user
+    DEPENDS
+        src/syscalls.yml
+        src/syscall-generator.pl
+    COMMENT           "Generating userspace syscall bindings"
+    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+)
+
+add_custom_target(generate_syscalls.h ALL DEPENDS ${PROJECT_BINARY_DIR}/syscalls.h)
+
+add_custom_command(
     OUTPUT firmware.qcow2
     COMMAND ${qemu_img} create -o backing_file=${ovmf_firmware} -o backing_fmt=raw -o cluster_size=512 -f qcow2 firmware.qcow2
     DEPENDS ${ovmf_firmware}
