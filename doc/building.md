@@ -21,10 +21,32 @@ To compile the toolchain and LF OS components, you need:
 
 The syscall code generate runs with `perl` and requires the `YAML` module (libperl-yaml, perl-YAML, `cpan YAML`, ..).
 
+The testing framework requires the `googletest-git` package.
+
 To produce disk images, you'll need `gdisk` and maybe `xz`.
 
 For QEMU you need `OVMF` firmware installed.
 
+## Compiling the toolchain
+
+This will take a long time, around 4.5k source files. The toolchain installs to `/opt/lf_os/toolchain` by default, you can change this by adding `-DCMAKE_INSTALL_PREFIX=$whereYouWantToInstallIt` to the cmake command.
+
+```
+# from the root of the source directory
+mkdir build-toolchain && cd build-toolchain
+cmake -Dsubproject=toolchain ..
+make
+sudo make install
+```
+
+## Installing the pre-built toolchain from CI
+
+Download the latest toolchain from https://praios.lf-net.org/littlefox/lf-os_amd64/-/packages and `cd` to the download directory
+
+```
+tar -xf lf_os-toolchain_x.y.z+build_Linux-x86_64.tar.xz #Extract the .tar.xz 
+sudo mv -rvf lf_os-toolchain_0.1.1+1654_Linux-x86_64/opt/lf_os /opt/ #Copy the toolchain to /opt 
+```
 
 ## Noteworthy targets
 
@@ -37,6 +59,7 @@ For QEMU you need `OVMF` firmware installed.
 
 ## Full example
 
+These steps must only be run after you have compiled your own toolchain or installed the pre-built toolchain
 ```
 git clone https://praios.lf-net.org/littlefox/lf-os_amd64.git
 cd lf-os_amd64
