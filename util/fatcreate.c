@@ -460,7 +460,9 @@ void fatify_name(char** dst, const char* fullname, struct directory_entry* dir, 
 #if defined(__GNUG__) && !defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-truncation"
+#endif
             snprintf(ret, 12, "%.*s~%d%3s", prefixlen, fullname, cnt, ext);
+#if defined(__GNUG__) && !defined(__clang__)
 #pragma GCC diagnostic pop
 #endif
 
