@@ -1,4 +1,4 @@
-find_file(ovmf_firmware OVMF.fd HINTS /usr/share/ovmf /usr/share/qemu DOC "OVMF UEFI firmware for QEMU")
+find_file(ovmf_firmware OVMF.fd HINTS /usr/share/ovmf /usr/share/ovmf/x64 /usr/share/qemu DOC "OVMF UEFI firmware for QEMU")
 find_program(qemu_img NAMES qemu-img           DOC "QEMU image management tool")
 find_program(qemu     NAMES qemu-system-x86_64 DOC "QEMU for x86_64 emulation")
 find_program(kvm      NAMES kvm                DOC "QEMU for x86_64 emulation with KVM acceleration")
