@@ -27,6 +27,14 @@ To produce disk images, you'll need `gdisk` and maybe `xz`.
 
 For QEMU you need `OVMF` firmware installed.
 
+## Dependenices
+
+- perl-yaml
+- yq
+- googletests
+- gdisk
+- ovmf
+
 ## Compiling the toolchain
 
 This will take a long time, around 4.5k source files. The toolchain installs to `/opt/lf_os/toolchain` by default, you can change this by adding `-DCMAKE_INSTALL_PREFIX=$whereYouWantToInstallIt` to the cmake command.
@@ -47,6 +55,14 @@ Download the latest toolchain from https://praios.lf-net.org/littlefox/lf-os_amd
 tar -xf lf_os-toolchain_x.y.z+build_Linux-x86_64.tar.xz #Extract the .tar.xz 
 sudo mv -rvf lf_os-toolchain_0.1.1+1654_Linux-x86_64/opt/lf_os /opt/ #Copy the toolchain to /opt 
 ```
+
+## Dependenices
+
+- perl-yaml
+- yq
+- googletests
+- gdisk
+- ovmf
 
 ## Noteworthy targets
 
