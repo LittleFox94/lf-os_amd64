@@ -35,6 +35,12 @@ To produce disk images, you'll need `gdisk` and maybe `xz`.
 
 For QEMU you need `OVMF`(UEFI reference implementation) firmware installed.
 
+## Installing the pre-build toolchain from apt repository
+
+There is an apt repository containing the toolchain and some other packages at https://apt.svc.0x0a.network - following that link will give you instructions how to use it as well.
+
+This is the recommended way if this works for you, it's used by the CI/CD and the main developer.
+
 ## Installing the pre-built toolchain from CI
 Download the latest toolchain from https://praios.lf-net.org/littlefox/lf-os_amd64/-/packages check for an archive named `toolchain`. Download the `.deb` for Debian based systems or `.xz` for all other distributions.
 For all other distributions, `cd` to the download directory and run the commands below. Change the version in the filename below to the version of the toolchain you downloaded.
