@@ -15,7 +15,7 @@ sudo apt install libyaml-perl libgtest-dev libgmock-dev gdisk ovmf
 ## Installing Dependencies - pacman
 
 ```
-sudo pacman -S perl-yaml yq gtest gdisk ovmf
+sudo pacman -S perl-yaml go-yq gtest gdisk ovmf
 ```
 
 ## Required tools
