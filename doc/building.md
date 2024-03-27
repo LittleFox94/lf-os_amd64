@@ -9,7 +9,7 @@ LF OS can only be built out-of-tree, which means creating a seperate `build` dir
 ## Installing Dependencies - apt
 
 ```
-sudo apt install libdata-yaml-perl yq googletest gdisk ovmf
+sudo apt install libyaml-perl libgtest-dev libgmock-dev gdisk ovmf
 ```
 
 ## Installing Dependencies - pacman
