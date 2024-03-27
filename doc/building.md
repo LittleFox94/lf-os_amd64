@@ -84,7 +84,8 @@ git clone https://praios.lf-net.org/littlefox/lf-os_amd64.git
 cd lf-os_amd64
 git submodule update --init
 mkdir build && cd build
-cmake -G Unix\ Makefiles .. && make -j$(nproc) run
+cmake ..
+make run
 ```
 
 This will clone the repository to your computer and start an out-of-tree build of LF OS. It will generate a disk image and run it with `qemu`.
