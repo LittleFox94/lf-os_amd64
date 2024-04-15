@@ -9,6 +9,16 @@
 
 void qr_block_ec_generate(uint8_t* block, size_t block_size, uint8_t* ec_result, size_t num_ec_words);
 
+// TODO
+// * errors in:     10, 13, 14, 15, 17, 19, 20, 21, 22, 23, 24, 25, 26, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40
+// * not decodable: 11, 12, 27, 28, 29
+
+#if !defined(__qr_panic)
+static void __qr_panic(void) {
+    while(true);
+}
+#endif
+
 struct qr_version_data {
     uint32_t version_info;
     uint8_t  ec_codewords_per_block;
@@ -33,11 +43,11 @@ static struct qr_version_data qr_versions[] = {
     {  0xC762, 24, (uint8_t[]){  2,  92,  2,  93, 0 }, (uint8_t[]){ 6, 32, 58, 0 } },
     {  0xD847, 26, (uint8_t[]){  4, 107,          0 }, (uint8_t[]){ 6, 34, 62, 0 } },
     {  0xE60D, 30, (uint8_t[]){  3, 115,  1, 116, 0 }, (uint8_t[]){ 6, 26, 46, 66, 0 } },
-    {  0xF928, 30, (uint8_t[]){  5,  87,  1,  88, 0 }, (uint8_t[]){ 6, 26, 48, 70, 0 } },
-    { 0x10B78, 22, (uint8_t[]){  5,  98,  1,  99, 0 }, (uint8_t[]){ 6, 26, 50, 74, 0 } },
-    { 0x1145D, 24, (uint8_t[]){  1, 107,  5, 108, 0 }, (uint8_t[]){ 6, 30, 54, 78, 0 } },
-    { 0x12A17, 28, (uint8_t[]){  5, 120,  1, 121, 0 }, (uint8_t[]){ 6, 30, 56, 82, 0 } },
-    { 0x13532, 30, (uint8_t[]){  3, 113,  4, 114, 0 }, (uint8_t[]){ 6, 30, 58, 86, 0 } },
+    {  0xF928, 22, (uint8_t[]){  5,  87,  1,  88, 0 }, (uint8_t[]){ 6, 26, 48, 70, 0 } },
+    { 0x10B78, 24, (uint8_t[]){  5,  98,  1,  99, 0 }, (uint8_t[]){ 6, 26, 50, 74, 0 } },
+    { 0x1145D, 28, (uint8_t[]){  1, 107,  5, 108, 0 }, (uint8_t[]){ 6, 30, 54, 78, 0 } },
+    { 0x12A17, 30, (uint8_t[]){  5, 120,  1, 121, 0 }, (uint8_t[]){ 6, 30, 56, 82, 0 } },
+    { 0x13532, 28, (uint8_t[]){  3, 113,  4, 114, 0 }, (uint8_t[]){ 6, 30, 58, 86, 0 } },
     { 0x149A6, 28, (uint8_t[]){  3, 107,  5, 108, 0 }, (uint8_t[]){ 6, 34, 62, 90, 0 } },
     { 0x15683, 28, (uint8_t[]){  4, 116,  4, 117, 0 }, (uint8_t[]){ 6, 28, 50, 72, 94, 0 } },
     { 0x168C9, 28, (uint8_t[]){  2, 111,  7, 112, 0 }, (uint8_t[]){ 6, 26, 50, 74, 98, 0 } },
@@ -91,13 +101,12 @@ static uint16_t qr_userdata(uint8_t version) {
     // = 2 or 3 bytes
     uint8_t overhead = version <= 9 ? 2 : 3;
 
-    return qr_data_codewords(version) + overhead;
+    return qr_data_codewords(version) - overhead;
 }
 
 static uint8_t qr_version(size_t data_len) {
     for(size_t i = 1; i < sizeof(qr_versions) / sizeof(struct qr_version_data); ++i) {
-        // > and not >= for the mode indicator nibble
-        if(qr_userdata(i) > data_len) {
+        if(qr_userdata(i) >= data_len) {
             return i;
         }
     }
@@ -358,7 +367,11 @@ static uint8_t qr_determine_mask(qr_data out, uint8_t version) {
 }
 
 static inline uint8_t qr_right_column(uint8_t x) {
-    return (x % 2) == (x < 6 ? 1 : 0) ? x : x + 1;
+    if(x > 6) {
+        return x + (x % 2);
+    } else {
+        return x + 1 - (x % 2);
+    }
 }
 
 static inline bool qr_upwards(uint8_t version, uint8_t x) {
@@ -374,39 +387,42 @@ static inline bool qr_upwards(uint8_t version, uint8_t x) {
 }
 
 static inline void qr_next_module(qr_data out, uint8_t version, uint8_t* x, uint8_t* y) {
-    uint8_t modules      = qr_modules(version);
-    uint8_t right_column = qr_right_column(*x);
-    bool upwards         = qr_upwards(version, *x);
+    uint8_t modules = qr_modules(version);
 
-    bool is_right_col = *x == right_column;
+    if(*x > modules || *y > modules) {
+        __qr_panic();
+    }
 
-    if(is_right_col) {
-        --*x;
-    } else {
-        ++*x;
-        if(upwards) {
-            if(*y) {
-                --*y;
-            } else {
-                *x -= 2;
+    do {
+        uint8_t right_column = qr_right_column(*x);
+        bool upwards         = qr_upwards(version, *x);
+
+        bool is_right_col = *x == right_column;
+
+        if(is_right_col) {
+            --*x;
+        } else {
+            ++*x;
+            if(upwards) {
+                if(*y) {
+                    --*y;
+                } else {
+                    *x -= 2;
+                }
+            }
+            else {
+                if(*y < modules - 1) {
+                    ++*y;
+                } else {
+                    *x -= 2;
+                }
             }
         }
-        else {
-            if(*y < modules - 1) {
-                ++*y;
-            } else {
-                *x -= 2;
-            }
+
+        if(*x == 6) {
+            --*x;
         }
-    }
-
-    if(*x == 6) {
-        --*x;
-    }
-
-    if(qr_reserved(out, *x, *y)) {
-        qr_next_module(out, version, x, y);
-    }
+    } while(*x != 255 && *y != 255 && qr_reserved(out, *x, *y));
 }
 
 static inline void qr_store_bit(qr_data out, uint8_t version, uint8_t *x, uint8_t* y, bool bit) {
@@ -440,16 +456,16 @@ static size_t qr_interleaved_data_index(uint8_t version, size_t codeword_index) 
     size_t lblock = block;
 
     if(codeword_index > group1_codewords) {
-        lblock    = codeword_index / qr_versions[version].block_sizes[3];
-        block     = qr_versions[version].block_sizes[0];
-        block_idx = codeword_index % qr_versions[version].block_sizes[3];
+        lblock    = (codeword_index - group1_codewords) / qr_versions[version].block_sizes[3];
+        block     = lblock + qr_versions[version].block_sizes[0];
+        block_idx = (codeword_index - group1_codewords) % qr_versions[version].block_sizes[3];
     }
 
     if(block_idx < qr_versions[version].block_sizes[1]) {
         return (total_blocks * block_idx) + block;
     } else {
-        size_t offset = group1_codewords;
-        return offset + lblock;
+        size_t offset = total_blocks * qr_versions[version].block_sizes[1];
+        return offset + (lblock * block_idx);
     }
 }
 
@@ -556,6 +572,20 @@ static uint8_t qr_encode(qr_data out, const uint8_t* data, size_t data_length) {
 }
 
 uint8_t qr_log(qr_data out) {
-    const char* data = "LF OS rocks!\nwith quite some more random text and data to get a bigger QR code that might just decode without error correction coding?";
-    return qr_encode(out, (const uint8_t*)data, strlen(data));
+    static bool in_qr_log = false;
+    if(in_qr_log) {
+        return 0;
+    }
+    in_qr_log = true;
+
+    //char logs[2954];
+    char logs[qr_userdata(40)];
+    //log_read(logs, sizeof(logs), 0);
+    for(size_t i = 0; i < sizeof(logs);) {
+        i += ksnprintf(logs+i, sizeof(logs) - i, "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890");
+    }
+
+    uint8_t ret = qr_encode(out, (uint8_t*)logs, strlen(logs));
+    in_qr_log = false;
+    return ret;
 }
