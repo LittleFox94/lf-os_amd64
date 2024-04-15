@@ -1,6 +1,8 @@
 #ifndef _LOG_H_INCLUDED
 #define _LOG_H_INCLUDED
 
+#include <stdint.h>
+
 /**
  * Append a log message to the kernel log buffer
  * \param level Log level of the message (D, I, W, E, F -> debug, info, warning, error, fatal)
@@ -18,6 +20,17 @@ void log_append(char level, char* component, char* message);
  */
 void log(char level, char* component, char* fmt, ...);
 
+/**
+ * Read messages from the kernel log buffer.
+ *
+ * Will always ensure to read full messages and individual messages are
+ * separated by newlines (though newlines are valid inside messages as well).
+ *
+ * \param buffer Where to store the messages
+ * \param buffer_size Size of the buffer, e.g. max data to retrieve
+ * \param offset Offset where to start reading messages, can be negative to retrieve the newest messages that fit the buffer
+ */
+void log_read(char* buffer, size_t buffer_size, ssize_t offset);
 
 /**
  * Append a debug log message to the kernel log buffer

@@ -8,6 +8,7 @@
 #include <scheduler.h>
 #include <efi.h>
 #include <io.h>
+#include <unused_param.h>
 
 const int logging_page_size = 4080;
 
@@ -127,6 +128,33 @@ void log(char level, char* component, char* fmt, ...) {
     va_end(args);
 
     log_append(level, component, buffer);
+}
+
+void log_read(char* buffer, size_t buffer_size, ssize_t offset) {
+    UNUSED_PARAM(offset);
+
+    struct logging_page* page = log_first;
+    while(page) {
+        char* msg = page->messages;
+        size_t msg_len = strlen(msg);
+
+        uint16_t pos = 0;
+
+        while(msg_len < buffer_size && pos < page->current_end) {
+            strncpy(buffer, msg, msg_len);
+
+            buffer_size -= msg_len;
+            buffer += msg_len;
+
+            *(buffer++) = '\n';
+            --buffer_size;
+
+            msg += msg_len + 1;
+            msg_len = strlen(msg);
+        }
+
+        page = page->next;
+    }
 }
 
 void sc_handle_debug_print(char* message) {
