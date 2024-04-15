@@ -3,6 +3,7 @@
 #include <iostream>
 #include <dlfcn.h>
 #include <stdarg.h>
+#include <sys/stat.h>
 
 #include <gtest/gtest.h>
 
@@ -50,9 +51,18 @@ extern "C" {
 int main(int argc, char* argv[]) {
     dlopen(NULL, RTLD_NOW | RTLD_NOLOAD | RTLD_GLOBAL);
 
-    testing::InitGoogleTest(&argc, argv);
+    int   gtest_argc = 1;
+    char* gtest_argv[argc];
+    bzero(gtest_argv, sizeof(gtest_argv));
+    gtest_argv[0] = argv[0];
 
     for(int i = 1; i < argc; ++i) {
+        struct stat sb;
+        if(lstat(argv[i], &sb) == -1 && errno == ENOENT) {
+            gtest_argv[gtest_argc++] = argv[i];
+            continue;
+        }
+
         if(!dlopen(argv[i], RTLD_NOW)) {
             char* error = dlerror();
 
@@ -65,5 +75,6 @@ int main(int argc, char* argv[]) {
         }
     }
 
+    testing::InitGoogleTest(&gtest_argc, gtest_argv);
     return RUN_ALL_TESTS();
 }
