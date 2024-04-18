@@ -30,12 +30,16 @@ add_custom_command(
 add_subdirectory(3rd-party)
 
 if(CMAKE_CROSSCOMPILING)
+    add_subdirectory(../klsh klsh)
+
     add_executable(term
         main.c
+        rw_hook.c
         "${CMAKE_CURRENT_BINARY_DIR}/font.c"
     )
-    target_link_libraries(term PUBLIC vterm)
+    target_link_libraries(term PUBLIC vterm klsh)
     target_include_directories(term PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+    target_link_options(term PRIVATE -Wl,--allow-multiple-definition)
     install(TARGETS term DESTINATION userspace)
 endif()
 

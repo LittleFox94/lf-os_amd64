@@ -3,8 +3,12 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <unistd.h>
+#include <errno.h>
+#include <ctype.h>
 
+#include <sys/message_passing.h>
 #include <sys/syscalls.h>
+#include <sys/io.h>
 #include <vterm.h>
 
 #include "font.h"
@@ -26,6 +30,8 @@ typedef struct {
 
     VTerm       *vterm;
     VTermScreen *vtermScreen;
+
+    VTermPos    cursor_pos;
 } lfos_term_state;
 
 static void lfos_framebuffer_init(lfos_framebuffer *this) {
@@ -67,6 +73,11 @@ static void render_cell(lfos_term_state *state, int row, int col, VTermScreenCel
 
     struct glyph *glyph = find_glyph(cell->chars[0]);
 
+    bool reverseBits = cell->attrs.reverse;
+    if(state->cursor_pos.row == row && state->cursor_pos.col == col) {
+        reverseBits = !reverseBits;
+    }
+
     for(int y = 0; y < FONT_HEIGHT && y + start_y < state->fb.height; y++) {
         for(int x = 0; x < FONT_WIDTH && x + start_x < state->fb.width; x++) {
             uint32_t* pixel = state->fb.fb + ((y + start_y) * state->fb.stride) + (x + start_x);
@@ -82,7 +93,7 @@ static void render_cell(lfos_term_state *state, int row, int col, VTermScreenCel
 
             bool pixel_lit = glyph->bitmap[y] & (leftmost >> x);
 
-            if(cell->attrs.reverse) {
+            if(reverseBits) {
                 pixel_lit = !pixel_lit;
             }
 
@@ -95,23 +106,270 @@ static void render_cell(lfos_term_state *state, int row, int col, VTermScreenCel
     }
 }
 
+static void vterm_render_cell(lfos_term_state *state, int row, int col) {
+    VTermScreenCell cell;
+    vterm_screen_get_cell(state->vtermScreen, (VTermPos){ row, col }, &cell);
+    render_cell(state, row, col, &cell);
+}
+
 static int vterm_damage(VTermRect rect, void* user) {
     lfos_term_state *state = (lfos_term_state*)user;
 
     for(int row = rect.start_row; row < rect.end_row; ++row) {
         for(int col = rect.start_col; col < rect.end_col; ++col) {
-            VTermScreenCell cell;
-            vterm_screen_get_cell(state->vtermScreen, (VTermPos){ row, col }, &cell);
-            render_cell(state, row, col, &cell);
+            vterm_render_cell(state, row, col);
         }
     }
 
     return 1;
 }
 
-int main(int argc, char* argv[]) {
-    lfos_term_state state;
+static int vterm_movecursor(VTermPos pos, VTermPos oldpos, int visible, void *user) {
+    lfos_term_state *state = (lfos_term_state*)user;
+    state->cursor_pos = pos;
 
+    vterm_render_cell(state, pos.row, pos.col);
+    vterm_render_cell(state, oldpos.row, oldpos.col);
+    return 1;
+}
+
+char translate_scancode(int set, uint16_t scancode) {
+    static bool shift = false;
+    static bool caps  = false;
+
+    if(set == 0) {
+        switch(scancode) {
+            case 0x2A:
+            case 0x36:
+                shift = true;
+                return 0;
+            case 0xAA:
+            case 0xB6:
+                shift = false;
+                return 0;
+
+            case 0xBA:
+                caps = !caps;
+                return 0;
+        }
+    }
+
+    char sc2char[][2] = {
+        { 0,    0, },
+        { 0x1b, 0, },
+        { '1', '!', },
+        { '2', '@', },
+        { '3', '#', },
+        { '4', '$', },
+        { '5', '%', },
+        { '6', '^', },
+        { '7', '&', },
+        { '8', '*', },
+        { '9', '(', },
+        { '0', ')', },
+        { '-', '_', },
+        { '=', '+', },
+        { '\b', '\b', },
+        { '\t', '\t', },
+        { 'q', 'Q', },
+        { 'w', 'W', },
+        { 'e', 'E', },
+        { 'r', 'R', },
+        { 't', 'T', },
+        { 'y', 'Y', },
+        { 'u', 'U', },
+        { 'i', 'I', },
+        { 'o', 'O', },
+        { 'p', 'P', },
+        { '[', 0, },
+        { ']', 0, },
+        { '\n', '\n', },
+        { 0, 0, },
+        { 'a', 'A', },
+        { 's', 'S', },
+        { 'd', 'D', },
+        { 'f', 'F', },
+        { 'g', 'G', },
+        { 'h', 'H', },
+        { 'j', 'J', },
+        { 'k', 'K', },
+        { 'l', 'L', },
+        { ';', ':', },
+        { '\'', '"', },
+        { '`', '~', },
+        { 0, 0, },
+        { '\\', '|', },
+        { 'z', 'Z', },
+        { 'x', 'X', },
+        { 'c', 'C', },
+        { 'v', 'V', },
+        { 'b', 'B', },
+        { 'n', 'N', },
+        { 'm', 'M', },
+        { ',', '<', },
+        { '.', '>', },
+        { '/', '?', },
+        { 0, 0, },
+        { '*', 0, },
+        { 0, 0, },
+        { ' ', ' ', },
+        { 0, 0, },
+        { 0, 0, },
+        { 0, 0, },
+        { 0, 0, },
+        { 0, 0, },
+        { 0, 0, },
+        { 0, 0, },
+        { 0, 0, },
+        { 0, 0, },
+        { 0, 0, },
+        { 0, 0, },
+        { 0, 0, },
+        { 0, 0, },
+        { 0, 0, },
+        { '7', 0, },
+        { '8', 0, },
+        { '9', 0, },
+        { '-', 0, },
+        { '4', 0, },
+        { '5', 0, },
+        { '6', 0, },
+        { '+', 0, },
+        { '1', 0, },
+        { '2', 0, },
+        { '3', 0, },
+        { '0', 0, },
+        { '.', 0, },
+        { 0, 0, },
+        { 0, 0, },
+        { 0, 0, },
+        { 0, 0, },
+        { 0, 0, },
+        { 0, 0, },
+        { 0, 0, },
+        { 0, 0, },
+    };
+
+    if(set != 0 || scancode >= sizeof(sc2char)) {
+        return -1;
+    }
+
+    char ret = sc2char[scancode][shift || caps ? 1 : 0];
+    if(!ret) {
+        return -1;
+    }
+
+    return ret;
+}
+
+char kbd_handle_interrupt() {
+    static int     e0_code  = 0;
+    static int     e1_code  = 0;
+    static uint16_t e1_prev = 0;
+
+    uint8_t scancode = inb(0x60);
+    bool break_code  = false;
+
+    if((scancode & 0x80) &&
+        (e1_code || (scancode != 0xE1)) &&
+        (e0_code || (scancode != 0xE0))) {
+        break_code = true;
+    }
+
+    char translated = 0;
+    if(e0_code) {
+        e0_code = 0;
+        if(scancode == 0x2A || scancode == 0x36) {
+            return 0;
+        }
+
+        translated = translate_scancode(1, scancode);
+    } else if(e1_code == 2) {
+        e1_prev |= (uint16_t)scancode << 8;
+        translated = translate_scancode(2, e1_prev);
+        e1_code = 0;
+    } else if(e1_code == 1) {
+        e1_prev = scancode;
+        ++e1_code;
+    } else if(scancode == 0xE0) {
+        e0_code = 1;
+    } else if(scancode == 0xE1) {
+        e1_code = 1;
+    } else {
+        translated = translate_scancode(0, scancode);
+    }
+
+    if(translated && !break_code) {
+        return translated;
+    }
+
+    return 0;
+}
+
+char read_single_char() {
+    size_t size  = sizeof(struct Message) + sizeof(struct HardwareInterruptUserData);
+    struct Message* msg = malloc(size);
+    memset(msg, 0, size);
+    msg->size = size;
+
+    uint64_t error;
+
+    while(true) {
+        do {
+            sc_do_ipc_mq_poll(0, true, msg, &error);
+        } while(
+            error == EAGAIN ||
+            (error == 0 && msg->type != MT_HardwareInterrupt)
+        );
+
+        char ret = kbd_handle_interrupt();
+        if(ret) {
+            return ret;
+        }
+    }
+}
+
+lfos_term_state state;
+int read_lfos(int file, char *ptr, int len) {
+    size_t i = 0;
+    while(i < len) {
+        char c = read_single_char();
+        if(c != -1) {
+            ptr[i++] = c;
+        }
+    }
+
+    errno = 0;
+    return i;
+}
+
+int write_lfos(int file, char *ptr, int len) {
+    vterm_input_write(state.vterm, ptr, len);
+    return len;
+}
+
+void kbd_send_cmd(uint8_t cmd) {
+    while((inb(0x64) & 0x02));
+    outb(0x60, cmd);
+}
+
+void kbd_init() {
+    uint64_t error;
+    sc_do_hardware_ioperm(0x60, 1, true, &error);
+    sc_do_hardware_ioperm(0x64, 1, true, &error);
+    sc_do_hardware_interrupt_notify(1, true, true, &error);
+
+    while(inb(0x64) & 0x01) {
+        inb(0x60);
+    }
+
+    kbd_send_cmd(0xF4);
+}
+
+int klsh_main();
+
+int main(int argc, char* argv[]) {
+    kbd_init();
     lfos_framebuffer_init(&state.fb);
 
     int rows = state.fb.height / FONT_HEIGHT;
@@ -126,6 +384,7 @@ int main(int argc, char* argv[]) {
     VTermScreenCallbacks screenCallbacks;
     bzero(&screenCallbacks, sizeof(screenCallbacks));
     screenCallbacks.damage = vterm_damage;
+    screenCallbacks.movecursor = vterm_movecursor;
     vterm_screen_set_callbacks(state.vtermScreen, &screenCallbacks, (void*)&state);
 
     // Setup some things to match what LF OS users would expect - like \n also
@@ -134,14 +393,5 @@ int main(int argc, char* argv[]) {
     char* init = "\e[20h";
     vterm_input_write(state.vterm, init, strlen(init));
 
-    #include "data.inc"
-    vterm_input_write(state.vterm, (char*)_home_littlefox_foo, _home_littlefox_foo_len);
-
-    while(1) {
-    //    char* data = "\e[7mHello\e[27m \e[4mworld!\n";
-    //    vterm_input_write(state.vterm, data, strlen(data));
-    //    sleep(1);
-    }
-
-    return 0;
+    return klsh_main();
 }

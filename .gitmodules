@@ -17,3 +17,6 @@
 [submodule "src/googletest"]
 	path = src/googletest
 	url = https://github.com/google/googletest.git
+[submodule "src/userspace/klsh"]
+	path = src/userspace/klsh
+	url = https://praios.lf-net.org/littlefox/klsh.git
