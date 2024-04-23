@@ -33,7 +33,8 @@ if(CMAKE_CROSSCOMPILING)
     add_subdirectory(../klsh klsh)
 
     add_executable(term
-        main.c
+        main.c      main.h
+        keyboard.c  keyboard.h
         rw_hook.c
         "${CMAKE_CURRENT_BINARY_DIR}/font.c"
     )

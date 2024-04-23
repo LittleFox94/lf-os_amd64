@@ -6,33 +6,16 @@
 #include <errno.h>
 #include <ctype.h>
 
-#include <sys/message_passing.h>
 #include <sys/syscalls.h>
-#include <sys/io.h>
-#include <vterm.h>
+
+#include "main.h"
+#include "keyboard.h"
 
 #include "font.h"
 extern struct font terminal_font;
 
 #define FONT_WIDTH  (terminal_font.bbox.width)
 #define FONT_HEIGHT (terminal_font.bbox.height)
-
-typedef struct {
-    uint32_t *fb;
-    uint16_t width;
-    uint16_t height;
-    uint16_t stride;
-    uint16_t bpp;
-} lfos_framebuffer;
-
-typedef struct {
-    lfos_framebuffer fb;
-
-    VTerm       *vterm;
-    VTermScreen *vtermScreen;
-
-    VTermPos    cursor_pos;
-} lfos_term_state;
 
 static void lfos_framebuffer_init(lfos_framebuffer *this) {
     sc_do_hardware_framebuffer(&this->fb, &this->width, &this->height, &this->stride, &this->bpp);
@@ -133,214 +116,39 @@ static int vterm_movecursor(VTermPos pos, VTermPos oldpos, int visible, void *us
     return 1;
 }
 
-char translate_scancode(int set, uint16_t scancode) {
-    static bool shift = false;
-    static bool caps  = false;
+static void vterm_output_callback(const char *s, size_t len, void *user) {
+    lfos_term_state *state = (lfos_term_state*)user;
+    char* resized_input_buffer = malloc(state->input_buffer_len + len);
+    memcpy(resized_input_buffer, state->input_buffer_current, state->input_buffer_len);
+    memcpy(resized_input_buffer + state->input_buffer_len, s, len);
 
-    if(set == 0) {
-        switch(scancode) {
-            case 0x2A:
-            case 0x36:
-                shift = true;
-                return 0;
-            case 0xAA:
-            case 0xB6:
-                shift = false;
-                return 0;
-
-            case 0xBA:
-                caps = !caps;
-                return 0;
-        }
+    if(state->input_buffer) {
+        free(state->input_buffer);
     }
 
-    char sc2char[][2] = {
-        { 0,    0, },
-        { 0x1b, 0, },
-        { '1', '!', },
-        { '2', '@', },
-        { '3', '#', },
-        { '4', '$', },
-        { '5', '%', },
-        { '6', '^', },
-        { '7', '&', },
-        { '8', '*', },
-        { '9', '(', },
-        { '0', ')', },
-        { '-', '_', },
-        { '=', '+', },
-        { '\b', '\b', },
-        { '\t', '\t', },
-        { 'q', 'Q', },
-        { 'w', 'W', },
-        { 'e', 'E', },
-        { 'r', 'R', },
-        { 't', 'T', },
-        { 'y', 'Y', },
-        { 'u', 'U', },
-        { 'i', 'I', },
-        { 'o', 'O', },
-        { 'p', 'P', },
-        { '[', 0, },
-        { ']', 0, },
-        { '\n', '\n', },
-        { 0, 0, },
-        { 'a', 'A', },
-        { 's', 'S', },
-        { 'd', 'D', },
-        { 'f', 'F', },
-        { 'g', 'G', },
-        { 'h', 'H', },
-        { 'j', 'J', },
-        { 'k', 'K', },
-        { 'l', 'L', },
-        { ';', ':', },
-        { '\'', '"', },
-        { '`', '~', },
-        { 0, 0, },
-        { '\\', '|', },
-        { 'z', 'Z', },
-        { 'x', 'X', },
-        { 'c', 'C', },
-        { 'v', 'V', },
-        { 'b', 'B', },
-        { 'n', 'N', },
-        { 'm', 'M', },
-        { ',', '<', },
-        { '.', '>', },
-        { '/', '?', },
-        { 0, 0, },
-        { '*', 0, },
-        { 0, 0, },
-        { ' ', ' ', },
-        { 0, 0, },
-        { 0, 0, },
-        { 0, 0, },
-        { 0, 0, },
-        { 0, 0, },
-        { 0, 0, },
-        { 0, 0, },
-        { 0, 0, },
-        { 0, 0, },
-        { 0, 0, },
-        { 0, 0, },
-        { 0, 0, },
-        { 0, 0, },
-        { 0, 0, },
-        { '7', 0, },
-        { '8', 0, },
-        { '9', 0, },
-        { '-', 0, },
-        { '4', 0, },
-        { '5', 0, },
-        { '6', 0, },
-        { '+', 0, },
-        { '1', 0, },
-        { '2', 0, },
-        { '3', 0, },
-        { '0', 0, },
-        { '.', 0, },
-        { 0, 0, },
-        { 0, 0, },
-        { 0, 0, },
-        { 0, 0, },
-        { 0, 0, },
-        { 0, 0, },
-        { 0, 0, },
-        { 0, 0, },
-    };
-
-    if(set != 0 || scancode >= sizeof(sc2char)) {
-        return -1;
-    }
-
-    char ret = sc2char[scancode][shift || caps ? 1 : 0];
-    if(!ret) {
-        return -1;
-    }
-
-    return ret;
-}
-
-char kbd_handle_interrupt() {
-    static int     e0_code  = 0;
-    static int     e1_code  = 0;
-    static uint16_t e1_prev = 0;
-
-    uint8_t scancode = inb(0x60);
-    bool break_code  = false;
-
-    if((scancode & 0x80) &&
-        (e1_code || (scancode != 0xE1)) &&
-        (e0_code || (scancode != 0xE0))) {
-        break_code = true;
-    }
-
-    char translated = 0;
-    if(e0_code) {
-        e0_code = 0;
-        if(scancode == 0x2A || scancode == 0x36) {
-            return 0;
-        }
-
-        translated = translate_scancode(1, scancode);
-    } else if(e1_code == 2) {
-        e1_prev |= (uint16_t)scancode << 8;
-        translated = translate_scancode(2, e1_prev);
-        e1_code = 0;
-    } else if(e1_code == 1) {
-        e1_prev = scancode;
-        ++e1_code;
-    } else if(scancode == 0xE0) {
-        e0_code = 1;
-    } else if(scancode == 0xE1) {
-        e1_code = 1;
-    } else {
-        translated = translate_scancode(0, scancode);
-    }
-
-    if(translated && !break_code) {
-        return translated;
-    }
-
-    return 0;
-}
-
-char read_single_char() {
-    size_t size  = sizeof(struct Message) + sizeof(struct HardwareInterruptUserData);
-    struct Message* msg = malloc(size);
-    memset(msg, 0, size);
-    msg->size = size;
-
-    uint64_t error;
-
-    while(true) {
-        do {
-            sc_do_ipc_mq_poll(0, true, msg, &error);
-        } while(
-            error == EAGAIN ||
-            (error == 0 && msg->type != MT_HardwareInterrupt)
-        );
-
-        char ret = kbd_handle_interrupt();
-        if(ret) {
-            return ret;
-        }
-    }
+    state->input_buffer = state->input_buffer_current
+                        = resized_input_buffer;
+    state->input_buffer_len += len;
 }
 
 lfos_term_state state;
 int read_lfos(int file, char *ptr, int len) {
-    size_t i = 0;
-    while(i < len) {
-        char c = read_single_char();
-        if(c != -1) {
-            ptr[i++] = c;
+    while(true) {
+        kbd_read(&state);
+
+        if(state.input_buffer_len) {
+            size_t to_read = len;
+            if(to_read > state.input_buffer_len) {
+                to_read = state.input_buffer_len;
+            }
+
+            memcpy(ptr, state.input_buffer_current, to_read);
+            state.input_buffer_current += to_read;
+            state.input_buffer_len     -= to_read;
+
+            return to_read;
         }
     }
-
-    errno = 0;
-    return i;
 }
 
 int write_lfos(int file, char *ptr, int len) {
@@ -348,27 +156,12 @@ int write_lfos(int file, char *ptr, int len) {
     return len;
 }
 
-void kbd_send_cmd(uint8_t cmd) {
-    while((inb(0x64) & 0x02));
-    outb(0x60, cmd);
-}
-
-void kbd_init() {
-    uint64_t error;
-    sc_do_hardware_ioperm(0x60, 1, true, &error);
-    sc_do_hardware_ioperm(0x64, 1, true, &error);
-    sc_do_hardware_interrupt_notify(1, true, true, &error);
-
-    while(inb(0x64) & 0x01) {
-        inb(0x60);
-    }
-
-    kbd_send_cmd(0xF4);
-}
 
 int klsh_main();
 
 int main(int argc, char* argv[]) {
+    bzero(&state, sizeof(state));
+
     kbd_init();
     lfos_framebuffer_init(&state.fb);
 
@@ -386,6 +179,8 @@ int main(int argc, char* argv[]) {
     screenCallbacks.damage = vterm_damage;
     screenCallbacks.movecursor = vterm_movecursor;
     vterm_screen_set_callbacks(state.vtermScreen, &screenCallbacks, (void*)&state);
+
+    vterm_output_set_callback(state.vterm, vterm_output_callback, (void*)&state);
 
     // Setup some things to match what LF OS users would expect - like \n also
     // resetting the column without needing a CR - this is LF OS after all and
