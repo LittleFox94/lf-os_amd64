@@ -270,6 +270,7 @@ static bool kbd_wait_interrupt() {
         (error == 0 && msg->type != MT_HardwareInterrupt)
    );
 
+    free(msg);
     return error == 0 && msg->type == MT_HardwareInterrupt;
 }
 
