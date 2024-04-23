@@ -15,7 +15,7 @@ void* kernel_symbols = 0;
 
 // \cond panic_functions
 static void panic_message_impl(const char* message, uint64_t rbp, bool rbp_given) {
-    //fbconsole_clear(0, 0, 0);
+    fbconsole_back_to_kernel();
     logf("panic", "An error occured and LF OS has to be halted. More info below:");
 
     logf("panic", "LF OS build:    %s",   BUILD_ID);

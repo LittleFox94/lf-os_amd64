@@ -344,3 +344,12 @@ void sc_handle_hardware_framebuffer(ptr_t *fb, uint16_t *width, uint16_t *height
 
     }
 }
+
+void fbconsole_back_to_kernel(void) {
+    // For now just set fbconsole_active again in future this might also unmap
+    // it from userspace programs or kill them.
+    // Used by panic to render them onto the screen, without using
+    // fbconsole_clear, which also removes all the maybe-helpful screen
+    // contents.
+    fbconsole_active = true;
+}
