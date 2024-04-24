@@ -188,5 +188,9 @@ int main(int argc, char* argv[]) {
     char* init = "\e[20h";
     vterm_input_write(state.vterm, init, strlen(init));
 
+    extern unsigned char bootlogo_ans[];
+    extern unsigned int bootlogo_ans_len;
+    printf("%*s\e[0m\n", bootlogo_ans_len, bootlogo_ans);
+
     return klsh_main();
 }

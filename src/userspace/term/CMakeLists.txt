@@ -32,10 +32,18 @@ add_subdirectory(3rd-party)
 if(CMAKE_CROSSCOMPILING)
     add_subdirectory(../klsh klsh)
 
+    add_custom_command(
+        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/bootlogo.c
+        COMMAND xxd -i -n bootlogo_ans ${CMAKE_CURRENT_SOURCE_DIR}/bootlogo.ans ${CMAKE_CURRENT_BINARY_DIR}/bootlogo.c
+        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/bootlogo.ans
+    )
+
     add_executable(term
         main.c      main.h
         keyboard.c  keyboard.h
         rw_hook.c
+
+        "${CMAKE_CURRENT_BINARY_DIR}/bootlogo.c"
         "${CMAKE_CURRENT_BINARY_DIR}/font.c"
     )
     target_link_libraries(term PUBLIC vterm klsh)
