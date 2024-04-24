@@ -185,8 +185,7 @@ int main(int argc, char* argv[]) {
     // Setup some things to match what LF OS users would expect - like \n also
     // resetting the column without needing a CR - this is LF OS after all and
     // not CR LF OS.
-    char* init = "\e[20h";
-    vterm_input_write(state.vterm, init, strlen(init));
+    printf("\e[20h");
 
     extern unsigned char bootlogo_ans[];
     extern unsigned int bootlogo_ans_len;
