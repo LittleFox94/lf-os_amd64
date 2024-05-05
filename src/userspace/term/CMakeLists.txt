@@ -33,9 +33,14 @@ if(CMAKE_CROSSCOMPILING)
     add_subdirectory(../klsh klsh)
 
     add_custom_command(
-        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/bootlogo.c
-        COMMAND xxd -i -n bootlogo_ans ${CMAKE_CURRENT_SOURCE_DIR}/bootlogo.ans ${CMAKE_CURRENT_BINARY_DIR}/bootlogo.c
-        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/bootlogo.ans
+        OUTPUT              ${PROJECT_BINARY_DIR}/bootlogo.o
+        DEPENDS             ${PROJECT_SOURCE_DIR}/bootlogo.ans
+        WORKING_DIRECTORY   ${PROJECT_SOURCE_DIR}
+        COMMAND             ${CMAKE_OBJCOPY}
+            -I binary
+            -O elf64-x86-64
+            bootlogo.ans
+            ${PROJECT_BINARY_DIR}/bootlogo.o
     )
 
     add_executable(term
@@ -43,7 +48,7 @@ if(CMAKE_CROSSCOMPILING)
         keyboard.c  keyboard.h
         rw_hook.c
 
-        "${CMAKE_CURRENT_BINARY_DIR}/bootlogo.c"
+        "${PROJECT_BINARY_DIR}/bootlogo.o"
         "${CMAKE_CURRENT_BINARY_DIR}/font.c"
     )
     target_link_libraries(term PUBLIC vterm klsh)

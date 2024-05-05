@@ -187,9 +187,8 @@ int main(int argc, char* argv[]) {
     // not CR LF OS.
     printf("\e[20h");
 
-    extern unsigned char bootlogo_ans[];
-    extern unsigned int bootlogo_ans_len;
-    printf("%*s\e[0m\n", bootlogo_ans_len, bootlogo_ans);
+    extern const char _binary_bootlogo_ans_start, _binary_bootlogo_ans_end;
+    printf("%*s\e[0m\n", &_binary_bootlogo_ans_end - &_binary_bootlogo_ans_start, &_binary_bootlogo_ans_start);
 
     return klsh_main();
 }
