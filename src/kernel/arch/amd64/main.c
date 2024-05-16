@@ -122,7 +122,7 @@ void init_console(struct LoaderStruct* loaderStruct) {
     fbconsole_init(loaderStruct->fb_width, loaderStruct->fb_height, loaderStruct->fb_stride, (uint8_t*)loaderStruct->fb_location);
 
     #include "../../bootlogo.c"
-    fbconsole_blt(lf_os_bootlogo.pixel_data, lf_os_bootlogo.width, lf_os_bootlogo.height, -(lf_os_bootlogo.width + 5), 5);
+    fbconsole_blt(lf_os_bootlogo.pixel_data, lf_os_bootlogo.width, lf_os_bootlogo.height, -((int)lf_os_bootlogo.width + 5), 5);
 }
 
 void init_mm(struct LoaderStruct* loaderStruct) {
