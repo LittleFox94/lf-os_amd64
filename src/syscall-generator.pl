@@ -102,6 +102,7 @@ if($mode eq 'kernel') {
 #include <panic.h>
 #include <mq.h>
 
+#define __LF_OS_SYSCALL
 EOF
 }
 else {
@@ -110,6 +111,7 @@ else {
 #include <stdint.h>
 #include <sys/message_passing.h>
 
+#define __LF_OS_SYSCALL static inline __attribute__((artificial))
 EOF
 }
 
@@ -140,7 +142,7 @@ sub render_syscall_func {
                . "\n" . join("\n", map { " *  \\param[out] $_->{name} $_->{desc}" } $syscall->{returns}->@*)
                . "\n */\n";
 
-    print $outfh ($mode eq 'user' ? 'static inline __attribute__((artificial)) ' : '') . "void $name(";
+    print $outfh "__LF_OS_SYSCALL void $name(";
 
     print $outfh join(', ', map { "$_->{type} $_->{name}" } (
             $syscall->{parameters}->@*,
