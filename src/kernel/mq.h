@@ -3,7 +3,6 @@
 
 #include <allocator.h>
 #include <stdint.h>
-#include <stdbool.h>
 #include <message_passing.h>
 
 typedef uint64_t mq_id_t;

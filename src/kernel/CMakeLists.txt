@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.10)
-project(kernel LANGUAGES C ASM VERSION 0.0.1)
+project(kernel LANGUAGES CXX ASM VERSION 0.0.1)
 
 add_custom_command(
-    OUTPUT            syscalls.gen.c
-    COMMAND           ../syscall-generator.pl ARGS ../syscalls.yml ${PROJECT_BINARY_DIR}/syscalls.gen.c kernel
+    OUTPUT            syscalls.gen.cpp
+    COMMAND           ../syscall-generator.pl ARGS ../syscalls.yml ${PROJECT_BINARY_DIR}/syscalls.gen.cpp kernel
     MAIN_DEPENDENCY   ../syscalls.yml
     DEPENDS           ../syscall-generator.pl
     COMMENT           "Generating syscall handling code"
@@ -11,30 +11,30 @@ add_custom_command(
 )
 
 add_executable(kernel
-    condvar.c   condvar.h
-    elf.c       elf.h
-    flexarray.c flexarray.h
-    log.c       log.h
-    mm.c        mm.h
-    mq.c        mq.h
-    mutex.c     mutex.h
-    sd.c        sd.h
-    slab.c      slab.h
-    string.c    cstdlib/string.h
-    tpa.c       tpa.h
-    uuid.c      ../include/uuid.h
-    version.c
+    condvar.cpp   condvar.h
+    elf.cpp       elf.h
+    flexarray.cpp flexarray.h
+    log.cpp       log.h
+    mm.cpp        mm.h
+    mq.cpp        mq.h
+    mutex.cpp     mutex.h
+    sd.cpp        sd.h
+    slab.cpp      slab.h
+    string.cpp    cstdlib/string.h
+                  tpa.h
+    uuid.cpp      ../include/uuid.h
+    version.cpp
                 allocator.h
                 bitmap.h
                 cstdlib/stdarg.h
                 cstdlib/stdbool.h
-    ${PROJECT_BINARY_DIR}/syscalls.gen.c
+    ${PROJECT_BINARY_DIR}/syscalls.gen.cpp
     ${PROJECT_BINARY_DIR}/config.h
 
-    drivers/acpi.c      drivers/acpi.h
-    drivers/efi.c       drivers/efi.h
-    drivers/fbconsole.c drivers/fbconsole.h
-    drivers/hpet.c      drivers/hpet.h
+    drivers/acpi.cpp      drivers/acpi.h
+    drivers/efi.cpp       drivers/efi.h
+    drivers/fbconsole.cpp drivers/fbconsole.h
+    drivers/hpet.cpp      drivers/hpet.h
 )
 
 add_subdirectory("arch/${architecture}")
@@ -55,7 +55,7 @@ target_include_directories(kernel PUBLIC
 target_compile_definitions(kernel PRIVATE __kernel)
 
 target_compile_options(kernel PRIVATE
-    -Wall -Wextra -Wpedantic -Werror -std=gnu11
+    -Wall -Wextra -Wpedantic -Werror -std=c++23
     -Wno-gnu-zero-variadic-macro-arguments
     -Wno-zero-length-array
     -Wno-language-extension-token

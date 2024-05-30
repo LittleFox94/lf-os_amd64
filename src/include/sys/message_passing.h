@@ -11,11 +11,14 @@
 //      -- Fox, 2023-10-25
 
 #include <stdint.h>
-#include <stdbool.h>
 #include <uuid.h>
 
 #ifndef __kernel
 #   include <sys/types.h>
+#endif
+
+#ifndef __cplusplus
+#include <stdbool.h>
 #endif
 
 enum MessageType {

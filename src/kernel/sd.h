@@ -6,7 +6,7 @@
 
 void init_sd(void);
 
-uint64_t sd_register(uuid_t* uuid, mq_id_t mq);
-int64_t sd_send(uuid_t* uuid, struct Message* msg);
+uint64_t sd_register(const uuid_t* uuid, mq_id_t mq);
+int64_t sd_send(const uuid_t* uuid, struct Message* msg);
 
 #endif

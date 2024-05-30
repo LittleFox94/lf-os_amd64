@@ -3,16 +3,13 @@
 namespace LFOS {
     #define __kernel 1
 
-    extern "C" {
-        #include <message_passing.h>
-        #include "../cstdlib/string.h"
+    #include <message_passing.h>
+    #include "../cstdlib/string.h"
 
-        #include "../sd.c"
-        #include "../mq.c"
-        #include "../tpa.c"
-        #include "../uuid.c"
-        #include "../flexarray.c"
-    }
+    #include "../sd.cpp"
+    #include "../mq.cpp"
+    #include "../uuid.cpp"
+    #include "../flexarray.cpp"
 
     void scheduler_waitable_done(enum wait_reason r, union wait_data d, size_t m) {
     }

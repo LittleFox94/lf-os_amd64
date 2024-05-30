@@ -1,13 +1,12 @@
 #include <lfostest.h>
 
 namespace LFOS {
-
-    #include <string.c>
+    #include <string.cpp>
 
     #define __kernel 1
     #include <uuid.h>
     #include <sys/known_services.h>
-    #include "../uuid.c"
+    #include "../uuid.cpp"
 
     TEST(KernelString, memcmp) {
         uint8_t data_A[] = { 42, 23, 42, 13, 37, 0, 12, 34, 0, 56 };

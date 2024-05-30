@@ -74,57 +74,57 @@ typedef struct {
 
 extern void sc_handle(cpu_state* cpu);
 
-extern void _syscall_handler(void);
-extern void reload_cs(void);
+extern "C" void _syscall_handler(void);
+extern "C" void reload_cs(void);
 
-extern void idt_entry_0(void);
-extern void idt_entry_1(void);
-extern void idt_entry_2(void);
-extern void idt_entry_3(void);
-extern void idt_entry_4(void);
-extern void idt_entry_5(void);
-extern void idt_entry_6(void);
-extern void idt_entry_7(void);
-extern void idt_entry_8(void);
-extern void idt_entry_9(void);
-extern void idt_entry_10(void);
-extern void idt_entry_11(void);
-extern void idt_entry_12(void);
-extern void idt_entry_13(void);
-extern void idt_entry_14(void);
-extern void idt_entry_15(void);
-extern void idt_entry_16(void);
-extern void idt_entry_17(void);
-extern void idt_entry_18(void);
-extern void idt_entry_19(void);
-extern void idt_entry_20(void);
-extern void idt_entry_21(void);
-extern void idt_entry_22(void);
-extern void idt_entry_23(void);
-extern void idt_entry_24(void);
-extern void idt_entry_25(void);
-extern void idt_entry_26(void);
-extern void idt_entry_27(void);
-extern void idt_entry_28(void);
-extern void idt_entry_29(void);
-extern void idt_entry_30(void);
-extern void idt_entry_31(void);
-extern void idt_entry_32(void);
-extern void idt_entry_33(void);
-extern void idt_entry_34(void);
-extern void idt_entry_35(void);
-extern void idt_entry_36(void);
-extern void idt_entry_37(void);
-extern void idt_entry_38(void);
-extern void idt_entry_39(void);
-extern void idt_entry_40(void);
-extern void idt_entry_41(void);
-extern void idt_entry_42(void);
-extern void idt_entry_43(void);
-extern void idt_entry_44(void);
-extern void idt_entry_45(void);
-extern void idt_entry_46(void);
-extern void idt_entry_47(void);
+extern "C" void idt_entry_0(void);
+extern "C" void idt_entry_1(void);
+extern "C" void idt_entry_2(void);
+extern "C" void idt_entry_3(void);
+extern "C" void idt_entry_4(void);
+extern "C" void idt_entry_5(void);
+extern "C" void idt_entry_6(void);
+extern "C" void idt_entry_7(void);
+extern "C" void idt_entry_8(void);
+extern "C" void idt_entry_9(void);
+extern "C" void idt_entry_10(void);
+extern "C" void idt_entry_11(void);
+extern "C" void idt_entry_12(void);
+extern "C" void idt_entry_13(void);
+extern "C" void idt_entry_14(void);
+extern "C" void idt_entry_15(void);
+extern "C" void idt_entry_16(void);
+extern "C" void idt_entry_17(void);
+extern "C" void idt_entry_18(void);
+extern "C" void idt_entry_19(void);
+extern "C" void idt_entry_20(void);
+extern "C" void idt_entry_21(void);
+extern "C" void idt_entry_22(void);
+extern "C" void idt_entry_23(void);
+extern "C" void idt_entry_24(void);
+extern "C" void idt_entry_25(void);
+extern "C" void idt_entry_26(void);
+extern "C" void idt_entry_27(void);
+extern "C" void idt_entry_28(void);
+extern "C" void idt_entry_29(void);
+extern "C" void idt_entry_30(void);
+extern "C" void idt_entry_31(void);
+extern "C" void idt_entry_32(void);
+extern "C" void idt_entry_33(void);
+extern "C" void idt_entry_34(void);
+extern "C" void idt_entry_35(void);
+extern "C" void idt_entry_36(void);
+extern "C" void idt_entry_37(void);
+extern "C" void idt_entry_38(void);
+extern "C" void idt_entry_39(void);
+extern "C" void idt_entry_40(void);
+extern "C" void idt_entry_41(void);
+extern "C" void idt_entry_42(void);
+extern "C" void idt_entry_43(void);
+extern "C" void idt_entry_44(void);
+extern "C" void idt_entry_45(void);
+extern "C" void idt_entry_46(void);
+extern "C" void idt_entry_47(void);
 
 static cpu_local_data*  _cpu0;
 static struct idt_entry _idt[256];
@@ -373,7 +373,7 @@ static bool handle_userspace_exception(cpu_state* cpu) {
 }
 
 __attribute__ ((force_align_arg_pointer))
-cpu_state* interrupt_handler(cpu_state* cpu) {
+extern "C" cpu_state* interrupt_handler(cpu_state* cpu) {
     scheduler_process_save(cpu);
 
     if(cpu->interrupt < 32) {
@@ -400,9 +400,9 @@ cpu_state* interrupt_handler(cpu_state* cpu) {
             size_t len             = flexarray_length(interrupt_queues[irq]);
             const uint64_t* queues = (uint64_t*)flexarray_getall(interrupt_queues[irq]);
 
-            size_t user_size    = sizeof(struct HardwareInterruptUserData);
-            size_t size         = sizeof(struct Message) + user_size;
-            struct Message* msg = vm_alloc(size);
+            size_t user_size    = sizeof(Message::UserData::HardwareInterruptUserData);
+            size_t size         = sizeof(Message) + user_size;
+            Message* msg        = (Message*)vm_alloc(size);
 
             msg->size                                  = size;
             msg->user_size                             = user_size;
@@ -422,7 +422,7 @@ cpu_state* interrupt_handler(cpu_state* cpu) {
 }
 
 __attribute__ ((force_align_arg_pointer))
-cpu_state* syscall_handler(cpu_state* cpu) {
+extern "C" cpu_state* syscall_handler(cpu_state* cpu) {
     scheduler_process_save(cpu);
     sc_handle(cpu);
     scheduler_process_save(cpu);

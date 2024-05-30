@@ -19,10 +19,10 @@
 #include <mq.h>
 
 char* LAST_INIT_STEP;
-extern char build_id[];
+extern const char *build_id;
 
 #define INIT_STEP(message, code) \
-    LAST_INIT_STEP = message;    \
+    LAST_INIT_STEP = (char*)message;    \
     code                         \
     logi("kernel", message);
 
@@ -34,7 +34,7 @@ void init_symbols(struct LoaderStruct* loaderStruct);
 void init_init(struct LoaderStruct* loaderStruct);
 
 __attribute__ ((force_align_arg_pointer))
-void main(struct LoaderStruct* loaderStruct) {
+extern "C" void main(struct LoaderStruct* loaderStruct) {
     logd("kernel", "Hello world!");
 
     bootstrap_globals();
@@ -113,15 +113,15 @@ void main(struct LoaderStruct* loaderStruct) {
 
     logi("kernel", "Kernel initialization complete");
 
-    LAST_INIT_STEP = "Kernel initialization complete";
+    LAST_INIT_STEP = (char*)"Kernel initialization complete";
     asm("sti");
-    while(1);
+    asm("jmp ."); // guess what: `while(1);` is Undefined Behavior in C++ and silently dropped (:
 }
 
 void init_console(struct LoaderStruct* loaderStruct) {
     fbconsole_init(loaderStruct->fb_width, loaderStruct->fb_height, loaderStruct->fb_stride, (uint8_t*)loaderStruct->fb_location);
 
-    #include "../../bootlogo.c"
+    #include "../../bootlogo.cpp"
     fbconsole_blt(lf_os_bootlogo.pixel_data, lf_os_bootlogo.width, lf_os_bootlogo.height, -((int)lf_os_bootlogo.width + 5), 5);
 }
 

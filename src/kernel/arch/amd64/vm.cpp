@@ -9,11 +9,7 @@
 
 #include <unused_param.h>
 
-void load_cr3(ptr_t cr3);
-
-static bool vm_direct_mapping_initialized = false;
-static tpa_t* page_descriptors = 0;
-struct vm_table* VM_KERNEL_CONTEXT;
+extern "C" void load_cr3(ptr_t cr3);
 
 struct page_descriptor {
     uint32_t flags: 30;
@@ -42,6 +38,10 @@ struct vm_table_entry {
 struct vm_table {
     struct vm_table_entry entries[512];
 }__attribute__((packed));
+
+static bool vm_direct_mapping_initialized = false;
+static TPA<page_descriptor>* page_descriptors = 0;
+struct vm_table* VM_KERNEL_CONTEXT;
 
 #define BASE_TO_PHYS(x)          ((char*)(x << 12))
 #define BASE_TO_DIRECT_MAPPED(x) ((vm_direct_mapping_initialized ? ALLOCATOR_REGION_DIRECT_MAPPING.start : 0) + BASE_TO_PHYS(x))
@@ -103,24 +103,20 @@ void vm_setup_direct_mapping_init(struct vm_table* context) {
             pdp = (struct vm_table*)slab_alloc(scratchpad_allocator);
             memset((void*)pdp, 0, 0x1000);
 
-            context->entries[pml4_idx] = (struct vm_table_entry){
-                .present   = 1,
-                .writeable = 1,
-                .userspace = 0,
-                .next_base = vm_context_get_physical_for_virtual(context, (ptr_t)pdp) >> 12,
-            };
+            context->entries[pml4_idx].present   = 1;
+            context->entries[pml4_idx].writeable = 1;
+            context->entries[pml4_idx].userspace = 0;
+            context->entries[pml4_idx].next_base = vm_context_get_physical_for_virtual(context, (ptr_t)pdp) >> 12;
 
             last_pml4_idx = pml4_idx;
         }
 
         if(pageSize == 1*GiB) {
-            pdp->entries[pdp_idx] = (struct vm_table_entry){
-                .huge      = 1,
-                .present   = 1,
-                .writeable = 1,
-                .userspace = 0,
-                .next_base = i >> 12,
-            };
+            pdp->entries[pdp_idx].huge      = 1;
+            pdp->entries[pdp_idx].present   = 1;
+            pdp->entries[pdp_idx].writeable = 1;
+            pdp->entries[pdp_idx].userspace = 0;
+            pdp->entries[pdp_idx].next_base = i >> 12;
 
             i += pageSize;
         } else {
@@ -128,46 +124,42 @@ void vm_setup_direct_mapping_init(struct vm_table* context) {
                 pd = (struct vm_table*)slab_alloc(scratchpad_allocator);
                 memset((void*)pd, 0, 0x1000);
 
-                pdp->entries[pdp_idx] = (struct vm_table_entry){
-                    .present   = 1,
-                    .writeable = 1,
-                    .userspace = 0,
-                    .next_base = vm_context_get_physical_for_virtual(context, (ptr_t)pd) >> 12,
-                };
+                pdp->entries[pdp_idx].present   = 1;
+                pdp->entries[pdp_idx].writeable = 1;
+                pdp->entries[pdp_idx].userspace = 0,
+                pdp->entries[pdp_idx].next_base = vm_context_get_physical_for_virtual(context, (ptr_t)pd) >> 12;
 
                 last_pdp_idx = pdp_idx;
             }
 
             int16_t pd_idx = PD_INDEX(vi);
-            pd->entries[pd_idx] = (struct vm_table_entry){
-                .huge      = 1,
-                .present   = 1,
-                .writeable = 1,
-                .userspace = 0,
-                .next_base = i >> 12,
-            };
+            pd->entries[pd_idx].huge      = 1;
+            pd->entries[pd_idx].present   = 1;
+            pd->entries[pd_idx].writeable = 1;
+            pd->entries[pd_idx].userspace = 0;
+            pd->entries[pd_idx].next_base = i >> 12;
 
             i += pageSize;
         }
     }
 
     vm_direct_mapping_initialized = true;
-    page_descriptors = (tpa_t*)slab_alloc(scratchpad_allocator);
+    page_descriptors = (TPA<page_descriptor>*)slab_alloc(scratchpad_allocator);
     memset(page_descriptors, 0, 4*KiB);
 }
 
 struct page_descriptor* vm_page_descriptor(ptr_t physical) {
-    struct page_descriptor* page = tpa_get(page_descriptors, physical >> 12);
+    page_descriptor* page = page_descriptors->get(physical >> 12);
 
     if(!page) {
-        struct page_descriptor new_page = {
-            .size     = PageSize4KiB,
+        struct page_descriptor new_page{
             .flags    = PageUsageKernel,
+            .size     = PageSize4KiB,
             .refcount = 0,
         };
 
-        tpa_set(page_descriptors, physical >> 12, &new_page);
-        page = tpa_get(page_descriptors, physical >> 12);
+        page_descriptors->set(physical >> 12, &new_page);
+        page = page_descriptors->get(physical >> 12);
 
         if(page == 0) {
             panic_message("page error");
@@ -198,7 +190,7 @@ void vm_ref_dec(ptr_t physical) {
     --page->refcount;
 
     if(!page->refcount) {
-        tpa_set(page_descriptors, physical >> 12, 0);
+        page_descriptors->set(physical >> 12, 0);
     }
 }
 
@@ -230,7 +222,7 @@ void init_vm(void) {
     logd("vm", "direct mapping set up");
 
     // initializing page descriptors
-    page_descriptors = tpa_new(&kernel_alloc, sizeof(struct page_descriptor), 4080, page_descriptors); // vm_alloc needs 16 bytes
+    page_descriptors = TPA<page_descriptor>::create(&kernel_alloc, 4080, page_descriptors); // vm_alloc needs 16 bytes
     logd("vm", "page descriptor structure initialized");
 
     struct vm_table* new_kernel_context = (struct vm_table*)vm_context_alloc_pages(VM_KERNEL_CONTEXT, ALLOCATOR_REGION_KERNEL_HEAP, 1);
@@ -403,50 +395,50 @@ static void vm_ensure_table(struct vm_table* table, uint16_t index) {
     }
 }
 
-void vm_context_map(struct vm_table* pml4, ptr_t virtual, ptr_t physical, uint8_t pat) {
-    vm_ensure_table(pml4, PML4_INDEX(virtual));
+void vm_context_map(struct vm_table* pml4, ptr_t virt, ptr_t physical, uint8_t pat) {
+    vm_ensure_table(pml4, PML4_INDEX(virt));
 
-    struct vm_table* pdp = BASE_TO_TABLE(pml4->entries[PML4_INDEX(virtual)].next_base);
-    vm_ensure_table(pdp, PDP_INDEX(virtual));
+    struct vm_table* pdp = BASE_TO_TABLE(pml4->entries[PML4_INDEX(virt)].next_base);
+    vm_ensure_table(pdp, PDP_INDEX(virt));
 
-    struct vm_table* pd = BASE_TO_TABLE(pdp->entries[PDP_INDEX(virtual)].next_base);
-    vm_ensure_table(pd, PD_INDEX(virtual));
+    struct vm_table* pd = BASE_TO_TABLE(pdp->entries[PDP_INDEX(virt)].next_base);
+    vm_ensure_table(pd, PD_INDEX(virt));
 
-    struct vm_table* pt = BASE_TO_TABLE(pd->entries[PD_INDEX(virtual)].next_base);
+    struct vm_table* pt = BASE_TO_TABLE(pd->entries[PD_INDEX(virt)].next_base);
 
-    pt->entries[PT_INDEX(virtual)].next_base = physical >> 12;
-    pt->entries[PT_INDEX(virtual)].present   = 1;
-    pt->entries[PT_INDEX(virtual)].writeable = 1;
-    pt->entries[PT_INDEX(virtual)].userspace = 1;
+    pt->entries[PT_INDEX(virt)].next_base = physical >> 12;
+    pt->entries[PT_INDEX(virt)].present   = 1;
+    pt->entries[PT_INDEX(virt)].writeable = 1;
+    pt->entries[PT_INDEX(virt)].userspace = 1;
 
-    pt->entries[PT_INDEX(virtual)].pat0 = !!(pat & 1);
-    pt->entries[PT_INDEX(virtual)].pat1 = !!(pat & 2);
-    pt->entries[PT_INDEX(virtual)].huge = !!(pat & 4); // huge bit is pat2 bit in PT
+    pt->entries[PT_INDEX(virt)].pat0 = !!(pat & 1);
+    pt->entries[PT_INDEX(virt)].pat1 = !!(pat & 2);
+    pt->entries[PT_INDEX(virt)].huge = !!(pat & 4); // huge bit is pat2 bit in PT
 }
 
-void vm_context_unmap(struct vm_table* context, ptr_t virtual) {
-    struct vm_table_entry* pml4_entry = &context->entries[PML4_INDEX(virtual)];
+void vm_context_unmap(struct vm_table* context, ptr_t virt) {
+    struct vm_table_entry* pml4_entry = &context->entries[PML4_INDEX(virt)];
 
     if(!pml4_entry->present) {
         return;
     }
 
     struct vm_table*       pdp= BASE_TO_TABLE(pml4_entry->next_base);
-    struct vm_table_entry* pdp_entry = &pdp->entries[PDP_INDEX(virtual)];
+    struct vm_table_entry* pdp_entry = &pdp->entries[PDP_INDEX(virt)];
 
     if(!pdp_entry->present) {
         return;
     }
 
     struct vm_table*       pd = BASE_TO_TABLE(pdp_entry->next_base);
-    struct vm_table_entry* pd_entry = &pd->entries[PD_INDEX(virtual)];
+    struct vm_table_entry* pd_entry = &pd->entries[PD_INDEX(virt)];
 
     if(!pd_entry->present) {
         return;
     }
 
     struct vm_table*       pt = BASE_TO_TABLE(pd_entry->next_base);
-    struct vm_table_entry* pt_entry = &pt->entries[PT_INDEX(virtual)];
+    struct vm_table_entry* pt_entry = &pt->entries[PT_INDEX(virt)];
 
     if(!pt_entry->present) {
         return;
@@ -472,57 +464,57 @@ int vm_table_get_free_index3(struct vm_table *table, int start, int end) {
     return -1;
 }
 
-ptr_t vm_context_get_physical_for_virtual(struct vm_table* context, ptr_t virtual) {
-    if(virtual >= ALLOCATOR_REGION_DIRECT_MAPPING.start && virtual <= ALLOCATOR_REGION_DIRECT_MAPPING.end) {
-        return virtual - ALLOCATOR_REGION_DIRECT_MAPPING.start;
+ptr_t vm_context_get_physical_for_virtual(struct vm_table* context, ptr_t virt) {
+    if(virt >= ALLOCATOR_REGION_DIRECT_MAPPING.start && virt <= ALLOCATOR_REGION_DIRECT_MAPPING.end) {
+        return virt - ALLOCATOR_REGION_DIRECT_MAPPING.start;
     }
 
-    if(!context->entries[PML4_INDEX(virtual)].present)
+    if(!context->entries[PML4_INDEX(virt)].present)
         return 0;
 
-    struct vm_table* pdp = BASE_TO_TABLE(context->entries[PML4_INDEX(virtual)].next_base);
+    struct vm_table* pdp = BASE_TO_TABLE(context->entries[PML4_INDEX(virt)].next_base);
 
-    if(!pdp->entries[PDP_INDEX(virtual)].present)
+    if(!pdp->entries[PDP_INDEX(virt)].present)
         return 0;
-    else if(pdp->entries[PDP_INDEX(virtual)].huge)
-        return (pdp->entries[PDP_INDEX(virtual)].next_base << 30) | (virtual & 0x3FFFFFFF);
+    else if(pdp->entries[PDP_INDEX(virt)].huge)
+        return (pdp->entries[PDP_INDEX(virt)].next_base << 30) | (virt & 0x3FFFFFFF);
 
-    struct vm_table* pd = BASE_TO_TABLE(pdp->entries[PDP_INDEX(virtual)].next_base);
+    struct vm_table* pd = BASE_TO_TABLE(pdp->entries[PDP_INDEX(virt)].next_base);
 
-    if(!pd->entries[PD_INDEX(virtual)].present)
+    if(!pd->entries[PD_INDEX(virt)].present)
         return 0;
-    else if(pd->entries[PD_INDEX(virtual)].huge)
-        return (pd->entries[PD_INDEX(virtual)].next_base << 21) | (virtual & 0x1FFFFF);
+    else if(pd->entries[PD_INDEX(virt)].huge)
+        return (pd->entries[PD_INDEX(virt)].next_base << 21) | (virt & 0x1FFFFF);
 
-    struct vm_table* pt = BASE_TO_TABLE(pd->entries[PD_INDEX(virtual)].next_base);
+    struct vm_table* pt = BASE_TO_TABLE(pd->entries[PD_INDEX(virt)].next_base);
 
-    if(!pt->entries[PT_INDEX(virtual)].present)
+    if(!pt->entries[PT_INDEX(virt)].present)
         return 0;
     else
-        return (pt->entries[PT_INDEX(virtual)].next_base << 12) | (virtual & 0xFFF);
+        return (pt->entries[PT_INDEX(virt)].next_base << 12) | (virt & 0xFFF);
 }
 
-bool vm_context_page_present(struct vm_table* context, ptr_t virtual) {
-    if(!context->entries[PML4_INDEX(virtual)].present)
+bool vm_context_page_present(struct vm_table* context, ptr_t virt) {
+    if(!context->entries[PML4_INDEX(virt)].present)
         return false;
 
-    struct vm_table* pdp = BASE_TO_TABLE(context->entries[PML4_INDEX(virtual)].next_base);
+    struct vm_table* pdp = BASE_TO_TABLE(context->entries[PML4_INDEX(virt)].next_base);
 
-    if(!pdp->entries[PDP_INDEX(virtual)].present)
+    if(!pdp->entries[PDP_INDEX(virt)].present)
         return false;
-    else if(pdp->entries[PDP_INDEX(virtual)].huge)
+    else if(pdp->entries[PDP_INDEX(virt)].huge)
         return true;
 
-    struct vm_table* pd = BASE_TO_TABLE(pdp->entries[PDP_INDEX(virtual)].next_base);
+    struct vm_table* pd = BASE_TO_TABLE(pdp->entries[PDP_INDEX(virt)].next_base);
 
-    if(!pd->entries[PD_INDEX(virtual)].present)
+    if(!pd->entries[PD_INDEX(virt)].present)
         return false;
-    else if(pd->entries[PD_INDEX(virtual)].huge)
+    else if(pd->entries[PD_INDEX(virt)].huge)
         return true;
 
-    struct vm_table* pt = BASE_TO_TABLE(pd->entries[PD_INDEX(virtual)].next_base);
+    struct vm_table* pt = BASE_TO_TABLE(pd->entries[PD_INDEX(virt)].next_base);
 
-    if(!pt->entries[PT_INDEX(virtual)].present)
+    if(!pt->entries[PT_INDEX(virt)].present)
         return false;
     else
         return true;
@@ -737,7 +729,7 @@ static void kernel_dealloc_fn(allocator_t* alloc, void* ptr) {
     vm_free(ptr);
 }
 
-allocator_t kernel_alloc = (allocator_t){
+allocator_t kernel_alloc{
     .alloc   = kernel_alloc_fn,
     .dealloc = kernel_dealloc_fn,
     .tag     = 0,
@@ -748,7 +740,7 @@ struct vm_table* vm_current_context(void) {
     asm("mov %%cr3, %0":"=r"(current));
 
     if(vm_direct_mapping_initialized) {
-        return (void*)((char*)current + ALLOCATOR_REGION_DIRECT_MAPPING.start);
+        return (struct vm_table*)((char*)current + ALLOCATOR_REGION_DIRECT_MAPPING.start);
     }
     else {
         return current;

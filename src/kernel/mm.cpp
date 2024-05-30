@@ -6,12 +6,12 @@
 
 #define PRESENT_BIT 1
 
-typedef struct {
-    ptr_t               start;
-    uint64_t            count;
-    void*               next;
-    mm_page_status_t    status;
-} mm_page_list_entry_t;
+struct mm_page_list_entry_t {
+    ptr_t                   start;
+    uint64_t                count;
+    mm_page_list_entry_t*   next;
+    mm_page_status_t        status;
+};
 
 mm_page_list_entry_t* mm_physical_page_list = 0;
 
@@ -57,20 +57,20 @@ mm_page_list_entry_t* mm_get_page_list_entry(mm_page_list_entry_t* start) {
         start    = start->next;
     }
 
-    mm_page_list_entry_t* new = (mm_page_list_entry_t*)vm_context_alloc_pages(VM_KERNEL_CONTEXT, ALLOCATOR_REGION_KERNEL_HEAP, 1);
+    mm_page_list_entry_t* new_entry = (mm_page_list_entry_t*)vm_context_alloc_pages(VM_KERNEL_CONTEXT, ALLOCATOR_REGION_KERNEL_HEAP, 1);
 
     for(unsigned long i = 0; i < 4096 / sizeof(mm_page_list_entry_t); i++) {
-        new[i].start  = 0;
-        new[i].count  = 0;
-        new[i].status = MM_UNKNOWN;
+        new_entry[i].start  = 0;
+        new_entry[i].count  = 0;
+        new_entry[i].status = MM_UNKNOWN;
 
         if(i) {
-            new[i - 1].next = new + i;
+            new_entry[i - 1].next = new_entry + i;
         }
     }
 
-    previous->next = new;
-    return new;
+    previous->next = new_entry;
+    return new_entry;
 }
 
 void mm_bootstrap(ptr_t usable_page) {
@@ -145,10 +145,10 @@ void mm_mark_physical_pages(ptr_t start, uint64_t count, mm_page_status_t status
         current = current->next;
     }
 
-    mm_page_list_entry_t* new = mm_get_page_list_entry(mm_physical_page_list);
-    new->start  = start;
-    new->count  = count;
-    new->status = status;
+    mm_page_list_entry_t* new_entry = mm_get_page_list_entry(mm_physical_page_list);
+    new_entry->start  = start;
+    new_entry->count  = count;
+    new_entry->status = status;
 }
 
 void mm_print_physical_free_regions(void) {

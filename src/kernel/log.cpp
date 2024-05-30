@@ -24,19 +24,20 @@ struct logging_page log_initial_page = {
     .prev        = 0,
     .next        = 0,
     .current_end = 0,
+    .messages    = { 0 },
 };
 
-struct logging_page* log_first      = &log_initial_page;
-struct logging_page* log_last       = &log_initial_page;
+logging_page* log_first      = &log_initial_page;
+logging_page* log_last       = &log_initial_page;
 uint64_t             log_page_count = 1;
 uint64_t             log_count      = 0;
 
 void log_append_page(void) {
-    struct logging_page* new = (struct logging_page*)vm_alloc(logging_page_size);
-    memset((void*)new, 0, logging_page_size);
-    new->prev = log_last;
-    log_last->next = new;
-    log_last = new;
+    logging_page* new_page = (logging_page*)vm_alloc(logging_page_size);
+    memset((void*)new_page, 0, logging_page_size);
+    new_page->prev = log_last;
+    log_last->next = new_page;
+    log_last = new_page;
 
     ++log_page_count;
 
@@ -59,7 +60,7 @@ void log_append_page(void) {
     }
 }
 
-void log_append(char level, char* component, char* message) {
+void log_append(char level, const char* component, const char* message) {
     size_t len = strlen(component) + strlen(message) + 4; // 4: level, two tabs and terminator
 
     if(len > sizeof(log_first->messages) - log_last->current_end) {
@@ -117,7 +118,7 @@ void log_append(char level, char* component, char* message) {
     ++log_count;
 }
 
-void log(char level, char* component, char* fmt, ...) {
+void log(char level, const char* component, const char* fmt, ...) {
     va_list args;
     char buffer[logging_page_size];
     memset((uint8_t*)buffer, 0, sizeof(buffer));

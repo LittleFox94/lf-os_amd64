@@ -7,7 +7,7 @@
  * \param component Sub component (kernel, mm, vm, scheduler, ...)
  * \param message Message to log
  */
-void log_append(char level, char* component, char* message);
+void log_append(char level, const char* component, const char* message);
 
 /**
  * Append a log message to the kernel log buffer
@@ -16,7 +16,7 @@ void log_append(char level, char* component, char* message);
  * \param fmt sprintf format string
  * \param ... Variables to set in the resulting message
  */
-void log(char level, char* component, char* fmt, ...);
+void log(char level, const char* component, const char* fmt, ...);
 
 
 /**

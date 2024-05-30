@@ -8,7 +8,7 @@
 #include <stdarg.h>
 
 #include <config.h>
-#include "font_acorn_8x8.c"
+#include "font_acorn_8x8.cpp"
 
 bool fbconsole_active = false;
 
@@ -27,6 +27,25 @@ struct fbconsole_data {
 };
 
 static struct fbconsole_data fbconsole;
+
+static const int default_palette[16][3] = {
+    {   0,   0,   0 },
+    { 170,   0,   0 },
+    {   0, 170,   0 },
+    { 170, 170,   0 },
+    {   0,   0, 170 },
+    { 170,   0, 170 },
+    {   0, 170, 170 },
+    { 170, 170, 170 },
+    {  85,  85,  85 },
+    { 255,  85,  85 },
+    {  85, 255,  85 },
+    { 255, 255,  85 },
+    {  85,  85, 255 },
+    { 255,  85, 255 },
+    {  85, 255, 255 },
+    { 255, 255, 255 },
+};
 
 void fbconsole_init(int width, int height, int stride, uint8_t* fb) {
     fbconsole.width      = width;
@@ -47,24 +66,7 @@ void fbconsole_init(int width, int height, int stride, uint8_t* fb) {
     fbconsole.background_g = 0;
     fbconsole.background_b = 0;
 
-    memcpy(fbconsole.palette, (int[16][3]){
-            {   0,   0,   0 },
-            { 170,   0,   0 },
-            {   0, 170,   0 },
-            { 170, 170,   0 },
-            {   0,   0, 170 },
-            { 170,   0, 170 },
-            {   0, 170, 170 },
-            { 170, 170, 170 },
-            {  85,  85,  85 },
-            { 255,  85,  85 },
-            {  85, 255,  85 },
-            { 255, 255,  85 },
-            {  85,  85, 255 },
-            { 255,  85, 255 },
-            {  85, 255, 255 },
-            { 255, 255, 255 },
-        }, sizeof(int) * 16 * 3);
+    memcpy(fbconsole.palette, default_palette, sizeof(int) * 16 * 3);
 
     fbconsole_active = true;
 
@@ -220,7 +222,7 @@ void fbconsole_next_line(void) {
     }
 }
 
-int fbconsole_write(char* string, ...) {
+int fbconsole_write(const char* string, ...) {
     if(!fbconsole.fb) {
         return 0;
     }
@@ -323,7 +325,7 @@ int fbconsole_write(char* string, ...) {
     return i;
 }
 
-void sc_handle_hardware_framebuffer(ptr_t *fb, uint16_t *width, uint16_t *height, uint16_t* stride, uint16_t* colorFormat) {
+void sc_handle_hardware_framebuffer(uint32_t **fb, uint16_t *width, uint16_t *height, uint16_t* stride, uint16_t* colorFormat) {
     if(fbconsole_active) {
         *width = fbconsole.width;
         *height = fbconsole.height;
@@ -331,7 +333,7 @@ void sc_handle_hardware_framebuffer(ptr_t *fb, uint16_t *width, uint16_t *height
         *colorFormat = 0; // to be specified
 
         if(fbconsole.fb) {
-            *fb = scheduler_map_hardware(vm_context_get_physical_for_virtual(VM_KERNEL_CONTEXT, (ptr_t)fbconsole.fb), *stride * *height * 4);
+            *fb = (uint32_t*)scheduler_map_hardware(vm_context_get_physical_for_virtual(VM_KERNEL_CONTEXT, (ptr_t)fbconsole.fb), *stride * *height * 4);
             fbconsole_clear(0, 0, 0);
             fbconsole_active = false;
 

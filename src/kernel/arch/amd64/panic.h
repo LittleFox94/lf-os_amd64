@@ -5,9 +5,11 @@
 
 extern void* kernel_symbols;
 
-__attribute__((noreturn)) void panic(void);
-__attribute__((noreturn)) void panic_message(const char* message);
+extern "C" {
+    __attribute__((noreturn)) void panic(void);
+    __attribute__((noreturn)) void panic_message(const char* message);
 
-__attribute__((noreturn)) void panic_cpu(const cpu_state* cpu);
+    __attribute__((noreturn)) void panic_cpu(const cpu_state* cpu);
+}
 
 #endif

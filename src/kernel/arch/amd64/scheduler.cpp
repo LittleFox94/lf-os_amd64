@@ -47,7 +47,8 @@ typedef struct {
     size_t allocatedMemory;
 } process_t;
 
-volatile pid_t scheduler_current_process = -1;
+#define INVALID_PID (pid_t)-1
+volatile pid_t scheduler_current_process = INVALID_PID;
 
 // TODO: better data structure here. A binary tree with prev/next pointers should be great
 #define MAX_PROCS 4096
@@ -96,12 +97,12 @@ pid_t free_pid(void) {
         }
     }
 
-    return -1;
+    return INVALID_PID;
 }
 
 pid_t setup_process(void) {
     pid_t pid = free_pid();
-    if(pid == -1) {
+    if(pid == INVALID_PID) {
         panic_message("Out of PIDs!");
     }
 
@@ -122,11 +123,9 @@ pid_t setup_process(void) {
     process->hw.start = ALLOCATOR_REGION_USER_HARDWARE.start;
     process->hw.end   = ALLOCATOR_REGION_USER_HARDWARE.start;
 
-    process->allocator = (allocator_t){
-        .alloc   = process_alloc,
-        .dealloc = process_dealloc,
-        .tag     = pid,
-    };
+    process->allocator.alloc   = process_alloc;
+    process->allocator.dealloc = process_dealloc;
+    process->allocator.tag     = pid;
 
     process->mq = mq_create(&process->allocator);
 
@@ -141,7 +140,7 @@ void start_task(struct vm_table* context, ptr_t entry, ptr_t data_start, ptr_t d
     pid_t pid          = setup_process();
     process_t* process = &processes[pid];
 
-    process->parent  = -1;
+    process->parent  = INVALID_PID;
     process->context = context;
     process->cpu.rip = entry;
     process->cpu.rsp = ALLOCATOR_REGION_USER_STACK.end;
@@ -170,7 +169,7 @@ bool scheduler_idle_if_needed(cpu_state** cpu, struct vm_table** context) {
         (*cpu)->ss     = 0x23;
         (*cpu)->rflags = 0x200;
 
-        scheduler_current_process = -1;
+        scheduler_current_process = INVALID_PID;
 
         return true;
     }
@@ -185,7 +184,7 @@ void schedule_next(cpu_state** cpu, struct vm_table** context) {
 
     uint64_t timestamp_ns_since_boot = 0;
 
-    static pid_t last_scheduled = -1;
+    static pid_t last_scheduled = INVALID_PID;
     for(int i = 1; i <= MAX_PROCS; ++i) {
         pid_t pid = (last_scheduled + i) % MAX_PROCS;
 
@@ -239,13 +238,13 @@ void scheduler_process_cleanup(pid_t pid) {
            parent->state != process_state_exited &&
            parent->state != process_state_killed
         ) {
-            size_t user_size = sizeof(struct SignalUserData);
+            size_t user_size = sizeof(struct Message::UserData::SignalUserData);
             size_t size      = sizeof(struct Message) + user_size;
 
-            struct Message* signal = vm_alloc(size);
+            Message* signal = (Message*)vm_alloc(size);
             signal->size                    = size;
             signal->user_size               = user_size,
-            signal->sender                  = -1,
+            signal->sender                  = INVALID_PID,
             signal->type                    = MT_Signal,
             signal->user_data.Signal.signal = SIGCHLD,
 
@@ -266,7 +265,7 @@ void scheduler_kill_current(enum kill_reason reason) {
     scheduler_process_cleanup(scheduler_current_process);
 }
 
-void sc_handle_scheduler_exit(uint64_t exit_code) {
+void sc_handle_scheduler_exit(uint8_t exit_code) {
     processes[scheduler_current_process].state     = process_state_exited;
     processes[scheduler_current_process].exit_code = exit_code;
     logd("scheduler", "'%s' (PID %d) exited (status: %d)", processes[scheduler_current_process].name, scheduler_current_process, exit_code);
@@ -274,7 +273,7 @@ void sc_handle_scheduler_exit(uint64_t exit_code) {
     scheduler_process_cleanup(scheduler_current_process);
 }
 
-void sc_handle_scheduler_clone(bool share_memory, ptr_t entry, pid_t* newPid) {
+void sc_handle_scheduler_clone(bool share_memory, void* entry, pid_t* newPid) {
     process_t* old = &processes[scheduler_current_process];
 
     // make new process
@@ -285,50 +284,50 @@ void sc_handle_scheduler_clone(bool share_memory, ptr_t entry, pid_t* newPid) {
         return;
     }
 
-    process_t* new = &processes[pid];
-    strncpy(new->name, old->name, 1023);
+    process_t* new_process = &processes[pid];
+    strncpy(new_process->name, old->name, 1023);
 
     // new memory context ...
-    new->context = vm_context_new();
+    new_process->context = vm_context_new();
 
-    new->heap.start  = old->heap.start;
-    new->heap.end    = old->heap.end;
-    new->stack.start = old->stack.start;
-    new->stack.end   = old->stack.end;
-    new->hw.start    = old->hw.start;
-    new->hw.end      = old->hw.end;
+    new_process->heap.start  = old->heap.start;
+    new_process->heap.end    = old->heap.end;
+    new_process->stack.start = old->stack.start;
+    new_process->stack.end   = old->stack.end;
+    new_process->hw.start    = old->hw.start;
+    new_process->hw.end      = old->hw.end;
 
     // .. copy heap ..
     if(!share_memory) {
-        vm_copy_range(new->context, old->context, old->heap.start, old->heap.end - old->heap.start);
+        vm_copy_range(new_process->context, old->context, old->heap.start, old->heap.end - old->heap.start);
     }
     else {
         // make heap shared
     }
 
     // .. and stack ..
-    vm_copy_range(new->context, old->context, old->stack.start, old->stack.end - old->stack.start);
+    vm_copy_range(new_process->context, old->context, old->stack.start, old->stack.end - old->stack.start);
 
     // .. and remap hardware resources
     for(ptr_t i = old->hw.start; i < old->hw.end; i += 4096) {
         ptr_t hw = vm_context_get_physical_for_virtual(old->context, i);
 
         if(hw) {
-            vm_context_map(new->context, i, hw, 0x07);
+            vm_context_map(new_process->context, i, hw, 0x07);
         }
     }
 
     if(share_memory && entry) {
-        new->cpu.rip = entry;
+        new_process->cpu.rip = (ptr_t)entry;
     }
 
     *newPid = pid;
 
     // copy cpu state
-    memcpy(&new->cpu, &old->cpu, sizeof(cpu_state));
-    new->cpu.rax = 0;
+    memcpy(&new_process->cpu, &old->cpu, sizeof(cpu_state));
+    new_process->cpu.rax = 0;
 
-    new->parent = scheduler_current_process;
+    new_process->parent = scheduler_current_process;
 }
 
 bool scheduler_handle_pf(ptr_t fault_address, uint64_t error_code) {
@@ -351,7 +350,7 @@ bool scheduler_handle_pf(ptr_t fault_address, uint64_t error_code) {
 }
 
 void scheduler_wait_for(pid_t pid, enum wait_reason reason, union wait_data data) {
-    if(pid == -1) {
+    if(pid == INVALID_PID) {
         pid = scheduler_current_process;
     }
 
@@ -393,7 +392,7 @@ void scheduler_waitable_done(enum wait_reason reason, union wait_data data, size
     }
 }
 
-void sc_handle_memory_sbrk(int64_t inc, ptr_t* data_end) {
+void sc_handle_memory_sbrk(int64_t inc, void** data_end) {
     ptr_t old_end = processes[scheduler_current_process].heap.end;
     ptr_t new_end = old_end + inc;
 
@@ -416,7 +415,7 @@ void sc_handle_memory_sbrk(int64_t inc, ptr_t* data_end) {
     }
 
     processes[scheduler_current_process].heap.end = new_end;
-    *data_end = old_end;
+    *data_end = (void*)old_end;
 }
 
 void sc_handle_scheduler_sleep(uint64_t nanoseconds) {
@@ -433,7 +432,7 @@ void sc_handle_scheduler_sleep(uint64_t nanoseconds) {
     scheduler_wait_for(scheduler_current_process, wait_reason_time, wait_data);
 }
 
-void sc_handle_hardware_ioperm(uint16_t from, uint16_t num, bool turn_on, uint16_t* error) {
+void sc_handle_hardware_ioperm(uint16_t from, uint16_t num, bool turn_on, uint64_t* error) {
     *error = 0;
     process_t* process = &processes[scheduler_current_process];
 
@@ -516,7 +515,8 @@ void sc_handle_ipc_mq_poll(uint64_t mq, bool wait, struct Message* msg, uint64_t
         mq = processes[scheduler_current_process].mq;
     }
 
-    struct Message peeked = { .size = sizeof(struct Message) };
+    struct Message peeked;
+    peeked.size = sizeof(struct Message);
     *error = mq_peek(mq, &peeked);
 
     if(*error == ENOMSG && wait) {
@@ -550,7 +550,7 @@ void sc_handle_ipc_mq_send(uint64_t mq, pid_t pid, struct Message* msg, uint64_t
     msg->sender = scheduler_current_process;
 
     if(!mq) {
-        if(pid != -1) {
+        if(pid != INVALID_PID) {
             if(pid < MAX_PROCS && processes[pid].state != process_state_empty) {
                 mq = processes[pid].mq;
             }
@@ -565,7 +565,7 @@ void sc_handle_ipc_mq_send(uint64_t mq, pid_t pid, struct Message* msg, uint64_t
     }
 }
 
-void sc_handle_ipc_service_register(uuid_t* uuid, uint64_t mq, uint64_t* error) {
+void sc_handle_ipc_service_register(const uuid_t* uuid, uint64_t mq, uint64_t* error) {
     if(!mq) {
         mq = processes[scheduler_current_process].mq;
     }
@@ -573,7 +573,7 @@ void sc_handle_ipc_service_register(uuid_t* uuid, uint64_t mq, uint64_t* error) 
     *error = sd_register(uuid, mq);
 }
 
-void sc_handle_ipc_service_discover(uuid_t* uuid, uint64_t mq, struct Message* msg, uint64_t* error) {
+void sc_handle_ipc_service_discover(const uuid_t* uuid, uint64_t mq, struct Message* msg, uint64_t* error) {
     if(!mq) {
         mq = processes[scheduler_current_process].mq;
     }

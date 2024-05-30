@@ -19,7 +19,7 @@ struct hpet_mmio {
 
     uint64_t _padding1;
 
-    struct hpet_configuration {
+    struct {
         uint64_t  enable_cnf : 1;
         uint64_t  leg_rt_cnf : 1;
         uint64_t  _reserved1 : 62;
@@ -41,7 +41,7 @@ struct hpet_mmio {
     uint64_t _padding4;
 
     struct {
-        struct hpet_timer_config_and_caps {
+        struct {
             uint64_t _reserved1         : 1;
             uint64_t tn_int_type_cnf    : 1;
             uint64_t tn_int_enb_cnf     : 1;
@@ -64,7 +64,7 @@ struct hpet_mmio {
             struct {
                 uint64_t val32     : 32;
                 uint64_t _reserved : 32;
-            }__attribute__((packed));
+            }__attribute__((packed)) b32;
 
             uint64_t val64;
         }__attribute__((packed)) comparator_value;
@@ -158,13 +158,13 @@ void init_hpet(struct acpi_table_header* header) {
         pci_vendor, rev, num_comp, ticks_to_ns_multiplier
     );
 
-    struct hpet_configuration configuration = hpet->configuration;
+    auto configuration = hpet->configuration;
     configuration.enable_cnf = 0;
     configuration.leg_rt_cnf = 1;
     hpet->configuration = configuration;
     hpet->main_counter_register = 0;
 
-    struct hpet_timer_config_and_caps config_and_caps = hpet->timers[0].config_and_caps;
+    auto config_and_caps = hpet->timers[0].config_and_caps;
     config_and_caps.tn_int_enb_cnf = 1;
     config_and_caps.tn_type_cnf = 1;
     config_and_caps.tn_fsb_en_cnf = 0;

@@ -1,9 +1,7 @@
 #include <lfostest.h>
 
 namespace LFOS {
-    extern "C" {
-        #include <slab.c>
-    }
+    #include <slab.cpp>
 
     TEST(KernelSlab, Simple) {
         const size_t size = 1024 * 1024;
