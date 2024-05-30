@@ -29,7 +29,7 @@ variables:
     - Dockerfile.llvm-ci
 
 .source-job:
-  image: $CI_REGISTRY_IMAGE/ci/$CI_COMMIT_REF_NAME:latest
+  image: $CI_REGISTRY_IMAGE/ci/$CI_COMMIT_REF_SLUG:latest
   only:
     changes:
     - src/**/*
@@ -58,9 +58,9 @@ variables:
         --context     $CI_PROJECT_DIR
         --dockerfile  $CI_PROJECT_DIR/$DOCKERFILE
         --destination $IMAGE_NAME:$IMAGE_TAG
-        --destination $IMAGE_NAME/$CI_COMMIT_REF_NAME:latest
+        --destination $IMAGE_NAME/$CI_COMMIT_REF_SLUG:latest
         --cache=true
-        --cache-repo $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_NAME/kaniko-cache
+        --cache-repo $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_SLUG/kaniko-cache
         $BUILD_ARGS
   only:
   - branches
