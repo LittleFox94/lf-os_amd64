@@ -64,7 +64,7 @@ struct hpet_mmio {
             struct {
                 uint64_t val32     : 32;
                 uint64_t _reserved : 32;
-            }__attribute__((packed));
+            }__attribute__((packed)) b32;
 
             uint64_t val64;
         }__attribute__((packed)) comparator_value;

@@ -2,31 +2,30 @@
 #define _VM_H_INCLUDED
 
 #include "stdint.h"
-#include "stdbool.h"
 
-typedef struct {
-    char* name;
+struct region_t {
+    const char* name;
     ptr_t start;
     ptr_t end;
-} region_t;
+};
 
-#define ALLOCATOR_REGION_NULL           (region_t){ .name = "NULL", .start = 0, .end = 0 }
+static const region_t ALLOCATOR_REGION_NULL           { .name = "NULL", .start = 0, .end = 0 };
 
 // x86-64 SysV ABI defines the stack has to be 16-bytes aligned "right before the call instruction", which
 // pushes the return address onto the stack. Since we do not enter user code via call, we emulate this by
 // misaligning by 8 bytes.
-#define ALLOCATOR_REGION_USER_STACK     (region_t){ .name = "User stack",          .start = 0x00003F0000001000, .end = 0x00003FFFFFFFEFF8 }
-#define ALLOCATOR_REGION_USER_HARDWARE  (region_t){ .name = "User MMIO",           .start = 0x00007F0000000000, .end = 0x00007FFFFFFFDFFF }
-#define ALLOCATOR_REGION_USER_IOPERM    (region_t){ .name = "User ioperm bitmask", .start = 0x00007FFFFFFFE000, .end = 0x00007FFFFFFFFFFF }
+static const region_t ALLOCATOR_REGION_USER_STACK     { .name = "User stack",          .start = 0x00003F0000001000, .end = 0x00003FFFFFFFEFF8 };
+static const region_t ALLOCATOR_REGION_USER_HARDWARE  { .name = "User MMIO",           .start = 0x00007F0000000000, .end = 0x00007FFFFFFFDFFF };
+static const region_t ALLOCATOR_REGION_USER_IOPERM    { .name = "User ioperm bitmask", .start = 0x00007FFFFFFFE000, .end = 0x00007FFFFFFFFFFF };
 
-#define ALLOCATOR_REGION_SCRATCHPAD     (region_t){ .name = "Kernel scratchpad", .start = 0xFFFFFFFF80000000, .end = 0xFFFFFFFF80FFFFFF }
-#define ALLOCATOR_REGION_KERNEL_BINARY  (region_t){ .name = "Kernel binary",     .start = 0xFFFFFFFF81000000, .end = 0xFFFFFFFF88FFFFFF }
-#define ALLOCATOR_REGION_SLAB_4K        (region_t){ .name = "4k slab allocator", .start = 0xFFFFFFFF89000000, .end = 0xFFFFFFFF8FFFFFFF }
-#define ALLOCATOR_REGION_KERNEL_HEAP    (region_t){ .name = "Kernel heap",       .start = 0xFFFFFFFF90000000, .end = 0xFFFFFFFFFFFFFFFF }
+static const region_t ALLOCATOR_REGION_SCRATCHPAD     { .name = "Kernel scratchpad", .start = 0xFFFFFFFF80000000, .end = 0xFFFFFFFF80FFFFFF };
+static const region_t ALLOCATOR_REGION_KERNEL_BINARY  { .name = "Kernel binary",     .start = 0xFFFFFFFF81000000, .end = 0xFFFFFFFF88FFFFFF };
+static const region_t ALLOCATOR_REGION_SLAB_4K        { .name = "4k slab allocator", .start = 0xFFFFFFFF89000000, .end = 0xFFFFFFFF8FFFFFFF };
+static const region_t ALLOCATOR_REGION_KERNEL_HEAP    { .name = "Kernel heap",       .start = 0xFFFFFFFF90000000, .end = 0xFFFFFFFFFFFFFFFF };
 
 // this one must be PML4 aligned! (PDP, PD and PT indexes must be zero for the start and 511 for the end)
 // must also be the last region
-#define ALLOCATOR_REGION_DIRECT_MAPPING (region_t){ .name = "Physical mapping",  .start = 0xFFFF800000000000, .end = 0xFFFF83FFFFFFFFFF }
+static const region_t ALLOCATOR_REGION_DIRECT_MAPPING { .name = "Physical mapping",  .start = 0xFFFF800000000000, .end = 0xFFFF83FFFFFFFFFF };
 
 // Some usage flags for pages
 static const uint32_t PageUsageKernel          = 1;  //! Page is used by kernel, userspace otherwise

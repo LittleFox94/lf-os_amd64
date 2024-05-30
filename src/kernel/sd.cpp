@@ -33,7 +33,7 @@ void init_sd(void) {
     memset(sd_global_data.entry_shortcut, 0, sizeof(sd_global_data.entry_shortcut));
 }
 
-static struct sd_entry* new_sd_entry(uuid_t* uuid, mq_id_t queue) {
+static struct sd_entry* new_sd_entry(const uuid_t* uuid, mq_id_t queue) {
     struct sd_entry* entry = (struct sd_entry*)kernel_alloc.alloc(&kernel_alloc, (sizeof(struct sd_entry)));
     memset(entry, 0, sizeof(struct sd_entry));
     memcpy(&entry->uuid, uuid, sizeof(uuid_t));
@@ -42,7 +42,7 @@ static struct sd_entry* new_sd_entry(uuid_t* uuid, mq_id_t queue) {
     return entry;
 }
 
-uint64_t sd_register(uuid_t* uuid, mq_id_t svc_queue) {
+uint64_t sd_register(const uuid_t* uuid, mq_id_t svc_queue) {
     char uuid_s[38];
     uuid_fmt(uuid_s, sizeof(uuid_s), uuid);
 
@@ -106,7 +106,7 @@ uint64_t sd_register(uuid_t* uuid, mq_id_t svc_queue) {
     return 0;
 }
 
-int64_t sd_send(uuid_t* uuid, struct Message* msg) {
+int64_t sd_send(const uuid_t* uuid, struct Message* msg) {
     uuid_key_t key         = uuid_key(uuid);
     struct sd_entry* entry = sd_global_data.entry_shortcut[key];
 

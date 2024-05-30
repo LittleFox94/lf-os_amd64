@@ -6,9 +6,6 @@
 #include <scheduler.h>
 #include <errno.h>
 
-static tpa_t*   mutexes;
-static uint64_t next_mutex = 1;
-
 struct mutex_data {
     //! Current state of this mutex, 0 = unlocked
     int state;
@@ -17,8 +14,11 @@ struct mutex_data {
     pid_t holder;
 };
 
+static TPA<mutex_data>* mutexes;
+static uint64_t         next_mutex = 1;
+
 void init_mutex(void) {
-    mutexes = tpa_new(&kernel_alloc, sizeof(struct mutex_data), 4080, 0);
+    mutexes = TPA<mutex_data>::create(&kernel_alloc, 4080, 0);
 }
 
 mutex_t mutex_create(void) {
@@ -31,12 +31,12 @@ mutex_t mutex_create(void) {
         .holder     = 0,
     };
 
-    tpa_set(mutexes, next_mutex, &data);
+    mutexes->set(next_mutex, &data);
     return next_mutex++;
 }
 
 void mutex_destroy(mutex_t mutex) {
-    struct mutex_data* data = tpa_get(mutexes, mutex);
+    struct mutex_data* data = mutexes->get(mutex);
 
     if(!data) {
         logw("mutex", "Tried to destroy non-existing mutex %u", mutex);
@@ -46,11 +46,11 @@ void mutex_destroy(mutex_t mutex) {
         panic_message("Tried to destroy locked mutex!");
     }
 
-    tpa_set(mutexes, mutex, 0);
+    mutexes->set(mutex, 0);
 }
 
 bool mutex_lock(mutex_t mutex, pid_t holder) {
-    struct mutex_data* data = tpa_get(mutexes, mutex);
+    struct mutex_data* data = mutexes->get(mutex);
 
     if(!data) {
         panic_message("Tried to lock non-existing mutex!");
@@ -66,7 +66,7 @@ bool mutex_lock(mutex_t mutex, pid_t holder) {
 }
 
 bool mutex_unlock(mutex_t mutex, pid_t holder) {
-    struct mutex_data* data = tpa_get(mutexes, mutex);
+    struct mutex_data* data = mutexes->get(mutex);
 
     if(!data) {
         logw("mutex", "Tried to destroy non-existing mutex %u", mutex);
@@ -97,7 +97,7 @@ void mutex_unlock_holder(pid_t pid) {
     size_t mutex = 1;
     do {
         logd("mutex", "Looking at the holder of %d", mutex);
-        struct mutex_data* data = tpa_get(mutexes, mutex);
+        struct mutex_data* data = mutexes->get(mutex);
 
         // we have to check if the mutex is valid since the first
         // iteration of this loop always looks at mutex 1 which could
@@ -111,7 +111,7 @@ void mutex_unlock_holder(pid_t pid) {
         }
 
         prev = mutex;
-    } while((mutex = tpa_next(mutexes, prev)) > prev);
+    } while((mutex = mutexes->next(prev)) > prev);
 }
 
 void sc_handle_locking_create_mutex(uint64_t* mutex, uint64_t* error) {
@@ -126,7 +126,7 @@ void sc_handle_locking_create_mutex(uint64_t* mutex, uint64_t* error) {
 }
 
 void sc_handle_locking_destroy_mutex(uint64_t mutex, uint64_t* error) {
-    struct mutex_data* data = tpa_get(mutexes, mutex);
+    struct mutex_data* data = mutexes->get(mutex);
 
     if(!data) {
         *error = EINVAL;
@@ -142,7 +142,7 @@ void sc_handle_locking_destroy_mutex(uint64_t mutex, uint64_t* error) {
 }
 
 void sc_handle_locking_lock_mutex(uint64_t mutex, bool trylock, uint64_t* error) {
-    struct mutex_data* data = tpa_get(mutexes, mutex);
+    struct mutex_data* data = mutexes->get(mutex);
 
     pid_t holder = scheduler_current_process;
 
@@ -182,7 +182,7 @@ void sc_handle_locking_lock_mutex(uint64_t mutex, bool trylock, uint64_t* error)
 }
 
 void sc_handle_locking_unlock_mutex(uint64_t mutex, uint64_t* error) {
-    struct mutex_data* data = tpa_get(mutexes, mutex);
+    struct mutex_data* data = mutexes->get(mutex);
 
     pid_t holder = scheduler_current_process;
 

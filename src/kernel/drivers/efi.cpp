@@ -1,6 +1,5 @@
 #include <log.h>
 #include <string.h>
-#include <stdbool.h>
 #include <efi.h>
 #include <acpi.h>
 #include <vm.h>
@@ -82,7 +81,7 @@ void efi_append_log(char* msg) {
     if(gST && !no_log) {
         no_log = true;
 
-        EFI_STATUS status = gST->RuntimeServices->SetVariable(L"LFOS_LOG", &gVendorLFOSGuid, 0x47, strlen(msg), msg);
+        EFI_STATUS status = gST->RuntimeServices->SetVariable((CHAR16*)L"LFOS_LOG", &gVendorLFOSGuid, 0x47, strlen(msg), msg);
         if(status != EFI_SUCCESS) {
             loge("efi", "Could not log to EFI: %d", status);
         }

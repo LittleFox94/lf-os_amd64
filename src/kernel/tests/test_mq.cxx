@@ -3,11 +3,8 @@
 namespace LFOS {
     #include <message_passing.h>
 
-    extern "C" {
-        #include <mq.c>
-        #include <tpa.c>
-        #include <flexarray.c>
-    }
+    #include <mq.cpp>
+    #include <flexarray.cpp>
 
     void scheduler_waitable_done(enum wait_reason r, union wait_data d, size_t m) {
     }

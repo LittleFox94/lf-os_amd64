@@ -3,6 +3,6 @@
 
 #include "stdint.h"
 
-typedef uint16_t wchar_t;
+//typedef uint16_t wchar_t;
 
 #endif

@@ -8,43 +8,54 @@
 
 #define LFOS_API __attribute__((visibility("default")))
 
-extern "C" {
-    #include "lfostest.h"
-    #include "../allocator.h"
+#include "lfostest.h"
+#include "../allocator.h"
 
+namespace LFOS {
     LFOS_API uint64_t scheduler_current_process = 0;
 
-    LFOS_API allocator_t kernel_alloc = allocator_t {
-        .alloc   = [](allocator_t* alloc, size_t size) -> void* {
-            alloc->tag += size;
-            uint8_t* data = new uint8_t[size + sizeof(size_t)];
-            (reinterpret_cast<size_t*>(data))[0] = size;
-            return data+sizeof(size_t);
-        },
-        .dealloc = [](allocator_t* alloc, void* ptr) -> void {
-            size_t* data = reinterpret_cast<size_t*>(reinterpret_cast<uint8_t*>(ptr) - sizeof(size_t));
-            alloc->tag -= *data;
-            delete[] data;
+    extern "C" {
+        LFOS_API void panic_message(const char* message) {
+            fprintf(stderr, "Panic() called: %s\n", message);
+            exit(-1);
         }
-    };
 
-    LFOS_API void panic_message(const char* message) {
-        fprintf(stderr, "Panic() called: %s\n", message);
-        exit(-1);
+        LFOS_API void panic() {
+            panic_message("Unknown error");
+        }
     }
 
-    LFOS_API void panic() {
-        panic_message("Unknown error");
-    }
-
-    LFOS_API int ksnprintf(char* buffer, int buffer_size, const char* format, ...) {
+    LFOS_API void log(char level, const char* component, const char* fmt, ...) {
         va_list args;
-        va_start(args, format);
-        int count = vsnprintf(buffer, buffer_size, format, args);
+        va_start(args, fmt);
+        char buffer[512];
+        int count = vsnprintf(buffer, sizeof(buffer), fmt, args);
+        fprintf(stderr, "%c\t%s\t%s\n",level, component, buffer);
         va_end(args);
-
-        return count;
     }
+}
+
+LFOS_API allocator_t kernel_alloc = allocator_t {
+    .alloc   = [](allocator_t* alloc, size_t size) -> void* {
+        alloc->tag += size;
+        uint8_t* data = new uint8_t[size + sizeof(size_t)];
+        (reinterpret_cast<size_t*>(data))[0] = size;
+        return data+sizeof(size_t);
+    },
+    .dealloc = [](allocator_t* alloc, void* ptr) -> void {
+        size_t* data = reinterpret_cast<size_t*>(reinterpret_cast<uint8_t*>(ptr) - sizeof(size_t));
+        alloc->tag -= *data;
+        delete[] data;
+    }
+};
+
+extern "C" LFOS_API int ksnprintf(char* buffer, int buffer_size, const char* format, ...) {
+    va_list args;
+    va_start(args, format);
+    int count = vsnprintf(buffer, buffer_size, format, args);
+    va_end(args);
+
+    return count;
 }
 
 int main(int argc, char* argv[]) {

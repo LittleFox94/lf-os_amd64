@@ -2,7 +2,6 @@
 #define _BITMAP_H_INCLUDED
 
 #include <stdint.h>
-#include <stdbool.h>
 
 //! Type for a single entry in the array.
 typedef uint8_t* bitmap_t;

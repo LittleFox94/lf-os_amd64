@@ -3,51 +3,53 @@
 #include <lfostest.h>
 
 namespace LFOS {
-    extern "C" {
-        #include <tpa.c>
-    }
+    #include <tpa.h>
 
     class TpaTest : public ::testing::Test {
         public:
             TpaTest()
-                : _tpa(tpa_new(&kernel_alloc, sizeof(uint64_t), _tpa_page_size, 0)) {
+                : _tpa(TPA<uint64_t>::create(&kernel_alloc, _tpa_page_size, 0)) {
             }
 
             virtual ~TpaTest() {
-                tpa_delete(_tpa);
+                _tpa->destroy();
             }
 
         protected:
             const size_t _tpa_page_size = 4096;
-            tpa_t*       _tpa;
+            TPA<uint64_t>*       _tpa;
+
+            size_t _tpa_entries_per_page() { return _tpa->entries_per_page(); }
+            //size_t tpa_entries_per_page() { return _tpa->entries_per_page(); }
+            //size_t tpa_entries_per_page() { return _tpa->entries_per_page(); }
     };
 
     TEST_F(TpaTest, Empty) {
-        EXPECT_EQ(tpa_size(_tpa),    4096) << "Size of TPA with no entries correct";
-        EXPECT_EQ(tpa_entries(_tpa), 0)    << "Entrycount of TPA with no entries correct";
-        EXPECT_EQ(tpa_length(_tpa), -1)    << "Length of TPA with no entries correct";
+        EXPECT_EQ(_tpa->size(),    4096) << "Size of TPA with no entries correct";
+        EXPECT_EQ(_tpa->entries(), 0)    << "Entrycount of TPA with no entries correct";
+        EXPECT_EQ(_tpa->length(), -1)    << "Length of TPA with no entries correct";
     }
 
     TEST_F(TpaTest, BasicData) {
         size_t idx   = 0x1337;
         uint64_t val = 23;
-        tpa_set(_tpa, idx, &val);
+        _tpa->set(idx, &val);
 
         {
             SCOPED_TRACE("Checking sizes with a single entry");
 
-            size_t page_num = (idx + tpa_entries_per_page(_tpa) - 1) / tpa_entries_per_page(_tpa);
-            size_t len      = tpa_entries_per_page(_tpa) * page_num;
+            size_t page_num = (idx + _tpa_entries_per_page() - 1) / _tpa_entries_per_page();
+            size_t len      = _tpa_entries_per_page() * page_num;
 
-            EXPECT_EQ(tpa_size(_tpa),    8192) << "Size of TPA with a single entry correct";
-            EXPECT_EQ(tpa_entries(_tpa), 1)    << "Entrycount of TPA with a single entry correct";
-            EXPECT_EQ(tpa_length(_tpa),  len)  << "Length of TPA with no entries correct";
+            EXPECT_EQ(_tpa->size(),    8192) << "Size of TPA with a single entry correct";
+            EXPECT_EQ(_tpa->entries(), 1)    << "Entrycount of TPA with a single entry correct";
+            EXPECT_EQ(_tpa->length(),  len)  << "Length of TPA with no entries correct";
         }
 
         {
             SCOPED_TRACE("Checking retrieval of known-good value");
 
-            void* entry = tpa_get(_tpa, idx);
+            void* entry = _tpa->get(idx);
 
             EXPECT_NE(entry, (void*)0)        << "Entry returned";
             EXPECT_EQ(*(uint64_t*)entry, val) << "Correct entry value";
@@ -56,18 +58,18 @@ namespace LFOS {
         {
             SCOPED_TRACE("Checking retrieval of known-bad value");
 
-            void* non_entry = tpa_get(_tpa, idx + 1);
+            void* non_entry = _tpa->get(idx + 1);
             EXPECT_EQ(non_entry, (void*)0) << "Not existing entry returns 0";
         }
 
         {
             SCOPED_TRACE("Checking size after deleting all data");
 
-            tpa_set(_tpa, idx, 0);
+            _tpa->set(idx, 0);
 
-            EXPECT_EQ(tpa_size(_tpa),    _tpa_page_size) << "Size of TPA with all entries deleted";
-            EXPECT_EQ(tpa_entries(_tpa), 0)              << "Entrycount of TPA with all entries deleted";
-            EXPECT_EQ(tpa_length(_tpa),  -1)             << "Length of TPA with all entries deleted";
+            EXPECT_EQ(_tpa->size(),    _tpa_page_size) << "Size of TPA with all entries deleted";
+            EXPECT_EQ(_tpa->entries(), 0)              << "Entrycount of TPA with all entries deleted";
+            EXPECT_EQ(_tpa->length(),  -1)             << "Length of TPA with all entries deleted";
         }
     }
 
@@ -77,18 +79,18 @@ namespace LFOS {
         const size_t entry_count = (rand() / (double)RAND_MAX) * 256 * 1024;
         RecordProperty("EntryCount", entry_count);
 
-        const size_t num_pages         = (entry_count + tpa_entries_per_page(_tpa) - 1)
-                                       / tpa_entries_per_page(_tpa);
+        const size_t num_pages         = (entry_count + _tpa_entries_per_page() - 1)
+                                       / _tpa_entries_per_page();
         const size_t expected_tpa_size = _tpa_page_size                 // page for the tpa_t header
                                        + (num_pages * _tpa_page_size);  // all the pages
-        const size_t expected_tpa_len  = num_pages * tpa_entries_per_page(_tpa);
+        const size_t expected_tpa_len  = num_pages * _tpa_entries_per_page();
 
         for(size_t i = 0; i < entry_count; ++i) {
-            tpa_set(_tpa, i, &val);
+            _tpa->set(i, &val);
         }
 
-        EXPECT_EQ(tpa_size(_tpa),    expected_tpa_size) << "Size of TPA with lots of entries";
-        EXPECT_EQ(tpa_entries(_tpa), entry_count)       << "Entrycount of TPA with lots of entries";
-        EXPECT_EQ(tpa_length(_tpa),  expected_tpa_len)  << "Length of TPA with lots of entries";
+        EXPECT_EQ(_tpa->size(),    expected_tpa_size) << "Size of TPA with lots of entries";
+        EXPECT_EQ(_tpa->entries(), entry_count)       << "Entrycount of TPA with lots of entries";
+        EXPECT_EQ(_tpa->length(),  expected_tpa_len)  << "Length of TPA with lots of entries";
     }
 }

@@ -9,8 +9,6 @@
 //! Target number of messages per page, muliplied by average message size for allocation size of new pages
 static const size_t MessageQueuePageItemsTarget = 16;
 
-static tpa_t*   mqs;
-static uint64_t next_mq = 1;
 
 //! This is the header for a message queue page
 struct MessageQueuePage {
@@ -62,8 +60,11 @@ struct MessageQueue {
     flexarray_t notify_teardown;
 };
 
+static TPA<MessageQueue>*   mqs;
+static uint64_t             next_mq = 1;
+
 void init_mq(allocator_t* alloc) {
-    mqs = tpa_new(alloc, sizeof(struct MessageQueue), 4080, 0);
+    mqs = TPA<MessageQueue>::create(alloc, 4080, 0);
 }
 
 uint64_t mq_create(allocator_t* alloc) {
@@ -85,13 +86,13 @@ uint64_t mq_create(allocator_t* alloc) {
         .notify_teardown = new_flexarray(sizeof(mq_notifier), 0, alloc),
     };
 
-    tpa_set(mqs, next_mq, &mq);
+    mqs->set(next_mq, &mq);
 
     return next_mq++;
 }
 
 void mq_destroy(uint64_t mq) {
-    struct MessageQueue* data = (struct MessageQueue*)tpa_get(mqs, mq);
+    MessageQueue* data = mqs->get(mq);
 
     if(!data) {
         return;
@@ -115,7 +116,7 @@ void mq_destroy(uint64_t mq) {
 
     delete_flexarray(data->notify_teardown);
 
-    tpa_set(mqs, mq, 0);
+    mqs->set(mq, 0);
 }
 
 static void mq_alloc_page(struct MessageQueue* mq, size_t min_size) {
@@ -142,7 +143,7 @@ static void mq_alloc_page(struct MessageQueue* mq, size_t min_size) {
 }
 
 uint64_t mq_push(uint64_t mq, struct Message* message) {
-    struct MessageQueue* data = (struct MessageQueue*)tpa_get(mqs, mq);
+    struct MessageQueue* data = mqs->get(mq);
 
     if(!data) {
         return ENOENT;
@@ -193,7 +194,7 @@ uint64_t mq_pop(uint64_t mq, struct Message* msg) {
         return error;
     }
 
-    struct MessageQueue* data = (struct MessageQueue*)tpa_get(mqs, mq);
+    struct MessageQueue* data = mqs->get(mq);
 
     data->first_page->pop_position += msg->size;
     data->first_page->bytes        -= msg->size;
@@ -216,7 +217,7 @@ uint64_t mq_pop(uint64_t mq, struct Message* msg) {
 }
 
 uint64_t mq_peek(uint64_t mq, struct Message* msg) {
-    struct MessageQueue* data = (struct MessageQueue*)tpa_get(mqs, mq);
+    struct MessageQueue* data = mqs->get(mq);
 
     if(!data) {
         return ENOENT;
@@ -240,7 +241,7 @@ uint64_t mq_peek(uint64_t mq, struct Message* msg) {
 }
 
 uint64_t mq_notify_teardown(mq_id_t mq, mq_notifier notifier) {
-    struct MessageQueue* data = (struct MessageQueue*)tpa_get(mqs, mq);
+    struct MessageQueue* data = mqs->get(mq);
 
     if(!data) {
         return ENOENT;

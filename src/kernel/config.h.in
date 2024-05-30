@@ -1,5 +1,5 @@
 #ifndef BUILD_ID
-  #define BUILD_ID "dev-"__DATE__" "__TIME__
+  #define BUILD_ID "dev-" __DATE__ " " __TIME__
 #endif
 
 #define FONT_NAME   acorndata_8x8
