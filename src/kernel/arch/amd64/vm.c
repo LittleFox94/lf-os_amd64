@@ -566,6 +566,9 @@ ptr_t vm_context_alloc_pages(struct vm_table* context, region_t region, size_t n
     for(size_t i = 0; i < num; ++i) {
         ptr_t physical = (ptr_t)mm_alloc_pages(1);
         vm_context_map(context, vdest + (i * 4096), physical, 0);
+
+        // in case of rapid alloc/dealloc/alloc we might run into trouble?
+        asm("invlpg (%0)"::"r"(vdest + (i * 4096)));
     }
 
     return vdest;
