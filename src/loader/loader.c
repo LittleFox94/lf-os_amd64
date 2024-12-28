@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <stddef.h>
 
 #include <efi.h>
 #include <protocol/efi-sfsp.h>
@@ -76,10 +77,10 @@ struct LoaderState {
     struct LoaderStruct loaderStruct;
 
     EFI_LOADED_IMAGE_PROTOCOL* loadedImage;
-    ptr_t                      loaderStart;
+    uint64_t                   loaderStart;
     size_t                     loaderSize;
 
-    ptr_t    physicalKernelLocation;
+    uint64_t physicalKernelLocation;
     size_t   kernelSize;
     uint64_t kernelEntry;
 
@@ -93,14 +94,14 @@ struct LoaderState {
 
     struct LoaderFileDescriptor* fileDescriptors;
 
-    ptr_t    scratchpad;
+    uint64_t scratchpad;
 
-    ptr_t    loaderScratchpad;
-    ptr_t    loaderScratchpadFree;
+    uint64_t loaderScratchpad;
+    uint64_t loaderScratchpadFree;
     size_t   loaderScratchpadSize;
 };
 
-ptr_t allocate_from_loader_scratchpad(struct LoaderState* state, size_t len, size_t alignment) {
+uint64_t allocate_from_loader_scratchpad(struct LoaderState* state, size_t len, size_t alignment) {
     size_t alignmentOffset = alignment - ((uint64_t)state->loaderScratchpadFree % alignment);
 
     if(alignmentOffset == alignment) {
@@ -114,10 +115,10 @@ ptr_t allocate_from_loader_scratchpad(struct LoaderState* state, size_t len, siz
                     // not really unexpected since the scratchpad can only allocate and not free memory
     }
 
-    ptr_t ret = state->loaderScratchpadFree;
+    uint64_t ret = state->loaderScratchpadFree;
     state->loaderScratchpadFree += len;
 
-    memset(ret, 0, len);
+    memset((void*)ret, 0, len);
 
     return ret + alignmentOffset;
 }
@@ -161,7 +162,7 @@ EFI_STATUS handle_loaded_file(struct LoaderState* state, void* buffer, size_t si
         }
         kernelSize += PAGE_SIZE;
 
-        ptr_t physicalKernelLocation;
+        uint64_t physicalKernelLocation;
 
         EFI_CHECK_ERROR_CALL(BS, AllocatePages, AllocateAnyPages, EfiLoaderCode, (kernelSize + PAGE_SIZE - 1) / PAGE_SIZE, (EFI_PHYSICAL_ADDRESS*)&physicalKernelLocation);
 
@@ -174,7 +175,7 @@ EFI_STATUS handle_loaded_file(struct LoaderState* state, void* buffer, size_t si
                 uint64_t dest = (uint64_t)(physicalKernelLocation + ph->vaddr) - 0xffffffff81000000;
 
                 memset((void*)dest, 0, ph->memLength);
-                memcpy((void*)dest, (ptr_t)src, size);
+                memcpy((void*)dest, (void*)src, size);
             }
         }
 
@@ -355,7 +356,7 @@ EFI_STATUS retrieve_memory_map(struct LoaderState* state) {
             }
         } while(status == EFI_BUFFER_TOO_SMALL);
 
-        struct MemoryRegion* regionBuffer = allocate_from_loader_scratchpad(state, (state->efiMemoryMapSize / state->efiMemoryMapEntrySize) * sizeof(struct MemoryRegion), PAGE_SIZE);
+        struct MemoryRegion* regionBuffer = (struct MemoryRegion*)allocate_from_loader_scratchpad(state, (state->efiMemoryMapSize / state->efiMemoryMapEntrySize) * sizeof(struct MemoryRegion), PAGE_SIZE);
 
         size_t lfos_mem_map_index   = 0;
         EFI_MEMORY_DESCRIPTOR* desc = memory_map;
@@ -392,7 +393,7 @@ EFI_STATUS retrieve_memory_map(struct LoaderState* state) {
                 if(lfos_mem_map_index > 0) {
                     // merge with previous region if following directly after and flags match
                     if(
-                        regionBuffer[lfos_mem_map_index-1].start_address + (regionBuffer[lfos_mem_map_index-1].num_pages * PAGE_SIZE) == (ptr_t)desc->PhysicalStart &&
+                        regionBuffer[lfos_mem_map_index-1].start_address + (regionBuffer[lfos_mem_map_index-1].num_pages * PAGE_SIZE) == desc->PhysicalStart &&
                         regionBuffer[lfos_mem_map_index-1].flags == flags
                     ) {
                         regionBuffer[lfos_mem_map_index-1].num_pages += desc->NumberOfPages;
@@ -400,7 +401,7 @@ EFI_STATUS retrieve_memory_map(struct LoaderState* state) {
                     }
                 }
 
-                regionBuffer[lfos_mem_map_index].start_address = (ptr_t)desc->PhysicalStart;
+                regionBuffer[lfos_mem_map_index].start_address = desc->PhysicalStart;
                 regionBuffer[lfos_mem_map_index].num_pages     = desc->NumberOfPages;
                 regionBuffer[lfos_mem_map_index].flags         = flags;
 
@@ -442,7 +443,7 @@ EFI_STATUS prepare_framebuffer(struct LoaderState* state) {
     size_t width  = gop->Mode->Info->HorizontalResolution;
     size_t height = gop->Mode->Info->VerticalResolution;
     size_t stride = gop->Mode->Info->PixelsPerScanLine;
-    ptr_t  fb     = (uint8_t*)gop->Mode->FrameBufferBase;
+    uint64_t fb   = gop->Mode->FrameBufferBase;
 
     state->loaderStruct.fb_width    = width;
     state->loaderStruct.fb_height   = height;
@@ -453,7 +454,7 @@ EFI_STATUS prepare_framebuffer(struct LoaderState* state) {
     return EFI_SUCCESS;
 }
 
-void map_page(struct LoaderState* state, vm_table_t* pml4, ptr_t virtual, ptr_t physical) {
+void map_page(struct LoaderState* state, vm_table_t* pml4, uint64_t virtual, uint64_t physical) {
     uint16_t pml4_idx = PML4_INDEX((uint64_t)virtual);
     uint16_t pdp_idx  = PDP_INDEX((uint64_t)virtual);
     uint16_t pd_idx   = PD_INDEX((uint64_t)virtual);
@@ -493,9 +494,9 @@ void map_page(struct LoaderState* state, vm_table_t* pml4, ptr_t virtual, ptr_t 
 }
 
 void initialize_virtual_memory(struct LoaderState* state) {
-    const ptr_t higherHalf = (ptr_t)0xffffffff80000000;
+    const uint64_t higherHalf = 0xffffffff80000000ULL;
 
-    vm_table_t* pml4 = allocate_from_loader_scratchpad(state, sizeof(vm_table_t), PAGE_SIZE);
+    vm_table_t* pml4 = (vm_table_t*)allocate_from_loader_scratchpad(state, sizeof(vm_table_t), PAGE_SIZE);
 
     // map loader code
     for(size_t i = 0; i <= state->loaderSize; i += PAGE_SIZE) {
@@ -514,16 +515,16 @@ void initialize_virtual_memory(struct LoaderState* state) {
     }
 
     // map kernel code
-    ptr_t kernelStart = higherHalf + (16 * MB);
-    ptr_t kernelEnd   = kernelStart;
+    uint64_t kernelStart = higherHalf + (16 * MB);
+    uint64_t kernelEnd   = kernelStart;
     for(size_t i = 0; i < state->kernelSize; i+= PAGE_SIZE) {
         map_page(state, pml4, kernelStart + i, state->physicalKernelLocation + i);
         kernelEnd += PAGE_SIZE;
     }
 
-    ptr_t originalFramebuffer = state->loaderStruct.fb_location;
+    uint64_t originalFramebuffer = state->loaderStruct.fb_location;
 
-    ptr_t filesStart = kernelEnd;
+    uint64_t filesStart = kernelEnd;
     size_t fbSize    = state->loaderStruct.fb_stride *
                        state->loaderStruct.fb_height *
                        state->loaderStruct.fb_bpp;
@@ -542,16 +543,16 @@ void initialize_virtual_memory(struct LoaderState* state) {
         (state->loaderStruct.num_mem_desc * sizeof(struct MemoryRegion))   +
         (state->loaderStruct.num_files    * sizeof(struct FileDescriptor));
 
-    ptr_t loaderStructsArea = allocate_from_loader_scratchpad(state, loaderStructsAreaSize, 4096);
+    uint64_t loaderStructsArea = allocate_from_loader_scratchpad(state, loaderStructsAreaSize, 4096);
 
-    memcpy(loaderStructsArea,
+    memcpy((void*)loaderStructsArea,
             &state->loaderStruct, state->loaderStruct.size);
-    memcpy(loaderStructsArea + state->loaderStruct.size,
+    memcpy((void*)(loaderStructsArea + state->loaderStruct.size),
             state->memoryMapLocation, state->loaderStruct.num_mem_desc * sizeof(struct MemoryRegion));
 
-    struct LoaderStruct* loaderStructFinal = filesStart;
+    struct LoaderStruct* loaderStructFinal = (struct LoaderStruct*)filesStart;
     for(size_t i = 0; i < loaderStructsAreaSize; i += PAGE_SIZE) {
-        map_page(state, pml4, (ptr_t)filesStart, loaderStructsArea + i);
+        map_page(state, pml4, filesStart, loaderStructsArea + i);
         filesStart += PAGE_SIZE;
     }
 
@@ -564,10 +565,10 @@ void initialize_virtual_memory(struct LoaderState* state) {
     for(size_t i = 0; i < state->loaderStruct.num_files; ++i) {
         memcpy((fileDescriptors + i)->name, (state->fileDescriptors + i)->name, 256);
         (fileDescriptors + i)->size   = (state->fileDescriptors + i)->size;
-        (fileDescriptors + i)->offset = (filesStart - (ptr_t)loaderStructFinal);
+        (fileDescriptors + i)->offset = (filesStart - (uint64_t)loaderStructFinal);
 
         for(size_t j = 0; j < (fileDescriptors + i)->size; j += PAGE_SIZE) {
-            map_page(state, pml4, filesStart, (state->fileDescriptors + i)->data + j);
+            map_page(state, pml4, filesStart, (uint64_t)(state->fileDescriptors + i)->data + j);
             filesStart += PAGE_SIZE;
         }
     }
@@ -602,19 +603,19 @@ EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE* system_table) {
     EFI_CHECK_ERROR_CALL(BS, HandleProtocol, image_handle, &gEfiLoadedImageProtocolGuid, (void**)&li);
 
     state.loadedImage = li;
-    state.loaderStart = (ptr_t)li->ImageBase;
+    state.loaderStart = (uint64_t)li->ImageBase;
     state.loaderSize  = (size_t)li->ImageSize;
 
-    state.scratchpad  = malloc(16 * MB);
-    memset(state.scratchpad, 0, 16 * MB);
+    state.scratchpad  = (uint64_t)malloc(16 * MB);
+    memset((void*)state.scratchpad, 0, 16 * MB);
 
     state.loaderScratchpadSize = 4 * MB;
     state.loaderScratchpadFree = state.loaderScratchpad
-                               = malloc(state.loaderScratchpadSize);
+                               = (uint64_t)malloc(state.loaderScratchpadSize);
 
     state.loaderStruct.signature     = LFOS_LOADER_SIGNATURE;
     state.loaderStruct.size          = sizeof(struct LoaderStruct);
-    state.loaderStruct.firmware_info = system_table;
+    state.loaderStruct.firmware_info = (uint64_t)system_table;
 
     wprintf(
         L"LF OS amd64 uefi loader (%u bytes at 0x%x).\n\n",

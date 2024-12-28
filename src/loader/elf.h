@@ -25,9 +25,9 @@ typedef struct {
 
     uint32_t version;
 
-    ptr_t    entrypoint;
-    ptr_t    programHeaderOffset;
-    ptr_t    sectionHeaderOffset;
+    uint64_t entrypoint;
+    uint64_t programHeaderOffset;
+    uint64_t sectionHeaderOffset;
 
     uint32_t flags;
     uint16_t headerSize;

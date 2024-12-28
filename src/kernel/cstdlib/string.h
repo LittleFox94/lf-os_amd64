@@ -1,8 +1,9 @@
 #ifndef _STRING_H_INCLUDED
 #define _STRING_H_INCLUDED
 
-#include "stdarg.h"
-#include "stdint.h"
+#include <stdarg.h>
+#include <stdint.h>
+#include <stddef.h>
 
 extern "C" {
     void  memset32(uint32_t* dest, uint32_t c, size_t size);

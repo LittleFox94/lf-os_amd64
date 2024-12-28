@@ -24,9 +24,9 @@ struct elf_file_header {
 
     uint32_t version;
 
-    ptr_t    entrypoint;
-    ptr_t    programHeaderOffset;
-    ptr_t    sectionHeaderOffset;
+    uint64_t entrypoint;
+    uint64_t programHeaderOffset;
+    uint64_t sectionHeaderOffset;
 
     uint32_t flags;
     uint16_t headerSize;
@@ -60,7 +60,7 @@ struct elf_section_header {
     uint32_t name;
     uint32_t type;
     uint64_t flags;
-    ptr_t    addr;
+    uint64_t addr;
     uint64_t offset;
     uint64_t size;
     uint32_t link;
@@ -90,7 +90,7 @@ typedef struct elf_symbol elf_symbol_t;
  * \param[out] data_end     End of the data section
  * \returns                 Entrypoint of the image
  */
-ptr_t load_elf(ptr_t elf, struct vm_table* context, ptr_t* data_start, ptr_t* data_end);
+uint64_t load_elf(uint64_t elf, struct vm_table* context, uint64_t* data_start, uint64_t* data_end);
 
 /**
  * Return section header of ELF file by name
@@ -109,7 +109,7 @@ elf_section_header_t* elf_section_by_name(const char* name, const void* elf);
  * \returns     Pointer to a opaque data structure containing the symbols,
  *              use elf_symbolize to retrieve the symbol for a given address
  */
-void* elf_load_symbols(ptr_t elf, allocator_t* alloc);
+void* elf_load_symbols(uint64_t elf, allocator_t* alloc);
 
 /**
  * Get the symbol name (and offset) for a given address from the data loaded with
@@ -126,6 +126,6 @@ void* elf_load_symbols(ptr_t elf, allocator_t* alloc);
  *                      buffer to small can be recognized by symbol_length being set to a
  *                      non-zero value.
  */
-bool elf_symbolize(void* symbols, ptr_t addr, size_t* symbol_length, char* symbol);
+bool elf_symbolize(void* symbols, uint64_t addr, size_t* symbol_length, char* symbol);
 
 #endif

@@ -2,6 +2,7 @@
 #define _LOADER_H_INCLUDED
 
 #include <stdint.h>
+#include <stddef.h>
 
 static const uint64_t LFOS_LOADER_SIGNATURE = 0x17a15174545c8b4f;
 
@@ -50,7 +51,7 @@ struct LoaderStruct {
     uint16_t size;
 
     //! Location of framebuffer as physical address
-    ptr_t fb_location;
+    uint64_t fb_location;
 
     //! Width of the framebuffer in visible pixels
     uint16_t fb_width;
@@ -74,13 +75,13 @@ struct LoaderStruct {
     uint64_t num_files;
 
     //! Firmware info data, e.g. EFI_SYSTEM_TABLE on UEFI
-    ptr_t firmware_info;
+    uint64_t firmware_info;
 }__attribute__((packed));
 
 //! Describes a single memory region
 struct MemoryRegion {
     //! Start of the region as physical address
-    ptr_t  start_address;
+    uint64_t  start_address;
 
     //! Number of pages, where page size is 4096 bytes
     size_t num_pages;

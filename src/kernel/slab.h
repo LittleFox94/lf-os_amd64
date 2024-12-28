@@ -2,6 +2,7 @@
 #define _SLAB_H_INCLUDED
 
 #include <stdint.h>
+#include <stddef.h>
 
 //! Type for indexing objects in a Slab region
 typedef uint16_t SlabIndexType;
@@ -26,7 +27,7 @@ typedef struct {
  *  \param mem_end         Memory address where the slab allocator region ends
  *  \param allocation_size Size of single objects in this allocator
  */
-void init_slab(ptr_t mem_start, ptr_t mem_end, size_t allocation_size);
+void init_slab(uint64_t mem_start, uint64_t mem_end, size_t allocation_size);
 
 /**
  * Allocate object from slab allocator region.
@@ -34,7 +35,7 @@ void init_slab(ptr_t mem_start, ptr_t mem_end, size_t allocation_size);
  * \param   slab mem_start given to init_slab before
  * \returns Address in memory with the allocated object, NULL if full
  */
-ptr_t slab_alloc(SlabHeader* slab);
+uint64_t slab_alloc(SlabHeader* slab);
 
 /**
  * Free object in slab allocator region.
@@ -42,7 +43,7 @@ ptr_t slab_alloc(SlabHeader* slab);
  * \param slab   mem_start given to init_slab before
  * \param memory Address to mark as free
  */
-void slab_free(SlabHeader* slab, ptr_t memory);
+void slab_free(SlabHeader* slab, uint64_t memory);
 
 /**
  * Calculate the overhead of a given slab allocator.
@@ -62,8 +63,8 @@ static inline size_t slab_overhead(const SlabHeader* slab) {
  * \param idx  Index of the object in the allocator
  * \returns Memory address of the object
  */
-static inline ptr_t slab_mem(const SlabHeader* slab, const SlabIndexType idx) {
-    return (idx * slab->allocation_size) + slab_overhead(slab) + (ptr_t)slab;
+static inline uint64_t slab_mem(const SlabHeader* slab, const SlabIndexType idx) {
+    return (idx * slab->allocation_size) + slab_overhead(slab) + (uint64_t)slab;
 }
 
 /**
@@ -73,8 +74,8 @@ static inline ptr_t slab_mem(const SlabHeader* slab, const SlabIndexType idx) {
  * \param mem  Memory address to calculate index
  * \returns    Index of the given memory address in the allocator
  */
-static inline SlabIndexType slab_index(const SlabHeader* slab, const ptr_t mem) {
-    return (mem - slab_overhead(slab) - (ptr_t)slab) / slab->allocation_size;
+static inline SlabIndexType slab_index(const SlabHeader* slab, const uint64_t mem) {
+    return (mem - slab_overhead(slab) - (uint64_t)slab) / slab->allocation_size;
 }
 
 #endif

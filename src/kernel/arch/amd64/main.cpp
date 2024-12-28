@@ -128,7 +128,7 @@ void init_console(struct LoaderStruct* loaderStruct) {
 void init_mm(struct LoaderStruct* loaderStruct) {
     logd("main.c", "loaderStruct->num_mem_desc: %lu", loaderStruct->num_mem_desc);
 
-    struct MemoryRegion* memoryRegions = (struct MemoryRegion*)((ptr_t)loaderStruct + loaderStruct->size);
+    struct MemoryRegion* memoryRegions = (struct MemoryRegion*)((uint64_t)loaderStruct + loaderStruct->size);
 
     SlabHeader* scratchpad_allocator = (SlabHeader*)ALLOCATOR_REGION_SCRATCHPAD.start;
     init_slab(ALLOCATOR_REGION_SCRATCHPAD.start, ALLOCATOR_REGION_SCRATCHPAD.end, 4096);
@@ -172,11 +172,11 @@ void init_mm(struct LoaderStruct* loaderStruct) {
 }
 
 void init_symbols(struct LoaderStruct* loaderStruct) {
-    struct FileDescriptor* fileDescriptors = (struct FileDescriptor*)((ptr_t)loaderStruct + loaderStruct->size + (loaderStruct->num_mem_desc * sizeof(struct MemoryRegion)));
+    struct FileDescriptor* fileDescriptors = (struct FileDescriptor*)((uint64_t)loaderStruct + loaderStruct->size + (loaderStruct->num_mem_desc * sizeof(struct MemoryRegion)));
 
     for(size_t i = 0; i < loaderStruct->num_files; ++i) {
         struct FileDescriptor* desc = (fileDescriptors + i);
-        ptr_t kernel                = (ptr_t)loaderStruct + desc->offset;
+        uint64_t kernel                = (uint64_t)loaderStruct + desc->offset;
 
         if(strcasecmp(desc->name, "kernel") == 0) {
             kernel_symbols = elf_load_symbols(kernel, &kernel_alloc);
@@ -186,21 +186,21 @@ void init_symbols(struct LoaderStruct* loaderStruct) {
 
 void init_init(struct LoaderStruct* loaderStruct) {
     struct FileDescriptor* fileDescriptors = (struct FileDescriptor*)(
-        (ptr_t)loaderStruct +
+        (uint64_t)loaderStruct +
         loaderStruct->size +
         (loaderStruct->num_mem_desc * sizeof(struct MemoryRegion))
     );
 
     for(size_t i = 0; i < loaderStruct->num_files; ++i) {
         struct FileDescriptor* desc = (fileDescriptors + i);
-        void*                  data = (uint8_t*)((ptr_t)loaderStruct + desc->offset);
+        void*                  data = (uint8_t*)((uint64_t)loaderStruct + desc->offset);
 
         if(strcasecmp(desc->name, "kernel") != 0) {
             struct vm_table* context = vm_context_new();
 
-            ptr_t data_start = 0;
-            ptr_t data_end   = 0;
-            ptr_t entrypoint = load_elf((ptr_t)data, context, &data_start, &data_end);
+            uint64_t data_start = 0;
+            uint64_t data_end   = 0;
+            uint64_t entrypoint = load_elf((uint64_t)data, context, &data_start, &data_end);
 
             if(!entrypoint) {
                 logd("init" "Failed to run '%s'", desc->name);

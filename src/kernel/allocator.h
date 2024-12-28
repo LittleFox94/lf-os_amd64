@@ -1,7 +1,7 @@
 #ifndef _ALLOCATOR_H_INCLUDED
 #define _ALLOCATOR_H_INCLUDED
 
-#include <stdint.h>
+#include <stddef.h>
 
 struct allocator;
 

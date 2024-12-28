@@ -1,4 +1,3 @@
-#include "arch.h"
 #include "mm.h"
 #include "vm.h"
 #include "log.h"
@@ -7,7 +6,7 @@
 #define PRESENT_BIT 1
 
 struct mm_page_list_entry_t {
-    ptr_t                   start;
+    uint64_t                start;
     uint64_t                count;
     mm_page_list_entry_t*   next;
     mm_page_status_t        status;
@@ -73,7 +72,7 @@ mm_page_list_entry_t* mm_get_page_list_entry(mm_page_list_entry_t* start) {
     return new_entry;
 }
 
-void mm_bootstrap(ptr_t usable_page) {
+void mm_bootstrap(uint64_t usable_page) {
     while(usable_page % 4096);
 
     // bootstrap memory management with the first page given to us
@@ -90,7 +89,7 @@ void mm_bootstrap(ptr_t usable_page) {
     page_list[(4096 / sizeof(mm_page_list_entry_t)) - 1].next = 0;
 }
 
-void mm_mark_physical_pages(ptr_t start, uint64_t count, mm_page_status_t status) {
+void mm_mark_physical_pages(uint64_t start, uint64_t count, mm_page_status_t status) {
     if(!count) {
         return;
     }
@@ -112,7 +111,7 @@ void mm_mark_physical_pages(ptr_t start, uint64_t count, mm_page_status_t status
             else {
                 mm_page_status_t old_status = current->status;
 
-                ptr_t start_first     = current->start;
+                uint64_t start_first  = current->start;
                 uint64_t count_first  = (start - start_first) / 4096;
 
                 if(count_first == 0) {
@@ -123,7 +122,7 @@ void mm_mark_physical_pages(ptr_t start, uint64_t count, mm_page_status_t status
                     current->count = count_first;
                 }
 
-                ptr_t start_second    = start + (count * 4096);
+                uint64_t start_second = start + (count * 4096);
                 uint64_t count_second = (current->start + (current->count * 4096)) - (start + (count * 4096));
 
                 if(count_second) {
@@ -163,8 +162,8 @@ void mm_print_physical_free_regions(void) {
     }
 }
 
-ptr_t mm_highest_address(void) {
-    ptr_t res = 0;
+uint64_t mm_highest_address(void) {
+    uint64_t res = 0;
     mm_page_list_entry_t* current = mm_physical_page_list;
 
     while(current) {

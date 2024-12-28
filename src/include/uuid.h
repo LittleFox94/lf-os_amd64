@@ -2,6 +2,7 @@
 #define _SYS_UUID_H_INCLUDE
 
 #include <stdint.h>
+#include <stddef.h>
 
 typedef union {
     struct uuid_members {

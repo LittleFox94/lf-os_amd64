@@ -68,7 +68,7 @@ struct tss {
 }__attribute__((packed));
 
 typedef struct {
-    ptr_t      kernel_stack;
+    uint64_t      kernel_stack;
     struct tss tss;
 } cpu_local_data;
 
@@ -131,10 +131,10 @@ static struct idt_entry _idt[256];
 
 static flexarray_t interrupt_queues[16] = { 0 };
 
-void set_iopb(struct vm_table* context, ptr_t new_iopb) {
-    static ptr_t originalPages[2] = {0, 0};
+void set_iopb(struct vm_table* context, uint64_t new_iopb) {
+    static uint64_t originalPages[2] = {0, 0};
 
-    ptr_t iopb = (ptr_t)&_cpu0->tss + _cpu0->tss.iopb_offset;
+    uint64_t iopb = (uint64_t)&_cpu0->tss + _cpu0->tss.iopb_offset;
 
     if(!originalPages[0] && !originalPages[1]) {
         originalPages[0] = vm_context_get_physical_for_virtual(VM_KERNEL_CONTEXT, iopb);
@@ -156,12 +156,12 @@ void init_gdt(void) {
     memset(_cpu0, 0, 4*KiB);
     memset((char*)_cpu0 + 4*KiB, 0xFF, 12*KiB);
 
-    ptr_t kernel_stack = vm_context_alloc_pages(VM_KERNEL_CONTEXT, ALLOCATOR_REGION_KERNEL_HEAP, 1) + 4096;
+    uint64_t kernel_stack = vm_context_alloc_pages(VM_KERNEL_CONTEXT, ALLOCATOR_REGION_KERNEL_HEAP, 1) + 4096;
 
     _cpu0->tss._reserved1  = 0;
     _cpu0->tss._reserved2  = 0;
     _cpu0->tss._reserved3  = 0;
-    _cpu0->tss.iopb_offset = 0x1000 - ((ptr_t)&_cpu0->tss & 0xFFF);
+    _cpu0->tss.iopb_offset = 0x1000 - ((uint64_t)&_cpu0->tss & 0xFFF);
     _cpu0->tss.ist1 = _cpu0->tss.rsp0 = _cpu0->tss.rsp1 = _cpu0->tss.rsp2 = _cpu0->kernel_stack = kernel_stack;
 
     static struct gdt_entry gdt[8];
@@ -191,16 +191,16 @@ void init_gdt(void) {
     // TSS
     gdt[6].type     = GDT_PRESENT | GDT_ACCESSED | GDT_EXECUTE;
     gdt[6].limitLow = sizeof(struct tss) + (8*KiB) + 1;
-    gdt[6].baseLow  = ((ptr_t)&_cpu0->tss & 0xFFFF);
-    gdt[6].baseMid  = ((ptr_t)&_cpu0->tss >> 16) & 0xFF;
-    gdt[6].baseHigh = ((ptr_t)&_cpu0->tss >> 24) & 0xFF;
+    gdt[6].baseLow  = ((uint64_t)&_cpu0->tss & 0xFFFF);
+    gdt[6].baseMid  = ((uint64_t)&_cpu0->tss >> 16) & 0xFF;
+    gdt[6].baseHigh = ((uint64_t)&_cpu0->tss >> 24) & 0xFF;
     gdt[7].type     = 0;
-    gdt[7].limitLow = ((ptr_t)&_cpu0->tss >> 32) & 0xFFFF;
-    gdt[7].baseLow  = ((ptr_t)&_cpu0->tss >> 48) & 0xFFFF;
+    gdt[7].limitLow = ((uint64_t)&_cpu0->tss >> 32) & 0xFFFF;
+    gdt[7].baseLow  = ((uint64_t)&_cpu0->tss >> 48) & 0xFFFF;
 
     struct table_pointer gdtp = {
         .limit = sizeof(gdt) -1,
-        .base  = (ptr_t)gdt,
+        .base  = (uint64_t)gdt,
     };
 
     asm("lgdt %0"::"m"(gdtp));
@@ -238,7 +238,7 @@ void interrupt_add_queue(uint8_t interrupt, uint64_t mq) {
     flexarray_append(array, &mq);
 }
 
-static void _set_idt_entry(int index, ptr_t base) {
+static void _set_idt_entry(int index, uint64_t base) {
     _idt[index].baseLow  = base         & 0xFFFF;
     _idt[index].baseMid  = (base >> 16) & 0xFFFF;
     _idt[index].baseHigh = base  >> 32;
@@ -250,58 +250,58 @@ static void _set_idt_entry(int index, ptr_t base) {
 static void _setup_idt(void) {
     memset((uint8_t*)_idt, 0, sizeof(_idt));
 
-    _set_idt_entry( 0, (ptr_t) idt_entry_0);
-    _set_idt_entry( 1, (ptr_t) idt_entry_1);
-    _set_idt_entry( 2, (ptr_t) idt_entry_2);
-    _set_idt_entry( 3, (ptr_t) idt_entry_3);
-    _set_idt_entry( 4, (ptr_t) idt_entry_4);
-    _set_idt_entry( 5, (ptr_t) idt_entry_5);
-    _set_idt_entry( 6, (ptr_t) idt_entry_6);
-    _set_idt_entry( 7, (ptr_t) idt_entry_7);
-    _set_idt_entry( 8, (ptr_t) idt_entry_8);
-    _set_idt_entry( 9, (ptr_t) idt_entry_9);
-    _set_idt_entry(10, (ptr_t)idt_entry_10);
-    _set_idt_entry(11, (ptr_t)idt_entry_11);
-    _set_idt_entry(12, (ptr_t)idt_entry_12);
-    _set_idt_entry(13, (ptr_t)idt_entry_13);
-    _set_idt_entry(14, (ptr_t)idt_entry_14);
-    _set_idt_entry(15, (ptr_t)idt_entry_15);
-    _set_idt_entry(16, (ptr_t)idt_entry_16);
-    _set_idt_entry(17, (ptr_t)idt_entry_17);
-    _set_idt_entry(18, (ptr_t)idt_entry_18);
-    _set_idt_entry(19, (ptr_t)idt_entry_19);
-    _set_idt_entry(20, (ptr_t)idt_entry_20);
-    _set_idt_entry(21, (ptr_t)idt_entry_21);
-    _set_idt_entry(22, (ptr_t)idt_entry_22);
-    _set_idt_entry(23, (ptr_t)idt_entry_23);
-    _set_idt_entry(24, (ptr_t)idt_entry_24);
-    _set_idt_entry(25, (ptr_t)idt_entry_25);
-    _set_idt_entry(26, (ptr_t)idt_entry_26);
-    _set_idt_entry(27, (ptr_t)idt_entry_27);
-    _set_idt_entry(28, (ptr_t)idt_entry_28);
-    _set_idt_entry(29, (ptr_t)idt_entry_29);
-    _set_idt_entry(30, (ptr_t)idt_entry_30);
-    _set_idt_entry(31, (ptr_t)idt_entry_31);
-    _set_idt_entry(32, (ptr_t)idt_entry_32);
-    _set_idt_entry(33, (ptr_t)idt_entry_33);
-    _set_idt_entry(34, (ptr_t)idt_entry_34);
-    _set_idt_entry(35, (ptr_t)idt_entry_35);
-    _set_idt_entry(36, (ptr_t)idt_entry_36);
-    _set_idt_entry(37, (ptr_t)idt_entry_37);
-    _set_idt_entry(38, (ptr_t)idt_entry_38);
-    _set_idt_entry(39, (ptr_t)idt_entry_39);
-    _set_idt_entry(40, (ptr_t)idt_entry_40);
-    _set_idt_entry(41, (ptr_t)idt_entry_41);
-    _set_idt_entry(42, (ptr_t)idt_entry_42);
-    _set_idt_entry(43, (ptr_t)idt_entry_43);
-    _set_idt_entry(44, (ptr_t)idt_entry_44);
-    _set_idt_entry(45, (ptr_t)idt_entry_45);
-    _set_idt_entry(46, (ptr_t)idt_entry_46);
-    _set_idt_entry(47, (ptr_t)idt_entry_47);
+    _set_idt_entry( 0, (uint64_t) idt_entry_0);
+    _set_idt_entry( 1, (uint64_t) idt_entry_1);
+    _set_idt_entry( 2, (uint64_t) idt_entry_2);
+    _set_idt_entry( 3, (uint64_t) idt_entry_3);
+    _set_idt_entry( 4, (uint64_t) idt_entry_4);
+    _set_idt_entry( 5, (uint64_t) idt_entry_5);
+    _set_idt_entry( 6, (uint64_t) idt_entry_6);
+    _set_idt_entry( 7, (uint64_t) idt_entry_7);
+    _set_idt_entry( 8, (uint64_t) idt_entry_8);
+    _set_idt_entry( 9, (uint64_t) idt_entry_9);
+    _set_idt_entry(10, (uint64_t)idt_entry_10);
+    _set_idt_entry(11, (uint64_t)idt_entry_11);
+    _set_idt_entry(12, (uint64_t)idt_entry_12);
+    _set_idt_entry(13, (uint64_t)idt_entry_13);
+    _set_idt_entry(14, (uint64_t)idt_entry_14);
+    _set_idt_entry(15, (uint64_t)idt_entry_15);
+    _set_idt_entry(16, (uint64_t)idt_entry_16);
+    _set_idt_entry(17, (uint64_t)idt_entry_17);
+    _set_idt_entry(18, (uint64_t)idt_entry_18);
+    _set_idt_entry(19, (uint64_t)idt_entry_19);
+    _set_idt_entry(20, (uint64_t)idt_entry_20);
+    _set_idt_entry(21, (uint64_t)idt_entry_21);
+    _set_idt_entry(22, (uint64_t)idt_entry_22);
+    _set_idt_entry(23, (uint64_t)idt_entry_23);
+    _set_idt_entry(24, (uint64_t)idt_entry_24);
+    _set_idt_entry(25, (uint64_t)idt_entry_25);
+    _set_idt_entry(26, (uint64_t)idt_entry_26);
+    _set_idt_entry(27, (uint64_t)idt_entry_27);
+    _set_idt_entry(28, (uint64_t)idt_entry_28);
+    _set_idt_entry(29, (uint64_t)idt_entry_29);
+    _set_idt_entry(30, (uint64_t)idt_entry_30);
+    _set_idt_entry(31, (uint64_t)idt_entry_31);
+    _set_idt_entry(32, (uint64_t)idt_entry_32);
+    _set_idt_entry(33, (uint64_t)idt_entry_33);
+    _set_idt_entry(34, (uint64_t)idt_entry_34);
+    _set_idt_entry(35, (uint64_t)idt_entry_35);
+    _set_idt_entry(36, (uint64_t)idt_entry_36);
+    _set_idt_entry(37, (uint64_t)idt_entry_37);
+    _set_idt_entry(38, (uint64_t)idt_entry_38);
+    _set_idt_entry(39, (uint64_t)idt_entry_39);
+    _set_idt_entry(40, (uint64_t)idt_entry_40);
+    _set_idt_entry(41, (uint64_t)idt_entry_41);
+    _set_idt_entry(42, (uint64_t)idt_entry_42);
+    _set_idt_entry(43, (uint64_t)idt_entry_43);
+    _set_idt_entry(44, (uint64_t)idt_entry_44);
+    _set_idt_entry(45, (uint64_t)idt_entry_45);
+    _set_idt_entry(46, (uint64_t)idt_entry_46);
+    _set_idt_entry(47, (uint64_t)idt_entry_47);
 
     struct table_pointer idtp = {
         .limit = sizeof(_idt) - 1,
-        .base  = (ptr_t)_idt,
+        .base  = (uint64_t)_idt,
     };
     asm("lidt %0"::"m"(idtp));
 }
@@ -315,18 +315,18 @@ void init_sc(void) {
         "wrmsr":::"rcx","rax");
 
     write_msr(0xC0000081, 0x001B000800000000);
-    write_msr(0xC0000082, (ptr_t)_syscall_handler);
+    write_msr(0xC0000082, (uint64_t)_syscall_handler);
     write_msr(0xC0000084, 0x200); // disable interrupts on syscall
-    write_msr(0xC0000102, (ptr_t)(_cpu0));
+    write_msr(0xC0000102, (uint64_t)(_cpu0));
 }
 
 static void enable_iopb(struct vm_table* context) {
-    ptr_t iopb_pages[2] = {
+    uint64_t iopb_pages[2] = {
         vm_context_get_physical_for_virtual(context, ALLOCATOR_REGION_USER_IOPERM.start),
         vm_context_get_physical_for_virtual(context, ALLOCATOR_REGION_USER_IOPERM.start + 4*KiB),
     };
 
-    ptr_t iopb = (ptr_t)&_cpu0->tss + _cpu0->tss.iopb_offset;
+    uint64_t iopb = (uint64_t)&_cpu0->tss + _cpu0->tss.iopb_offset;
 
     vm_context_map(context, iopb,         iopb_pages[0], 0);
     vm_context_map(context, iopb + 4*KiB, iopb_pages[1], 0);
@@ -350,7 +350,7 @@ static cpu_state* schedule_process(cpu_state* old_cpu) {
 
 static bool handle_userspace_exception(cpu_state* cpu) {
     if(cpu->interrupt == 0x0e) {
-        ptr_t fault_address;
+        uint64_t fault_address;
         asm("mov %%cr2, %0":"=r"(fault_address));
 
         if(scheduler_handle_pf(fault_address, cpu->error_code)) {

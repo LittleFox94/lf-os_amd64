@@ -79,7 +79,7 @@ void fbconsole_init(int width, int height, int stride, uint8_t* fb) {
 
     logd("framebuffer", "framebuffer console @ 0x%x (0x%x) %dx%d (stride %d)",
         fb,
-        (uint64_t)vm_context_get_physical_for_virtual(VM_KERNEL_CONTEXT, (ptr_t)fb),
+        (uint64_t)vm_context_get_physical_for_virtual(VM_KERNEL_CONTEXT, (uint64_t)fb),
         width, height, stride
     );
 }
@@ -97,7 +97,7 @@ void fbconsole_init_backbuffer(void) {
     memcpy(backbuffer, fbconsole.fb, fbconsole.stride * fbconsole.height * 4);
     fbconsole.backbuffer = backbuffer;
 
-    for(ptr_t page = (ptr_t)fbconsole.fb; page < (ptr_t)(fbconsole.fb + (fbconsole.stride * fbconsole.height * 4)); page += 4096) {
+    for(uint64_t page = (uint64_t)fbconsole.fb; page < (uint64_t)(fbconsole.fb + (fbconsole.stride * fbconsole.height * 4)); page += 4096) {
         vm_context_map(VM_KERNEL_CONTEXT, page, vm_context_get_physical_for_virtual(VM_KERNEL_CONTEXT, page), 0x07);
     }
 }
@@ -333,7 +333,7 @@ void sc_handle_hardware_framebuffer(uint32_t **fb, uint16_t *width, uint16_t *he
         *colorFormat = 0; // to be specified
 
         if(fbconsole.fb) {
-            *fb = (uint32_t*)scheduler_map_hardware(vm_context_get_physical_for_virtual(VM_KERNEL_CONTEXT, (ptr_t)fbconsole.fb), *stride * *height * 4);
+            *fb = (uint32_t*)scheduler_map_hardware(vm_context_get_physical_for_virtual(VM_KERNEL_CONTEXT, (uint64_t)fbconsole.fb), *stride * *height * 4);
             fbconsole_clear(0, 0, 0);
             fbconsole_active = false;
 

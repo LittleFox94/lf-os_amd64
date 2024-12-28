@@ -1,12 +1,13 @@
 #ifndef _VM_H_INCLUDED
 #define _VM_H_INCLUDED
 
-#include "stdint.h"
+#include <stdint.h>
+#include <stddef.h>
 
 struct region_t {
     const char* name;
-    ptr_t start;
-    ptr_t end;
+    uint64_t start;
+    uint64_t end;
 };
 
 static const region_t ALLOCATOR_REGION_NULL           { .name = "NULL", .start = 0, .end = 0 };
@@ -58,21 +59,21 @@ struct vm_table* vm_current_context(void);
 
 void vm_context_activate(struct vm_table* context);
 
-void vm_context_map(struct vm_table* context, ptr_t virt, ptr_t physical, uint8_t pat);
-void vm_context_unmap(struct vm_table* context, ptr_t virt);
+void vm_context_map(struct vm_table* context, uint64_t virt, uint64_t physical, uint8_t pat);
+void vm_context_unmap(struct vm_table* context, uint64_t virt);
 
-ptr_t vm_context_find_free(struct vm_table* context, region_t region, size_t num);
+uint64_t vm_context_find_free(struct vm_table* context, region_t region, size_t num);
 
 int   vm_table_get_free_index1(struct vm_table* table);
 int   vm_table_get_free_index3(struct vm_table* table, int start, int end);
 
-ptr_t vm_context_get_physical_for_virtual(struct vm_table* context, ptr_t virt);
+uint64_t vm_context_get_physical_for_virtual(struct vm_table* context, uint64_t virt);
 
-ptr_t vm_context_alloc_pages(struct vm_table* context, region_t region, size_t num);
+uint64_t vm_context_alloc_pages(struct vm_table* context, region_t region, size_t num);
 
-void vm_copy_range(struct vm_table* dst_ctx, struct vm_table* src_ctx, ptr_t addr, size_t size);
+void vm_copy_range(struct vm_table* dst_ctx, struct vm_table* src_ctx, uint64_t addr, size_t size);
 
 //! Map a given memory area in the currently running userspace process at a random location
-ptr_t vm_map_hardware(ptr_t hw, size_t len);
+uint64_t vm_map_hardware(uint64_t hw, size_t len);
 
 #endif

@@ -4,7 +4,7 @@
 #include "mm.h"
 #include "vm.h"
 
-ptr_t load_elf(ptr_t start, struct vm_table* context, ptr_t* data_start, ptr_t* data_end) {
+uint64_t load_elf(uint64_t start, struct vm_table* context, uint64_t* data_start, uint64_t* data_end) {
     elf_file_header_t* header = (elf_file_header_t*)start;
 
     if(header->ident_magic != ELF_MAGIC) {
@@ -31,9 +31,9 @@ ptr_t load_elf(ptr_t start, struct vm_table* context, ptr_t* data_start, ptr_t* 
         }
 
         for(size_t j = 0; j < programHeader->memLength; j += 0x1000) {
-            ptr_t physical = (ptr_t)mm_alloc_pages(1);
+            uint64_t physical = (uint64_t)mm_alloc_pages(1);
             memset((void*)(physical + ALLOCATOR_REGION_DIRECT_MAPPING.start), 0, 0x1000);
-            vm_context_map(context, (ptr_t)programHeader->vaddr + j, physical, 0);
+            vm_context_map(context, (uint64_t)programHeader->vaddr + j, physical, 0);
 
             if(j < programHeader->fileLength) {
                 size_t offset = (programHeader->vaddr + j) & 0xFFF;
@@ -52,7 +52,7 @@ ptr_t load_elf(ptr_t start, struct vm_table* context, ptr_t* data_start, ptr_t* 
 
         }
 
-        ptr_t end = programHeader->vaddr + programHeader->memLength + 1;
+        uint64_t end = programHeader->vaddr + programHeader->memLength + 1;
         if(*data_end <= end) {
             *data_end = end;
         }
@@ -98,7 +98,7 @@ struct SymbolData {
     struct Symbol symbols[0];
 };
 
-void* elf_load_symbols(ptr_t elf, allocator_t* alloc) {
+void* elf_load_symbols(uint64_t elf, allocator_t* alloc) {
     elf_section_header_t* symtab = elf_section_by_name(".symtab", (void*)elf);
     elf_section_header_t* strtab = elf_section_by_name(".strtab", (void*)elf);
 
@@ -130,7 +130,7 @@ void* elf_load_symbols(ptr_t elf, allocator_t* alloc) {
     return (void*)data;
 }
 
-bool elf_symbolize(void* symbol_data, ptr_t addr, size_t* symbol_size, char* symbol) {
+bool elf_symbolize(void* symbol_data, uint64_t addr, size_t* symbol_size, char* symbol) {
     if(!symbol_data) {
         *symbol_size = 0;
         return false;

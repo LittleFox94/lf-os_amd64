@@ -1,8 +1,10 @@
 #ifndef _STDDEF_H_INCLUDED
 #define _STDDEF_H_INCLUDED
 
-#include "stdint.h"
+#include <stdint.h>
 
-//typedef uint16_t wchar_t;
+typedef int64_t ssize_t;
+
+#include_next <stddef.h>
 
 #endif

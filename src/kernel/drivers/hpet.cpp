@@ -3,6 +3,8 @@
 #include <string.h>
 #include <vm.h>
 
+#include <stddef.h>
+
 struct hpet_mmio {
     struct {
         uint64_t rev_id             : 8;
@@ -137,7 +139,7 @@ void init_hpet(struct acpi_table_header* header) {
     }
 
     hpet = (struct hpet_mmio*)vm_context_find_free(VM_KERNEL_CONTEXT, ALLOCATOR_REGION_SLAB_4K, 1);
-    vm_context_map(VM_KERNEL_CONTEXT, (ptr_t)hpet, (ptr_t)table->base_address.address, 6);
+    vm_context_map(VM_KERNEL_CONTEXT, (uint64_t)hpet, (uint64_t)table->base_address.address, 6);
 
     uint64_t period = hpet->capabilities.counter_clk_period;
 

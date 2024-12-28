@@ -26,8 +26,6 @@ add_executable(kernel
     version.cpp
                 allocator.h
                 bitmap.h
-                cstdlib/stdarg.h
-                cstdlib/stdbool.h
     ${PROJECT_BINARY_DIR}/syscalls.gen.cpp
     ${PROJECT_BINARY_DIR}/config.h
 
@@ -55,15 +53,21 @@ target_include_directories(kernel PUBLIC
 target_compile_definitions(kernel PRIVATE __kernel)
 
 target_compile_options(kernel PRIVATE
+    -target x86_64-unknown-elf
     -Wall -Wextra -Wpedantic -Werror -std=c++23
     -Wno-gnu-zero-variadic-macro-arguments
+    -Wno-gnu-include-next
     -Wno-zero-length-array
     -Wno-language-extension-token
     -Wno-gnu-folding-constant
     -Wno-overlength-strings
     -mno-omit-leaf-frame-pointer -fno-omit-frame-pointer
     -fno-stack-protector -mno-red-zone
-    -fno-builtin -ffreestanding -nostdinc -fshort-wchar
+    -fno-exceptions
+    -fno-rtti
+    -fno-builtin
+    -ffreestanding
+    -fshort-wchar
     -mcmodel=kernel
     -flto
 )

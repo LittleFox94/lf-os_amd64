@@ -41,14 +41,14 @@ typedef struct {
     cpu_state        cpu;
 
     //! Physical address of the first of two IOPB pages, 0 if no IO privilege granted
-    ptr_t iopb;
+    uint64_t iopb;
 
     allocator_t allocator;
     size_t allocatedMemory;
 } process_t;
 
 #define INVALID_PID (pid_t)-1
-volatile pid_t scheduler_current_process = INVALID_PID;
+pid_t scheduler_current_process = INVALID_PID;
 
 // TODO: better data structure here. A binary tree with prev/next pointers should be great
 #define MAX_PROCS 4096
@@ -132,7 +132,7 @@ pid_t setup_process(void) {
     return pid;
 }
 
-void start_task(struct vm_table* context, ptr_t entry, ptr_t data_start, ptr_t data_end, const char* name) {
+void start_task(struct vm_table* context, uint64_t entry, uint64_t data_start, uint64_t data_end, const char* name) {
     if(!entry) {
         panic_message("Tried to start process without entry");
     }
@@ -309,8 +309,8 @@ void sc_handle_scheduler_clone(bool share_memory, void* entry, pid_t* newPid) {
     vm_copy_range(new_process->context, old->context, old->stack.start, old->stack.end - old->stack.start);
 
     // .. and remap hardware resources
-    for(ptr_t i = old->hw.start; i < old->hw.end; i += 4096) {
-        ptr_t hw = vm_context_get_physical_for_virtual(old->context, i);
+    for(uint64_t i = old->hw.start; i < old->hw.end; i += 4096) {
+        uint64_t hw = vm_context_get_physical_for_virtual(old->context, i);
 
         if(hw) {
             vm_context_map(new_process->context, i, hw, 0x07);
@@ -318,7 +318,7 @@ void sc_handle_scheduler_clone(bool share_memory, void* entry, pid_t* newPid) {
     }
 
     if(share_memory && entry) {
-        new_process->cpu.rip = (ptr_t)entry;
+        new_process->cpu.rip = (uint64_t)entry;
     }
 
     *newPid = pid;
@@ -330,10 +330,10 @@ void sc_handle_scheduler_clone(bool share_memory, void* entry, pid_t* newPid) {
     new_process->parent = scheduler_current_process;
 }
 
-bool scheduler_handle_pf(ptr_t fault_address, uint64_t error_code) {
+bool scheduler_handle_pf(uint64_t fault_address, uint64_t error_code) {
     if(fault_address >= ALLOCATOR_REGION_USER_STACK.start && fault_address < ALLOCATOR_REGION_USER_STACK.end) {
-        ptr_t page_v = fault_address & ~0xFFF;
-        ptr_t page_p = (ptr_t)mm_alloc_pages(1);
+        uint64_t page_v = fault_address & ~0xFFF;
+        uint64_t page_p = (uint64_t)mm_alloc_pages(1);
         memset((void*)(page_p + ALLOCATOR_REGION_DIRECT_MAPPING.start), 0, 0x1000);
         vm_context_map(processes[scheduler_current_process].context, page_v, page_p, 0);
 
@@ -393,20 +393,20 @@ void scheduler_waitable_done(enum wait_reason reason, union wait_data data, size
 }
 
 void sc_handle_memory_sbrk(int64_t inc, void** data_end) {
-    ptr_t old_end = processes[scheduler_current_process].heap.end;
-    ptr_t new_end = old_end + inc;
+    uint64_t old_end = processes[scheduler_current_process].heap.end;
+    uint64_t new_end = old_end + inc;
 
     if(inc > 0) {
-        for(ptr_t i = old_end & ~0xFFF; i < new_end; i += 0x1000) {
+        for(uint64_t i = old_end & ~0xFFF; i < new_end; i += 0x1000) {
             if(!vm_context_get_physical_for_virtual(processes[scheduler_current_process].context, i)) {
-                ptr_t phys = (ptr_t)mm_alloc_pages(1);
+                uint64_t phys = (uint64_t)mm_alloc_pages(1);
                 memset((void*)(phys + ALLOCATOR_REGION_DIRECT_MAPPING.start), 0, 0x1000);
                 vm_context_map(processes[scheduler_current_process].context, i, phys, 0);
             }
         }
     }
     if(inc < 0) {
-        for(ptr_t i = old_end; i > new_end; i -= 0x1000) {
+        for(uint64_t i = old_end; i > new_end; i -= 0x1000) {
             if(!(i & ~0xFFF)) {
                 mm_mark_physical_pages(vm_context_get_physical_for_virtual(processes[scheduler_current_process].context, i), 1, MM_FREE);
                 vm_context_unmap(processes[scheduler_current_process].context, i);
@@ -441,7 +441,7 @@ void sc_handle_hardware_ioperm(uint16_t from, uint16_t num, bool turn_on, uint64
             return;
         }
 
-        process->iopb = (ptr_t)mm_alloc_pages(2);
+        process->iopb = (uint64_t)mm_alloc_pages(2);
         set_iopb(process->context, process->iopb);
         memset((void*)(ALLOCATOR_REGION_DIRECT_MAPPING.start + process->iopb), 0xFF, 8*KiB);
     }
@@ -602,8 +602,8 @@ void sc_handle_scheduler_get_pid(bool parent, pid_t* pid) {
                   : scheduler_current_process;
 }
 
-ptr_t scheduler_map_hardware(ptr_t hw, size_t len) {
-    ptr_t res = vm_map_hardware(hw, len);
+uint64_t scheduler_map_hardware(uint64_t hw, size_t len) {
+    uint64_t res = vm_map_hardware(hw, len);
 
     if(res + len > processes[scheduler_current_process].hw.end) {
         processes[scheduler_current_process].hw.end = res + len;

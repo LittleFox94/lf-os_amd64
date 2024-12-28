@@ -8,7 +8,7 @@ extern const char* LAST_INIT_STEP;
 
 struct StackFrame {
     struct StackFrame* prev;
-    ptr_t              rip;
+    uint64_t           rip;
 };
 
 void* kernel_symbols = 0;

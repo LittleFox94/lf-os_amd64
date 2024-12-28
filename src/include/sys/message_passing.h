@@ -13,7 +13,9 @@
 #include <stdint.h>
 #include <uuid.h>
 
-#ifndef __kernel
+#if defined(__kernel)
+#   include <scheduler.h>
+#else
 #   include <sys/types.h>
 #endif
 

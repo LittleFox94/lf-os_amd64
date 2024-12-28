@@ -13,7 +13,7 @@ static EFI_SYSTEM_TABLE* gST = 0;
 struct vm_table* efi_setup_mapping(struct LoaderStruct* loaderStruct) {
     struct vm_table* context = vm_context_new();
 
-    struct MemoryRegion* memoryRegions = (struct MemoryRegion*)((ptr_t)loaderStruct + loaderStruct->size);
+    struct MemoryRegion* memoryRegions = (struct MemoryRegion*)((uint64_t)loaderStruct + loaderStruct->size);
 
     for(size_t i = 0; i < loaderStruct->num_mem_desc; ++i) {
         struct MemoryRegion* desc = memoryRegions + i;
@@ -40,7 +40,7 @@ struct vm_table* efi_setup_mapping(struct LoaderStruct* loaderStruct) {
                 desc->num_pages, desc->start_address, (unsigned)pat
             );
 
-            for(ptr_t addr = desc->start_address; addr < desc->start_address + (desc->num_pages * 0x1000); addr += 0x1000) {
+            for(uint64_t addr = desc->start_address; addr < desc->start_address + (desc->num_pages * 0x1000); addr += 0x1000) {
                 vm_context_map(context, addr, addr, pat);
             }
         }
