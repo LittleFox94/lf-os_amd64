@@ -19,7 +19,7 @@ struct hpet_mmio {
 
     uint64_t _padding1;
 
-    struct {
+    struct hpet_configuration {
         uint64_t  enable_cnf : 1;
         uint64_t  leg_rt_cnf : 1;
         uint64_t  _reserved1 : 62;
@@ -41,12 +41,12 @@ struct hpet_mmio {
     uint64_t _padding4;
 
     struct {
-        struct {
+        struct hpet_timer_config_and_caps {
             uint64_t _reserved1         : 1;
             uint64_t tn_int_type_cnf    : 1;
             uint64_t tn_int_enb_cnf     : 1;
             uint64_t tn_type_cnf        : 1;
-            uint64_t tn_per_int_cnf     : 1;
+            uint64_t tn_per_int_cap     : 1;
             uint64_t tn_size_cap        : 1;
             uint64_t tn_val_set_cnf     : 1;
             uint64_t _reserved2         : 1;
@@ -96,10 +96,33 @@ struct hpet_acpi_table {
     uint8_t  oem             : 4;
 }__attribute__((packed));
 
-static struct hpet_mmio* hpet;
+static struct hpet_mmio* volatile hpet;
 
 static uint64_t initialization_ticks = 0;
 static uint16_t ticks_to_ns_multiplier = 1;
+
+static void dump_hpet_caps(struct hpet_mmio* hpet) {
+    logi(
+        "hpet", "capabilities: rev_id=0x%x, num_tim_cap=%d, count_size_cap=%d, leg_route_cap=%d, vendor_id=0x%04x, counter_clk_period=%d",
+        (uint64_t)hpet->capabilities.rev_id,
+        (uint64_t)hpet->capabilities.num_tim_cap,
+        (uint64_t)hpet->capabilities.count_size_cap,
+        (uint64_t)hpet->capabilities.leg_route_cap,
+        (uint64_t)hpet->capabilities.vendor_id,
+        (uint64_t)hpet->capabilities.counter_clk_period
+    );
+}
+
+static void dump_timer_caps(struct hpet_mmio* hpet, unsigned timer) {
+    logi(
+        "hpet", "timer %d capabilities: tn_per_int_cap=0x%x, tn_size_cap=0x%x, tn_fsb_int_del_cap=0x%x, tn_int_route_cap=0x%x",
+        timer,
+        (uint64_t)hpet->timers[timer].config_and_caps.tn_per_int_cap,
+        (uint64_t)hpet->timers[timer].config_and_caps.tn_size_cap,
+        (uint64_t)hpet->timers[timer].config_and_caps.tn_fsb_int_del_cap,
+        (uint64_t)hpet->timers[timer].config_and_caps.tn_int_route_cap
+    );
+}
 
 void init_hpet(struct acpi_table_header* header) {
     struct hpet_acpi_table* table = (struct hpet_acpi_table*)header;
@@ -125,12 +148,34 @@ void init_hpet(struct acpi_table_header* header) {
 
     ticks_to_ns_multiplier = period / 1000000;
 
+    dump_hpet_caps(hpet);
+    for(unsigned i = 0; i < hpet->capabilities.num_tim_cap; ++i) {
+        dump_timer_caps(hpet, i);
+    }
+
     logd("hpet", "configuring HPET at %d:%x (%x): vendor %x, rev %d, #comparators %d, ns multiplier %d",
         table->base_address.address_space, table->base_address.address, hpet,
         pci_vendor, rev, num_comp, ticks_to_ns_multiplier
     );
 
-    hpet->configuration.enable_cnf = 1;
+    struct hpet_configuration configuration = hpet->configuration;
+    configuration.enable_cnf = 0;
+    configuration.leg_rt_cnf = 1;
+    hpet->configuration = configuration;
+    hpet->main_counter_register = 0;
+
+    struct hpet_timer_config_and_caps config_and_caps = hpet->timers[0].config_and_caps;
+    config_and_caps.tn_int_enb_cnf = 1;
+    config_and_caps.tn_type_cnf = 1;
+    config_and_caps.tn_fsb_en_cnf = 0;
+    config_and_caps.tn_val_set_cnf = 1;
+
+    hpet->timers[0].config_and_caps = config_and_caps;
+    hpet->timers[0].comparator_value.val64 = 0;
+    hpet->timers[0].comparator_value.val64 = 100000 * ticks_to_ns_multiplier;
+
+    configuration.enable_cnf = 1;
+    hpet->configuration = configuration;
 
     initialization_ticks = hpet->main_counter_register;
 
