@@ -1,0 +1,71 @@
+// vim: ft=cpp
+#pragma once
+
+#if defined(NAMESPACE_FOR_TESTING)
+#  define _MEMORY_NAMESPACE tinystl_std
+#  undef  NAMESPACE_FOR_TESTING
+#else
+#  define _MEMORY_NAMESPACE std
+#endif
+
+#include <cstddef>
+#include <new>
+
+namespace _MEMORY_NAMESPACE {
+    template<typename T>
+    struct allocator {
+        typedef T              value_type;
+        typedef std::size_t    size_type;
+        typedef std::ptrdiff_t difference_type;
+
+        template<typename U>
+        struct rebind {
+            using other = allocator<U>;
+        };
+
+        template<typename U>
+        allocator(allocator<U>&) { }
+
+        allocator() { }
+
+        T*   allocate(std::size_t n) {
+            return static_cast<T*>(::operator new(sizeof(T) * n));
+        }
+
+        void deallocate(T* p, std::size_t) {
+            ::operator delete(p);
+        }
+
+        template<class... Args>
+        void construct(T* p, Args&&... args) {
+            ::new(static_cast<void*>(p)) T(args...);
+        }
+
+        template<class... Args>
+        void destroy(T* p) {
+            p->~T();
+        }
+    };
+
+    template<class Alloc>
+    struct allocator_traits {
+        template<class T>
+        using rebind_alloc = typename Alloc::template rebind<T>::other;
+
+        template<class T, class... Args>
+        static void construct(Alloc& a, T* p, Args&&... args) {
+            a.construct(p, args...);
+        }
+
+        template<class T>
+        static void destroy(Alloc& a, T* p) {
+            a.destroy(p);
+        }
+
+        static void deallocate(Alloc& a, typename Alloc::value_type* p, std::size_t n) {
+            a.deallocate(p, n);
+        }
+    };
+};
+
+#undef _MEMORY_NAMESPACE

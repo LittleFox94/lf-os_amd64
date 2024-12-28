@@ -1,0 +1,12 @@
+// vim: ft=cpp
+#pragma once
+
+#include <cstddef>
+
+// Default placement versions of operator new.
+inline void* operator new  (std::size_t, void* p) { return p; }
+inline void* operator new[](std::size_t, void* p) { return p; }
+
+// Default placement versions of operator delete.
+inline void operator delete  (void*, void*) { }
+inline void operator delete[](void*, void*) { }

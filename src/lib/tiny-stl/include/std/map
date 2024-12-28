@@ -1,0 +1,61 @@
+// vim: ft=cpp
+#pragma once
+
+#if defined(NAMESPACE_FOR_TESTING)
+#  define _MAP_NAMESPACE tinystl_std
+#  undef  NAMESPACE_FOR_TESTING
+#else
+#  define _MAP_NAMESPACE std
+#endif
+
+#include <initializer_list>
+#include <functional>
+#include <memory>
+#include <utility>
+
+#include <tinystl/binary_tree>
+
+namespace _MAP_NAMESPACE {
+    template<
+        class Key,
+        class T,
+        class Compare = std::less<Key>,
+        class Allocator = std::allocator<std::pair<const Key, T>>
+    >
+    class map {
+        private:
+            typedef typename tinystl::binary_tree<Key, T, Compare, Allocator> _impl_tree;
+        public:
+            typedef std::pair<Key, T> value_type;
+            typedef _impl_tree::size_type size_type;
+            typedef _impl_tree::iterator iterator;
+
+            map(std::initializer_list<value_type> init = {},
+                const Compare& comp = Compare(),
+                Allocator alloc = Allocator())
+                : _data(init, comp, alloc) { }
+
+            virtual ~map() { }
+
+            std::pair<iterator, bool> insert(const value_type& value) {
+                return _data.insert(value);
+            }
+
+            bool contains(const Key& key) {
+                return _data.contains(key);
+            }
+
+            T& operator[](const Key& key) {
+                return _data[key];
+            }
+
+            size_type size() const {
+                return _data.size();
+            }
+
+        private:
+            _impl_tree _data;
+    };
+};
+
+#undef _MAP_NAMESPACE

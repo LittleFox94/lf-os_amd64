@@ -1,0 +1,40 @@
+// vim: ft=cpp
+#pragma once
+
+#if defined(NAMESPACE_FOR_TESTING)
+#  define _INITIALIZER_LIST_NAMESPACE tinystl_std
+#  undef  NAMESPACE_FOR_TESTING
+#else
+#  define _INITIALIZER_LIST_NAMESPACE std
+#endif
+
+#include <cstddef>
+
+namespace _INITIALIZER_LIST_NAMESPACE {
+    template<class T>
+    class initializer_list {
+        public:
+            typedef const T* const_iterator;
+            typedef std::size_t size_type;
+
+        private:
+            // called by compiler
+            constexpr initializer_list(const_iterator it, size_type l)
+                : _data(it), _length(l) {
+            }
+
+            T*        _data;
+            size_type _length;
+
+        public:
+            constexpr initializer_list() noexcept
+                : _data(0), _length(0) {
+            }
+
+            constexpr size_type      size()  const noexcept { return _length; }
+            constexpr const_iterator begin() const noexcept { return _data; }
+            constexpr const_iterator end()   const noexcept { return begin() + size(); }
+    };
+};
+
+#undef _INITIALIZER_LIST_NAMESPACE

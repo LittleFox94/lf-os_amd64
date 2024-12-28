@@ -1,0 +1,20 @@
+// vim: ft=cpp
+#pragma once
+
+#if defined(NAMESPACE_FOR_TESTING)
+#  define _FUNCTIONAL_NAMESPACE tinystl_std
+#  undef  NAMESPACE_FOR_TESTING
+#else
+#  define _FUNCTIONAL_NAMESPACE std
+#endif
+
+namespace _FUNCTIONAL_NAMESPACE {
+    template<class T = void>
+    struct less {
+        bool operator()(const T& lhs, const T& rhs) const {
+            return lhs < rhs;
+        }
+    };
+};
+
+#undef _FUNCTIONAL_NAMESPACE

@@ -1,0 +1,18 @@
+// vim: ft=cpp
+#pragma once
+
+#if defined(NAMESPACE_FOR_TESTING)
+#  define _CSTDDEF_NAMESPACE tinystl_std
+#  undef  NAMESPACE_FOR_TESTING
+#else
+#  define _CSTDDEF_NAMESPACE std
+#endif
+
+#include <stddef.h>
+
+namespace _CSTDDEF_NAMESPACE {
+    using size_t    = ::size_t;
+    using ptrdiff_t = ::ptrdiff_t;
+}
+
+#undef _CSTDDEF_NAMESPACE

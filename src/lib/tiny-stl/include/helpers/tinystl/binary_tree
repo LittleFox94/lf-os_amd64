@@ -1,0 +1,157 @@
+// vim: ft=cpp
+#pragma once
+
+#include <initializer_list>
+#include <utility>
+#include <memory>
+
+namespace tinystl {
+    template<
+        class Key,
+        class T,
+        class Compare = std::less<Key>,
+        class Allocator = std::allocator<std::pair<const Key, T>>
+    >
+    class binary_tree {
+        public:
+            typedef std::pair<Key, T> value_type;
+            typedef std::size_t       size_type;
+
+        private:
+            struct node_type {
+                const Key   key;
+                const T     data;
+                node_type*  left_child  = 0;
+                node_type*  right_child = 0;
+
+                node_type(const Key k, const T v)
+                    : key(k), data(v) { }
+            };
+            typedef typename std::allocator_traits<Allocator>::template rebind_alloc<node_type> node_allocator;
+
+        public:
+            struct iterator {
+                protected:
+                    node_type* _node   = 0;
+                    binary_tree* _tree = 0;
+
+                    iterator() { }
+
+                    iterator(binary_tree* tree, node_type* node)
+                        : _node(node), _tree(tree) {
+                    }
+
+                    friend binary_tree;
+            };
+
+            binary_tree(std::initializer_list<value_type> init,
+                const Compare& comp = Compare(),
+                Allocator alloc = Allocator())
+                : _compare(comp), _node_allocator(node_allocator(alloc)) {
+                for(auto it = init.begin(); it != init.end(); it++) {
+                    insert(*it);
+                }
+            }
+
+            virtual ~binary_tree() {
+                _destroy_subtree(_root);
+            }
+
+            std::pair<iterator, bool> insert(const value_type& value) {
+                auto existing = find(value.first);
+                if(existing._node != nullptr) {
+                    return std::pair<iterator, bool>{ existing, false };
+                }
+
+                // find place to insert our entry
+                auto current = _root;
+                while(current != nullptr) {
+                    auto next = _compare(current->key, value.first)
+                              ? &current->right_child
+                              : &current->left_child;
+
+                    if(*next == nullptr) {
+                        *next = _node_allocator.allocate(1);
+                        std::allocator_traits<node_allocator>::construct(_node_allocator, *next, value.first, value.second);
+                        return std::pair<iterator, bool>{ iterator(this, *next), true };
+                    }
+
+                    current = *next;
+                }
+
+                // this is for starting the tree at all
+                _root = _node_allocator.allocate(1);
+                std::allocator_traits<node_allocator>::construct(_node_allocator, _root, value.first, value.second);
+                return std::pair<iterator, bool>{ iterator(this, _root), true };
+            }
+
+            iterator find(const Key& key) {
+                node_type* entry = find_entry(key, _root);
+                if(entry != nullptr) {
+                    return iterator(this, entry);
+                }
+
+                return iterator();
+            }
+
+            bool contains(const Key& key) {
+                return find_entry(key, _root) != nullptr;
+            }
+
+            T& operator[](const Key& key) {
+                auto it = find(key);
+                if(it._node == nullptr) {
+                    it = insert(value_type{key, T()}).first;
+                }
+
+                return (T&)it._node->data;
+            }
+
+            size_type size() const {
+                return _size(_root);
+            }
+
+        private:
+            node_type* _root = 0;
+            const Compare& _compare;
+            node_allocator _node_allocator;
+
+            node_type* find_entry(const Key& key, node_type* start) {
+                if(start == nullptr) {
+                    return start;
+                }
+
+                if(start->key == key) {
+                    return start;
+                }
+
+                if(_compare(start->key, key)) {
+                    return find_entry(key, start->right_child);
+                } else {
+                    return find_entry(key, start->left_child);
+                }
+            }
+
+            size_type _size(const node_type* start) const {
+                if(start == nullptr) {
+                    return 0;
+                }
+
+                return _size(start->left_child)
+                     + _size(start->right_child)
+                     + 1;
+            }
+
+            void _destroy_subtree(node_type* start) {
+                if(start == nullptr) {
+                    return;
+                }
+
+                _destroy_subtree(start->left_child);
+                _destroy_subtree(start->right_child);
+
+                std::allocator_traits<node_allocator>::destroy(_node_allocator, start);
+                std::allocator_traits<node_allocator>::deallocate(_node_allocator, start, 1);
+            }
+    };
+};

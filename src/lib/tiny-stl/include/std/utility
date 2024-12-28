@@ -1,0 +1,25 @@
+// vim: ft=cpp
+#pragma once
+
+#if defined(NAMESPACE_FOR_TESTING)
+#  define _UTILITY_NAMESPACE tinystl_std
+#  undef  NAMESPACE_FOR_TESTING
+#else
+#  define _UTILITY_NAMESPACE std
+#endif
+
+namespace _UTILITY_NAMESPACE {
+    template<
+        class T1,
+        class T2
+    >
+    struct pair {
+        typedef T1 first_type;
+        typedef T2 second_type;
+
+        T1 first;
+        T2 second;
+    };
+};
+
+#undef _UTILITY_NAMESPACE
