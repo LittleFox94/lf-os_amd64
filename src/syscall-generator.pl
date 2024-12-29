@@ -111,7 +111,11 @@ else {
 #include <stdint.h>
 #include <sys/message_passing.h>
 
-#define __LF_OS_SYSCALL static inline __attribute__((artificial))
+#ifndef DOXYGEN
+#  define __LF_OS_SYSCALL static inline __attribute__((artificial))
+#else
+#  define __LF_OS_SYSCALL
+#endif
 EOF
 }
 
