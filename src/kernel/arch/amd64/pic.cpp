@@ -15,9 +15,12 @@ void init_pic(void) {
 	outb(PIC1 + 1, 1);
 	outb(PIC2 + 1, 1);
 
-    // unmask IRQ0 / PIT, found in the wild as masked...
-    uint8_t mask = inb(PIC1 + 1) & 0xFE;
-    outb(PIC1 + 1, mask);
+    // Unmask all IRQs, found some in the wild as masked.
+    // Initially we only unmasked IRQ0 to get the userspace running, but by now
+    // the default userspace programs rely on other IRQs as well (keyboard,
+    // uart), so let's just unmask all of them.
+    outb(PIC1 + 1, 0);
+    outb(PIC2 + 1, 0);
 }
 
 void pic_set_handled(int interrupt) {
