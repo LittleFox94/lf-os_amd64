@@ -203,7 +203,7 @@ void init_init(struct LoaderStruct* loaderStruct) {
             uint64_t entrypoint = load_elf((uint64_t)data, context, &data_start, &data_end);
 
             if(!entrypoint) {
-                logd("init" "Failed to run '%s'", desc->name);
+                logd("init", "Failed to run '%s'", desc->name);
             }
 
             start_task(context, entrypoint, data_start, data_end, desc->name);
