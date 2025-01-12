@@ -60,4 +60,6 @@ TYPED_TEST(ForwardListTest, Simple) {
     for(auto it = foo.begin(); it != foo.end(); ++it) {
         EXPECT_EQ(it->value, values[i++]);
     }
+
+    foo.clear();
 }

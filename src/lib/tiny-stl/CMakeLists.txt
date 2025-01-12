@@ -33,6 +33,7 @@ if(${BUILD_TESTING})
         tests/map.cpp
     )
 
+    target_compile_options(tinystl_tests PRIVATE -Wall -Werror -Wpedantic)
     target_compile_features(tinystl_tests PRIVATE cxx_std_20)
     target_link_libraries(tinystl_tests tinystl-helpers GTest::GTest GTest::gtest_main)
 

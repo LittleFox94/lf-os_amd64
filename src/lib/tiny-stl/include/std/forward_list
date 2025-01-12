@@ -163,6 +163,12 @@ namespace _FORWARD_LIST_NAMESPACE {
                 }
             }
 
+            void clear() {
+                while(begin() != end()) {
+                    pop_front();
+                }
+            }
+
         private:
             node_type* _front = 0;
     };
