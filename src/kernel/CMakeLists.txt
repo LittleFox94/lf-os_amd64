@@ -24,12 +24,13 @@ add_executable(kernel
                   tpa.h
     uuid.cpp      ../include/uuid.h
     version.cpp
-                allocator.h
-                allocator/base.h
-                allocator/page.h
-                allocator/sized.h
-                allocator/typed.h
-                bitmap.h
+                        allocator.h
+                        allocator/base.h
+    allocator/page.cpp  allocator/page.h
+                        allocator/sized.h
+                        allocator/typed.h
+                        bitmap.h
+                        bitset_helpers.h
     ${PROJECT_BINARY_DIR}/syscalls.gen.cpp
     ${PROJECT_BINARY_DIR}/config.h
 

@@ -7,6 +7,7 @@
 #include <bitset>
 
 #include "page.h"
+#include "../bitset_helpers.h"
 
 class SizedAllocatorBase {
     protected:
@@ -56,29 +57,17 @@ class SizedAllocatorBase {
                             return 0;
                         }
 
-                        for(size_t candidate = 0; candidate < max_entries - n; ++candidate) {
-                            bool success = true;
-                            for(size_t i = 0; i < n; ++i) {
-                                if(_bitmap.test(candidate + i)) {
-                                    success = false;
-                                    candidate += i;
-                                    break;
-                                }
-                            }
-
-                            if(success) {
-                                for(size_t i = 0; i < n; ++i) {
-                                    _bitmap.set(candidate + i);
-                                }
-
-                                update_header();
-                                return &_data[candidate];
-                            }
+                        size_t start = bitset_helpers<PageSize / S>::find_continuous_unset(_bitmap, n);
+                        if(start >= max_entries) {
+                            // can we get here, with the check if we have enough continues
+                            // entries in this page on entry of this method?
+                            return 0;
                         }
 
-                        // can we get here, with the check if we have enough continues
-                        // entries in this page on entry of this method?
-                        return 0;
+                        bitset_helpers<PageSize / S>::set_range(_bitmap, start, n);
+
+                        update_header();
+                        return &_data[start];
                     }
 
                     bool deallocate(slot_t* p, size_t n) {
@@ -96,9 +85,7 @@ class SizedAllocatorBase {
 
                         for(size_t index = 0; index < max_entries; ++index) {
                             if(&_data[index] == p) {
-                                for(size_t i = 0; i < n; ++i) {
-                                    _bitmap.reset(index + i);
-                                }
+                                bitset_helpers<PageSize / S>::set_range(_bitmap, index, n, false);
                             }
                         }
 
