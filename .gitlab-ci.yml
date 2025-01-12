@@ -218,6 +218,7 @@ unittest:
       junit:
       - build/kernel_tests.xml
       - build/runtime-test_*.xml
+      - build/tinystl_tests.xml
 
 build-sysroot:
   extends: .cmake-build
