@@ -7,6 +7,8 @@ add_library(tinystl-helpers STATIC
 target_include_directories(tinystl-helpers PUBLIC include/helpers)
 
 add_library(tinystl STATIC
+    include/std/bitset
+    include/std/cstdint
     include/std/cstddef
     include/std/functional
     include/std/initializer_list
@@ -26,6 +28,7 @@ if(${BUILD_TESTING})
     find_package(GTest REQUIRED)
     add_executable(tinystl_tests EXCLUDE_FROM_ALL
         tests/map.cpp
+        tests/bitset.cpp
     )
 
     target_compile_features(tinystl_tests PRIVATE cxx_std_20)

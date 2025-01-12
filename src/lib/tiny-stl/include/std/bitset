@@ -1,0 +1,110 @@
+// vim: ft=cpp
+#pragma once
+
+#if defined(NAMESPACE_FOR_TESTING)
+#  define _BITSET_NAMESPACE tinystl_std
+#  undef  NAMESPACE_FOR_TESTING
+#else
+#  define _BITSET_NAMESPACE std
+#endif
+
+#include <cstddef>
+#include <cstdint>
+
+namespace _BITSET_NAMESPACE {
+    template<std::size_t N>
+    class bitset {
+        public:
+            bool test(std::size_t pos) const {
+                return (_data[_idx(pos)] & _bit(pos)) != 0;
+            }
+
+            bitset& set() {
+                for(std::size_t pos = 0; pos < sizeof(_data); ++pos) {
+                    _data[pos] = -1ULL;
+                }
+
+                return *this;
+            }
+
+            bitset& reset() {
+                for(std::size_t pos = 0; pos < sizeof(_data); ++pos) {
+                    _data[pos] = 0;
+                }
+
+                return *this;
+            }
+
+            bitset& set(std::size_t pos, bool value = true) {
+                if(!value) {
+                    return reset(pos);
+                }
+
+                _data[_idx(pos)] |=  _bit(pos);
+                return *this;
+            }
+
+            bitset& reset(std::size_t pos) {
+                _data[_idx(pos)] &= ~_bit(pos);
+                return *this;
+            }
+
+            bitset& flip() {
+                for(std::size_t pos = 0; pos < N; ++pos) {
+                    flip(pos);
+                }
+
+                return *this;
+            }
+
+            bitset& flip(std::size_t pos) {
+                set(pos, !test(pos));
+                return *this;
+            }
+
+            bool operator[](std::size_t pos) const {
+                return test(pos);
+            }
+
+            bool all() const {
+                bool ret = true;
+                for(std::size_t pos = 0; pos < N && ret; ++pos) {
+                    ret &= test(pos);
+                }
+                return ret;
+            }
+
+            bool none() const {
+                return !any();
+            }
+
+            bool any() const {
+                for(std::size_t pos = 0; pos < N; ++pos) {
+                    if(test(pos)) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+        private:
+            //! Return the size of the bitmap in bytes for a given amount of entries
+            constexpr static inline size_t _size(std::size_t num_entries) {
+                return (num_entries + 7) / 8;
+            }
+
+            //! Return the index in the bitmap array for the given bitmap index
+            constexpr static inline uint64_t _idx(std::size_t entry) {
+                return entry / 8;
+            }
+
+            //! Return the bitmask for the given bitmap index
+            constexpr static inline uint8_t _bit(std::size_t entry) {
+                return 1 << (entry % 8);
+            }
+
+            std::uint64_t _data[_size(N)];
+    };
+}
+
+#undef _BITSET_NAMESPACE

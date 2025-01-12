@@ -1,0 +1,25 @@
+// vim: ft=cpp
+#pragma once
+
+#if defined(NAMESPACE_FOR_TESTING)
+#  define _CSTDINT_NAMESPACE tinystl_std
+#  undef  NAMESPACE_FOR_TESTING
+#else
+#  define _CSTDINT_NAMESPACE std
+#endif
+
+#include <stddef.h>
+
+namespace _CSTDINT_NAMESPACE {
+    using int8_t    = ::int8_t;
+    using int16_t   = ::int16_t;
+    using int32_t   = ::int32_t;
+    using int64_t   = ::int64_t;
+
+    using uint8_t   = ::uint8_t;
+    using uint16_t  = ::uint16_t;
+    using uint32_t  = ::uint32_t;
+    using uint64_t  = ::uint64_t;
+}
+
+#undef _CSTDINT_NAMESPACE
