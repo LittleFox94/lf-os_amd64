@@ -49,6 +49,8 @@ namespace _MEMORY_NAMESPACE {
 
     template<class Alloc>
     struct allocator_traits {
+        using pointer = Alloc::value_type*;
+
         template<class T>
         using rebind_alloc = typename Alloc::template rebind<T>::other;
 
@@ -57,12 +59,15 @@ namespace _MEMORY_NAMESPACE {
             a.construct(p, args...);
         }
 
-        template<class T>
-        static void destroy(Alloc& a, T* p) {
+        static void destroy(Alloc& a, pointer p) {
             a.destroy(p);
         }
 
-        static void deallocate(Alloc& a, typename Alloc::value_type* p, std::size_t n) {
+        static pointer allocate(Alloc& a, std::size_t n) {
+            return a.allocate(n);
+        }
+
+        static void deallocate(Alloc& a, pointer p, std::size_t n) {
             a.deallocate(p, n);
         }
     };

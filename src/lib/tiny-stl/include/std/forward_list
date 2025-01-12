@@ -1,0 +1,171 @@
+// vim: ft=cpp
+#pragma once
+
+#if defined(NAMESPACE_FOR_TESTING)
+#  define _FORWARD_LIST_NAMESPACE tinystl_std
+#  undef  NAMESPACE_FOR_TESTING
+#else
+#  define _FORWARD_LIST_NAMESPACE std
+#endif
+
+#include <memory>
+
+namespace _FORWARD_LIST_NAMESPACE {
+    template<
+        class T,
+        class Allocator = std::allocator<T>
+    >
+    class forward_list {
+        private:
+            struct node_type {
+                node_type* next;
+                T          data;
+
+                node_type(T data)
+                    : data(data) {
+                }
+
+                template<class ...Args>
+                node_type(Args&&... args)
+                    : data(T(args...)) {
+                }
+            };
+
+            typedef Allocator allocator_type;
+            allocator_type _allocator;
+
+            typedef typename std::allocator_traits<Allocator>::template rebind_alloc<node_type> node_allocator_type;
+            node_allocator_type _node_allocator;
+
+        public:
+            forward_list() : _allocator(allocator_type()) { }
+
+            template<class _T>
+            struct _iterator{
+                _iterator() {
+                }
+
+                _iterator(node_type* node)
+                    : _node(node) {
+                }
+
+                T& operator*() {
+                    return _node->data;
+                }
+
+                T* operator->() {
+                    return &_node->data;
+                }
+
+                _iterator& operator+() const {
+                    return _iterator(_node->next);
+                }
+
+                _iterator& operator++() {
+                    if(_node) {
+                        _node = _node->next;
+                    }
+
+                    return *this;
+                }
+
+                bool operator!=(const _iterator& b) const {
+                    return _node != b._node;
+                }
+
+                bool operator==(const _iterator& b) const {
+                    return _node == b._node;
+                }
+
+                operator _iterator<const _T>() const {
+                    return _iterator<const _T>(_node);
+                }
+
+                node_type* _node = 0;
+            };
+
+            typedef _iterator<node_type> iterator;
+            typedef _iterator<const node_type> const_iterator;
+
+            iterator begin() noexcept {
+                return iterator(_front);
+            }
+
+            const_iterator begin() const noexcept {
+                return const_iterator(_front);
+            }
+
+            const_iterator cbegin() const noexcept {
+                return const_iterator(_front);
+            }
+
+            iterator end() noexcept {
+                return iterator();
+            }
+
+            iterator end() const noexcept {
+                return const_iterator();
+            }
+
+            iterator cend() noexcept {
+                return const_iterator();
+            }
+
+            template<class... Args>
+            iterator emplace_front(Args&&... args) {
+                auto elem = std::allocator_traits<node_allocator_type>::allocate(_node_allocator, 1);
+                std::allocator_traits<node_allocator_type>::construct(_node_allocator, elem, args...);
+
+                elem->next = _front;
+                _front = elem;
+
+                return iterator(_front);
+            }
+
+
+            template<class... Args>
+            iterator emplace_after(const_iterator pos, Args&&... args) {
+                node_type* node = pos._node;
+
+                if (node) {
+                    auto next = node->next;
+                    node->next = std::allocator_traits<node_allocator_type>::allocate(_node_allocator, 1);
+                    std::allocator_traits<node_allocator_type>::construct(_node_allocator, node->next, args...);
+
+                    node->next->next = next;
+
+                    return iterator(node->next);
+                }
+
+                return end();
+            }
+
+            iterator erase_after(const_iterator pos) {
+                node_type* node = pos._node;
+
+                if (node && node->next) {
+                    auto next = node->next->next;
+                    std::allocator_traits<node_allocator_type>::destroy(_node_allocator, node->next);
+                    std::allocator_traits<node_allocator_type>::deallocate(_node_allocator, node->next, 1);
+                    node->next = next;
+                    iterator(node->next);
+                }
+
+                return end();
+            }
+
+            void pop_front() {
+                if(_front) {
+                    auto next = _front->next;
+                    std::allocator_traits<node_allocator_type>::destroy(_node_allocator, _front);
+                    std::allocator_traits<node_allocator_type>::deallocate(_node_allocator, _front, 1);
+                    _front = next;
+                }
+            }
+
+        private:
+            node_type* _front = 0;
+    };
+}
+
+#undef _FORWARD_LIST_NAMESPACE

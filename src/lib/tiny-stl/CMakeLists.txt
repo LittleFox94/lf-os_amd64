@@ -10,6 +10,7 @@ add_library(tinystl STATIC
     include/std/bitset
     include/std/cstdint
     include/std/cstddef
+    include/std/forward_list
     include/std/functional
     include/std/initializer_list
     include/std/map
@@ -27,8 +28,9 @@ include(CTest)
 if(${BUILD_TESTING})
     find_package(GTest REQUIRED)
     add_executable(tinystl_tests EXCLUDE_FROM_ALL
-        tests/map.cpp
         tests/bitset.cpp
+        tests/forward_list.cpp
+        tests/map.cpp
     )
 
     target_compile_features(tinystl_tests PRIVATE cxx_std_20)
