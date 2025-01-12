@@ -25,6 +25,10 @@ add_executable(kernel
     uuid.cpp      ../include/uuid.h
     version.cpp
                 allocator.h
+                allocator/base.h
+                allocator/page.h
+                allocator/sized.h
+                allocator/typed.h
                 bitmap.h
     ${PROJECT_BINARY_DIR}/syscalls.gen.cpp
     ${PROJECT_BINARY_DIR}/config.h
@@ -35,6 +39,7 @@ add_executable(kernel
     drivers/hpet.cpp      drivers/hpet.h
 )
 
+add_subdirectory(../lib/tiny-stl tinystl)
 add_subdirectory("arch/${architecture}")
 
 configure_file(config.h.in config.h)
@@ -49,6 +54,8 @@ target_include_directories(kernel PUBLIC
     "${PROJECT_SOURCE_DIR}/../include/efi"
     "${PROJECT_SOURCE_DIR}/../include/arch/${architecture}"
 )
+
+target_link_libraries(kernel PRIVATE tinystl)
 
 target_compile_definitions(kernel PRIVATE __kernel)
 
