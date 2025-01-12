@@ -20,7 +20,7 @@ namespace _BITSET_NAMESPACE {
             }
 
             bitset& set() {
-                for(std::size_t pos = 0; pos < sizeof(_data); ++pos) {
+                for(std::size_t pos = 0; pos < sizeof(_data) / sizeof(_data[0]); ++pos) {
                     _data[pos] = -1ULL;
                 }
 
@@ -28,7 +28,7 @@ namespace _BITSET_NAMESPACE {
             }
 
             bitset& reset() {
-                for(std::size_t pos = 0; pos < sizeof(_data); ++pos) {
+                for(std::size_t pos = 0; pos < sizeof(_data) / sizeof(_data[0]); ++pos) {
                     _data[pos] = 0;
                 }
 
