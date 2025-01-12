@@ -42,4 +42,6 @@ if(${BUILD_TESTING})
             $<TARGET_FILE:tinystl_tests>
             "--gtest_output=xml:${CMAKE_BINARY_DIR}/tinystl_tests.xml"
     )
+
+    add_custom_target(test-tinystl COMMAND ${CMAKE_CTEST_COMMAND} DEPENDS tinystl_tests)
 endif()
