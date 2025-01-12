@@ -157,7 +157,10 @@ EFI_STATUS handle_loaded_file(struct LoaderState* state, void* buffer, size_t si
                     length += padding;
                 }
 
-                kernelSize += length;
+                uint64_t vaddr_end = ph->vaddr + length;
+                if(vaddr_end - 0xffffffff81000000 > kernelSize) {
+                    kernelSize = vaddr_end - 0xffffffff81000000;
+                }
             }
         }
         kernelSize += PAGE_SIZE;
