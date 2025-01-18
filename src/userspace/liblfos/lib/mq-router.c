@@ -1,14 +1,17 @@
 #include <lfos/mq-router.h>
 #include <lfos/dlinkedlist.h>
 
-#if defined(__LF_OS__)
-#  include <sys/syscalls.h>
-#endif
-
 #include <errno.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdint.h>
+
+#if defined(__LF_OS__)
+#  include <sys/syscalls.h>
+#else
+    void sc_do_ipc_mq_poll(uint64_t mq, bool block, void* msg, uint64_t* error);
+#endif
 
 struct lfos_mq_router {
     //! MQ to read messages from to distribute to different parts of the program.
