@@ -26,7 +26,7 @@ int fuse_9p_mainloop(int argc, char* argv[]);
 namespace lib9p {
     class FuseFileSystem : public lib9p::FileSystem {
         public:
-            FuseFileSystem(const struct fuse_operations* ops, const std::string& name);
+            FuseFileSystem(const struct fuse_operations* ops, const std::string name);
 
             virtual lib9p::Qid attach(lib9p::Connection* conn, std::string user, std::string fs);
 
@@ -42,7 +42,7 @@ namespace lib9p {
 
         private:
             const struct fuse_operations* _ops;
-            const std::string&            _name;
+            const std::string             _name;
 
             std::unordered_map<std::string, const lib9p::Qid::Type> _paths;
             std::unordered_map<lib9p::Qid, uint64_t>                _qidFileHandles;

@@ -14,7 +14,7 @@
 namespace lib9p {
     using namespace std::string_literals;
 
-    FuseFileSystem::FuseFileSystem(const struct fuse_operations* ops, const std::string& name)
+    FuseFileSystem::FuseFileSystem(const struct fuse_operations* ops, const std::string name)
         : _ops(ops), _name(name) {
     }
 
@@ -363,7 +363,7 @@ namespace lib9p {
         _server(1337)
 #endif
     {
-        if(thrd_success != tss_create(&_currentFileSystem, free)) {
+        if(thrd_success != tss_create(&_currentFileSystem, ::operator delete)) {
             throw new std::system_error(EINVAL, std::generic_category());
         }
     }
@@ -401,7 +401,7 @@ namespace lib9p {
         struct CurrentFileSystem* tl = static_cast<struct CurrentFileSystem*>(tss_get(_currentFileSystem));
 
         if(!tl) {
-            tss_set(_currentFileSystem, malloc(sizeof(CurrentFileSystem)));
+            tss_set(_currentFileSystem, static_cast<void*>(new CurrentFileSystem()));
         }
 
         return static_cast<struct CurrentFileSystem*>(tss_get(_currentFileSystem));
