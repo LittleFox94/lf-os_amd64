@@ -145,7 +145,7 @@ namespace lib9p {
                             Qid& qid = _fids[r->getFid()];
 
                             if(_readHandler) {
-                                std::basic_string<uint8_t> data = _readHandler->read(this, qid, r->getOffset(), r->getCount());
+                                std::vector<uint8_t> data = _readHandler->read(this, qid, r->getOffset(), r->getCount());
                                 respond(new Rread(data), msg);
                             }
                         }

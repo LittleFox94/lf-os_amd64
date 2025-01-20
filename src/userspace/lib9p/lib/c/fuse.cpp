@@ -97,7 +97,7 @@ namespace lib9p {
         throw new lib9p::NotImplemented();
     }
 
-    std::basic_string<uint8_t> FuseFileSystem::read(lib9p::Connection* conn, const lib9p::Qid& qid, uint64_t off, uint32_t count) {
+    std::vector<uint8_t> FuseFileSystem::read(lib9p::Connection* conn, const lib9p::Qid& qid, uint64_t off, uint32_t count) {
         FUSE::getInstance()->setCurrentFileSystem(_name);
 
         std::string path = qid2Path(qid);
@@ -107,15 +107,15 @@ namespace lib9p {
                 path = "/"s;
             }
 
-            std::basic_stringstream<uint8_t> ret;
-            ret.iword(conn->maxMessageSize() / sizeof(long));
+            std::vector<uint8_t> ret;
+            ret.reserve(conn->maxMessageSize());
 
             struct fillDirectoryArgs {
-                std::basic_stringstream<uint8_t>& stream;
-                const std::string                 path;
-                FuseFileSystem*                   fs;
-                lib9p::Connection*                conn;
-                const uint64_t                    offset;
+                std::vector<uint8_t>& stream;
+                const std::string     path;
+                FuseFileSystem*       fs;
+                lib9p::Connection*    conn;
+                const uint64_t        offset;
             } args = { ret, path, this, conn, off };
 
             auto fillDirectory = [](void* buffer, const char* name, const struct stat* s, off_t off, enum fuse_fill_dir_flags flags)->int {
@@ -152,11 +152,11 @@ namespace lib9p {
                 stat.encode(statBuffer);
 
                 size_t statLen   = statBuffer.tellp();
-                size_t bufferLen = static_cast<size_t>(args->stream.tellp()) + statLen;
+                size_t bufferLen = static_cast<size_t>(args->stream.size()) + statLen;
 
                 if(bufferLen <= args->conn->maxMessageSize()) {
                     std::string str = statBuffer.str();
-                    args->stream.write(reinterpret_cast<const uint8_t*>(str.c_str()), str.length());
+                    args->stream.insert(args->stream.end(), str.c_str(), str.c_str() + str.length());
                     return 0;
                 }
                 else {
@@ -187,7 +187,7 @@ namespace lib9p {
                 throw new std::system_error(-err, std::generic_category());
             }
 
-            return ret.str();
+            return ret;
         }
         else if(qid.type() != lib9p::Qid::QTDIR && _ops->read) {
             struct fuse_file_info fileInfo;
@@ -200,7 +200,7 @@ namespace lib9p {
                 throw new std::system_error(-read, std::generic_category());
             }
 
-            auto ret = std::basic_string<uint8_t>(data, data + read);
+            auto ret = std::vector<uint8_t>(data, data + read);
             delete[] data;
             return ret;
         }

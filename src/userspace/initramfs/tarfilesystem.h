@@ -16,7 +16,7 @@ namespace nineptar {
 
             virtual uint32_t open(lib9p::Connection* conn, const lib9p::Qid& qid, uint8_t mode);
 
-            virtual std::basic_string<uint8_t> read(lib9p::Connection* conn, const lib9p::Qid& qid, uint64_t offset, uint32_t length);
+            virtual std::vector<uint8_t> read(lib9p::Connection* conn, const lib9p::Qid& qid, uint64_t offset, uint32_t length);
 
         private:
             struct Node {
@@ -33,7 +33,7 @@ namespace nineptar {
                 std::string muser;
                 uint64_t    mtime;
 
-                std::variant<std::string_view, std::vector<Node*>> data;
+                std::variant<std::vector<uint8_t>, std::vector<Node*>> data;
 
                 Node* parent;
 
@@ -44,7 +44,7 @@ namespace nineptar {
 
                 Node(Type t, std::string_view d) :
                     type(t),
-                    data(d) {
+                    data(std::vector<uint8_t>(d.data(), d.data() + d.length())) {
                 }
             };
 

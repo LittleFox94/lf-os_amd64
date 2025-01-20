@@ -188,19 +188,19 @@ namespace lib9p {
                     uint32_t getCount()  const { return std::get<2>(_data); }
     };
 
-    class Rread: public MessageImpl<Rread, Message::Rread, std::basic_string<uint8_t>> {
+    class Rread: public MessageImpl<Rread, Message::Rread, std::vector<uint8_t>> {
         using MessageImpl::MessageImpl;
         public:
-            const std::basic_string<uint8_t>& getData() const { return std::get<0>(_data); }
+            const std::vector<uint8_t>& getData() const { return std::get<0>(_data); }
     };
 
-    class Twrite: public MessageImpl<Twrite, Message::Twrite, uint32_t, uint64_t, std::basic_string<uint8_t>>,
+    class Twrite: public MessageImpl<Twrite, Message::Twrite, uint32_t, uint64_t, std::vector<uint8_t>>,
                   public MessageWithFid {
         using MessageImpl::MessageImpl;
         public:
-            virtual uint32_t                    getFid()    const { return std::get<0>(_data); }
-                    uint64_t                    getOffset() const { return std::get<1>(_data); }
-            const   std::basic_string<uint8_t>& getData()   const { return std::get<2>(_data); }
+            virtual uint32_t              getFid()    const { return std::get<0>(_data); }
+                    uint64_t              getOffset() const { return std::get<1>(_data); }
+            const   std::vector<uint8_t>& getData()   const { return std::get<2>(_data); }
     };
 
     class Rwrite: public MessageImpl<Rwrite, Message::Rwrite, uint32_t> {

@@ -81,16 +81,16 @@ namespace lib9p { namespace WireUtils {
     }
 
     template<>
-    std::basic_string<uint8_t> read(std::istream& data) {
+    std::vector<uint8_t> read(std::istream& data) {
         uint32_t size = read<uint32_t>(data);
-        std::basic_string<uint8_t> ret(size, ' ');
+        std::vector<uint8_t> ret(size, ' ');
         data.read((char*)ret.data(), size);
         return ret;
     }
 
-    void write(const std::basic_string_view<uint8_t> val, std::ostream& data) {
-        write((uint32_t)val.length(), data);
-        data.write((char*)val.data(), val.length());
+    void write(const std::vector<uint8_t> val, std::ostream& data) {
+        write((uint32_t)val.size(), data);
+        data.write((char*)val.data(), val.size());
     }
 
     void write(const std::string val, std::ostream& data) {

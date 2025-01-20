@@ -82,16 +82,16 @@ TEST(WireUtils, vector_of_string) {
     EXPECT_EQ(lib9p::WireUtils::read<std::vector<std::string>>(serialized), strings);
 }
 
-TEST(WireUtils, basic_string_uint8_t) {
+TEST(WireUtils, vector_of_uint8_t) {
     std::stringstream serialized;
-    lib9p::WireUtils::write(std::basic_string<uint8_t>({ 0x23, 0x42, 42, 23 }), serialized);
+    lib9p::WireUtils::write(std::vector<uint8_t>({ 0x23, 0x42, 42, 23 }), serialized);
 
     EXPECT_EQ(serialized.str().length(), 8);
     EXPECT_EQ(memcmp(serialized.str().data(), "\04\0\0\0\x23\x42\x2a\x17", 8), 0);
 
     serialized.seekg(0);
 
-    EXPECT_EQ(memcmp(lib9p::WireUtils::read<std::basic_string<uint8_t>>(serialized).data(), "\x23\x42\x2a\x17", 4), 0);
+    EXPECT_EQ(memcmp(lib9p::WireUtils::read<std::vector<uint8_t>>(serialized).data(), "\x23\x42\x2a\x17", 4), 0);
 }
 
 TEST(WireUtils, Qid) {

@@ -152,18 +152,20 @@ namespace nineptar {
         return uint32_t(0);
     }
 
-    std::basic_string<uint8_t> TarFileSystem::read(lib9p::Connection* conn, const lib9p::Qid& qid, uint64_t offset, uint32_t length) {
+    std::vector<uint8_t> TarFileSystem::read(lib9p::Connection* conn, const lib9p::Qid& qid, uint64_t offset, uint32_t length) {
         const Node* node = _nodes[qid.path()];
 
         if(!node) {
             throw new lib9p::NotImplemented();
         }
 
-        std::basic_ostringstream<uint8_t> res;
+        std::vector<uint8_t> res;
 
         if(node->type == Node::Type::File) {
-            const std::string_view& content = std::get<std::string_view>(node->data);
-            res.write((uint8_t*)(content.data() + offset), std::min(size_t(length), content.length() - offset));
+            const std::vector<uint8_t>& content = std::get<std::vector<uint8_t>>(node->data);
+            size_t len = std::min(size_t(length), content.size() - offset);
+
+            res.insert(res.end(), content.data() + offset, content.data() + offset + len);
         }
         else if(node->type == Node::Type::Directory) {
             static uint64_t last_offset;
@@ -180,12 +182,12 @@ namespace nineptar {
                     lib9p::Stat stat = nodeStat(*it);
                     stat.encode(single);
 
-                    if(res.str().length() + single.str().length() <= length) {
+                    if(res.size() + single.str().length() <= length) {
                         const std::string& s = single.str();
-                        res.write((uint8_t*)s.data(), s.length());
+                        res.insert(res.end(), s.begin(), s.end());
                     }
                     else {
-                        last_offset   += res.str().length();
+                        last_offset   += res.size();
                         last_iterator = it;
                         break;
                     }
@@ -193,7 +195,7 @@ namespace nineptar {
             }
         }
 
-        return res.str();
+        return res;
     }
 
     lib9p::Qid TarFileSystem::nodeQid(const Node* node) {
@@ -211,7 +213,7 @@ namespace nineptar {
         uint32_t mode   = node->mode;
 
         if(node->type == Node::Type::File) {
-            length = std::get<std::string_view>(node->data).length();
+            length = std::get<std::vector<uint8_t>>(node->data).size();
         }
         else if(node->type == Node::Type::Directory) {
             mode |= 0x80000000;

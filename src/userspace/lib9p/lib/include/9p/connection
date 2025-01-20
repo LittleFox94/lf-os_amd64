@@ -13,12 +13,12 @@ namespace lib9p {
 
     class Connection {
         public:
-            class AttachHandler { public: virtual Qid                        attach(Connection* conn, std::string user, std::string fs) = 0; };
-            class StatHandler   { public: virtual Stat                       stat(Connection*   conn, const Qid& qid) = 0; };
-            class ClunkHandler  { public: virtual void                       clunk(Connection*  conn, const Qid& qid) = 0; };
-            class ReadHandler   { public: virtual std::basic_string<uint8_t> read(Connection*   conn, const Qid& qid, uint64_t off, uint32_t count) = 0; };
-            class WalkHandler   { public: virtual std::vector<Qid>           walk(Connection*   conn, std::vector<std::string>& names, const Qid& start) = 0; };
-            class OpenHandler   { public: virtual uint32_t                   open(Connection*   conn, const Qid& qid, uint8_t mode) = 0; };
+            class AttachHandler { public: virtual Qid                  attach(Connection* conn, std::string user, std::string fs) = 0; };
+            class StatHandler   { public: virtual Stat                 stat(Connection*   conn, const Qid& qid) = 0; };
+            class ClunkHandler  { public: virtual void                 clunk(Connection*  conn, const Qid& qid) = 0; };
+            class ReadHandler   { public: virtual std::vector<uint8_t> read(Connection*   conn, const Qid& qid, uint64_t off, uint32_t count) = 0; };
+            class WalkHandler   { public: virtual std::vector<Qid>     walk(Connection*   conn, std::vector<std::string>& names, const Qid& start) = 0; };
+            class OpenHandler   { public: virtual uint32_t             open(Connection*   conn, const Qid& qid, uint8_t mode) = 0; };
 
             Connection(Transport* transport, void* transportArg)
                 : _transport(transport), _transportArg(transportArg) {

@@ -36,7 +36,7 @@ namespace lib9p {
 
             virtual uint32_t open(lib9p::Connection* conn, const lib9p::Qid& qid, uint8_t mode);
 
-            virtual std::basic_string<uint8_t> read(lib9p::Connection* conn, const lib9p::Qid& qid, uint64_t off, uint32_t count);
+            virtual std::vector<uint8_t> read(lib9p::Connection* conn, const lib9p::Qid& qid, uint64_t off, uint32_t count);
 
             virtual std::vector<lib9p::Qid> walk(lib9p::Connection* conn, std::vector<std::string>& names, const lib9p::Qid& start);
 
