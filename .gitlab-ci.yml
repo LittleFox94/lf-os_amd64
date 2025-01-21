@@ -215,7 +215,15 @@ unittest:
     KUBERNETES_MEMORY_LIMIT: 2Gi
     BUILD_TYPE: PROFILE
   after_script:
-  - cd build && gcovr --xml-pretty --exclude-unreachable-branches --print-summary -o coverage.xml --root ${CI_PROJECT_DIR}
+  - >-
+      cd build &&
+      gcovr \
+        --xml-pretty \
+        -o coverage.xml \
+        --exclude-unreachable-branches \
+        --print-summary \
+        --root ${CI_PROJECT_DIR} \
+        --gcov-exclude-directories ../src/llvm/llvm/test
   coverage: /^\s*lines:\s*\d+.\d+\%/
   artifacts:
     when: always
