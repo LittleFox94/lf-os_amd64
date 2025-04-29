@@ -143,11 +143,7 @@ class SizedAllocator : protected SizedAllocatorBase {
                 return 0; // can't allocate more than what fits in a single page
             }
 
-            auto last_page = pages.begin();
-            if (last_page == pages.end()) {
-                return reinterpret_cast<T*>(pages.emplace_front()->allocate(n));
-            }
-
+            auto last_page = pages.before_begin();
             for(auto it = pages.begin(); it != pages.end(); ++it) {
                 slot_t* ret = it->allocate(n);
                 if(ret) {
@@ -163,16 +159,12 @@ class SizedAllocator : protected SizedAllocatorBase {
 
         template<class T>
         void deallocate(T* p, size_t n) {
-            auto previous = pages.end();
+            auto previous = pages.before_begin();
 
             for(auto it = pages.begin(); it != pages.end(); ++it) {
                 if(it->deallocate(reinterpret_cast<slot_t*>(p), n)) {
                     if(it->empty()) {
-                        if(previous != pages.end()) {
-                            pages.erase_after(previous);
-                        } else {
-                            pages.pop_front();
-                        }
+                        pages.erase_after(previous);
                     }
                     return;
                 }
