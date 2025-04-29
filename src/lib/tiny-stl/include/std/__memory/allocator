@@ -1,0 +1,46 @@
+// vim: ft=cpp
+#pragma once
+
+#if !defined(_MEMORY_NAMESPACE)
+#  error "Do not include this file directly!"
+#endif
+
+#include <cstddef>
+#include <new>
+
+namespace _MEMORY_NAMESPACE {
+    template<typename T>
+    struct allocator {
+        typedef T              value_type;
+        typedef std::size_t    size_type;
+        typedef std::ptrdiff_t difference_type;
+
+        template<typename U>
+        struct rebind {
+            using other = allocator<U>;
+        };
+
+        template<typename U>
+        allocator(allocator<U>&) { }
+
+        allocator() { }
+
+        T*   allocate(std::size_t n) {
+            return static_cast<T*>(::operator new(sizeof(T) * n));
+        }
+
+        void deallocate(T* p, std::size_t) {
+            ::operator delete(p);
+        }
+
+        template<class... Args>
+        void construct(T* p, Args&&... args) {
+            ::new(static_cast<void*>(p)) T(args...);
+        }
+
+        template<class... Args>
+        void destroy(T* p) {
+            p->~T();
+        }
+    };
+};

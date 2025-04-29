@@ -8,69 +8,7 @@
 #  define _MEMORY_NAMESPACE std
 #endif
 
-#include <cstddef>
-#include <new>
-
-namespace _MEMORY_NAMESPACE {
-    template<typename T>
-    struct allocator {
-        typedef T              value_type;
-        typedef std::size_t    size_type;
-        typedef std::ptrdiff_t difference_type;
-
-        template<typename U>
-        struct rebind {
-            using other = allocator<U>;
-        };
-
-        template<typename U>
-        allocator(allocator<U>&) { }
-
-        allocator() { }
-
-        T*   allocate(std::size_t n) {
-            return static_cast<T*>(::operator new(sizeof(T) * n));
-        }
-
-        void deallocate(T* p, std::size_t) {
-            ::operator delete(p);
-        }
-
-        template<class... Args>
-        void construct(T* p, Args&&... args) {
-            ::new(static_cast<void*>(p)) T(args...);
-        }
-
-        template<class... Args>
-        void destroy(T* p) {
-            p->~T();
-        }
-    };
-
-    template<class Alloc>
-    struct allocator_traits {
-        using pointer = Alloc::value_type*;
-
-        template<class T>
-        using rebind_alloc = typename Alloc::template rebind<T>::other;
-
-        template<class T, class... Args>
-        static void construct(Alloc& a, T* p, Args&&... args) {
-            a.construct(p, args...);
-        }
-
-        static void destroy(Alloc& a, pointer p) {
-            a.destroy(p);
-        }
-
-        static pointer allocate(Alloc& a, std::size_t n) {
-            return a.allocate(n);
-        }
-
-        static void deallocate(Alloc& a, pointer p, std::size_t n) {
-            a.deallocate(p, n);
-        }
-    };
-};
+#include "__memory/allocator"
+#include "__memory/allocator_traits"
 
 #undef _MEMORY_NAMESPACE

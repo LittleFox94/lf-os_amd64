@@ -16,6 +16,8 @@ add_library(tinystl STATIC
     include/std/initializer_list
     include/std/map
     include/std/memory
+    include/std/__memory/allocator
+    include/std/__memory/allocator_traits
     include/std/new
     include/std/utility
 )
