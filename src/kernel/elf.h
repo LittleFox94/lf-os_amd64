@@ -1,9 +1,12 @@
 #ifndef _ELF_H_INCLUDED
 #define _ELF_H_INCLUDED
 
-#include "stdint.h"
-#include "vm.h"
-#include "allocator.h"
+#include <stdint.h>
+#include <vm.h>
+#include <allocator.h>
+#include <memory/context.h>
+
+#include <memory>
 
 #define ELF_MAGIC 0x464c457f
 
@@ -86,11 +89,9 @@ typedef struct elf_symbol elf_symbol_t;
  *
  * \param[in]  elf          Memory chunk where the ELF file is loaded.
  * \param[in]  context      VM context for mapping of program segments.
- * \param[out] data_start   Start of the data section
- * \param[out] data_end     End of the data section
  * \returns                 Entrypoint of the image
  */
-uint64_t load_elf(uint64_t elf, struct vm_table* context, uint64_t* data_start, uint64_t* data_end);
+uint64_t load_elf(uint8_t* elf, std::shared_ptr<MemoryContext> context);
 
 /**
  * Return section header of ELF file by name

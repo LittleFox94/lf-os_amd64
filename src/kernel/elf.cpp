@@ -4,8 +4,10 @@
 #include "mm.h"
 #include "vm.h"
 
-uint64_t load_elf(uint64_t start, struct vm_table* context, uint64_t* data_start, uint64_t* data_end) {
-    elf_file_header_t* header = (elf_file_header_t*)start;
+#include <memory/plain_object.h>
+
+uint64_t load_elf(uint8_t* elf, std::shared_ptr<MemoryContext> context) {
+    elf_file_header_t* header = (elf_file_header_t*)elf;
 
     if(header->ident_magic != ELF_MAGIC) {
         logf("elf", "not an ELF file, invalid magic (%x != %x)!", header->ident_magic, ELF_MAGIC);
@@ -24,46 +26,15 @@ uint64_t load_elf(uint64_t start, struct vm_table* context, uint64_t* data_start
     }
 
     for(int i = 0; i < header->programHeaderCount; ++i) {
-        elf_program_header_t* programHeader = (elf_program_header_t*)(start + header->programHeaderOffset + (i * header->programHeaderEntrySize));
+        auto programHeader = (elf_program_header_t*)(elf + header->programHeaderOffset + (i * header->programHeaderEntrySize));
 
         if(programHeader->type != 1 && programHeader->type != 7) {
             continue;
         }
 
-        for(size_t j = 0; j < programHeader->memLength; j += 0x1000) {
-            uint64_t physical = (uint64_t)mm_alloc_pages(1);
-            memset((void*)(physical + ALLOCATOR_REGION_DIRECT_MAPPING.start), 0, 0x1000);
-            vm_context_map(context, (uint64_t)programHeader->vaddr + j, physical, 0);
-
-            if(j < programHeader->fileLength) {
-                size_t offset = (programHeader->vaddr + j) & 0xFFF;
-                size_t toCopy = programHeader->fileLength - j;
-
-                if(toCopy > (0x1000 - offset)) {
-                    toCopy = 0x1000 - offset;
-                }
-
-                memcpy((void*)(offset + physical + ALLOCATOR_REGION_DIRECT_MAPPING.start), (void*)(start + programHeader->offset + j), toCopy);
-
-                if(offset) {
-                    j -= offset;
-                }
-            }
-
-        }
-
-        uint64_t end = programHeader->vaddr + programHeader->memLength + 1;
-        if(*data_end <= end) {
-            *data_end = end;
-        }
-
-        if(programHeader->vaddr < *data_start) {
-            *data_start = programHeader->vaddr;
-        }
+        auto obj = std::make_shared<PlainMemoryObject>(elf + programHeader->offset, programHeader->fileLength);
+        context->map(programHeader->vaddr, std::static_pointer_cast<MemoryObject>(obj));
     }
-
-    *data_end += 4096;
-    *data_end &= ~0xFFF;
 
     return header->entrypoint;
 }

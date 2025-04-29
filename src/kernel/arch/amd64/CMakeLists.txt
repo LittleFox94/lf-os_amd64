@@ -9,4 +9,6 @@ target_sources(kernel PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/sc.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/scheduler.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vm.cpp
+
+    ${CMAKE_CURRENT_SOURCE_DIR}/memory/context.cpp
 )

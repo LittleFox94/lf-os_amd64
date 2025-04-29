@@ -32,6 +32,11 @@ add_executable(kernel
                         allocator/typed.h
                         bitmap.h
                         bitset_helpers.h
+
+    memory/context.cpp          memory/context.h
+                                memory/types.h
+                                memory/object.h
+    memory/plain_object.cpp     memory/plain_object.h
     ${PROJECT_BINARY_DIR}/syscalls.gen.cpp
     ${PROJECT_BINARY_DIR}/config.h
 

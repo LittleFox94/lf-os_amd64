@@ -17,7 +17,10 @@
 #include <log.h>
 #include <efi.h>
 #include <mq.h>
+#include <memory/context.h>
 #include <allocator/page.h>
+
+#include <memory>
 
 char* LAST_INIT_STEP;
 extern const char *build_id;
@@ -195,20 +198,18 @@ void init_init(struct LoaderStruct* loaderStruct) {
 
     for(size_t i = 0; i < loaderStruct->num_files; ++i) {
         struct FileDescriptor* desc = (fileDescriptors + i);
-        void*                  data = (uint8_t*)((uint64_t)loaderStruct + desc->offset);
+        uint8_t*               data = (uint8_t*)loaderStruct + desc->offset;
 
         if(strcasecmp(desc->name, "kernel") != 0) {
-            struct vm_table* context = vm_context_new();
+            auto context = std::make_shared<MemoryContext>();
 
-            uint64_t data_start = 0;
-            uint64_t data_end   = 0;
-            uint64_t entrypoint = load_elf((uint64_t)data, context, &data_start, &data_end);
+            uint64_t entrypoint = load_elf(data, context);
 
             if(!entrypoint) {
                 logd("init", "Failed to run '%s'", desc->name);
             }
 
-            start_task(context, entrypoint, data_start, data_end, desc->name);
+            start_task(context, entrypoint, desc->name);
         }
     }
 }
