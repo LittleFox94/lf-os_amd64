@@ -17,6 +17,7 @@
 #include <log.h>
 #include <efi.h>
 #include <mq.h>
+#include <allocator/page.h>
 
 char* LAST_INIT_STEP;
 extern const char *build_id;
@@ -51,6 +52,7 @@ extern "C" void main(struct LoaderStruct* loaderStruct) {
     INIT_STEP(
         "Initialized virtual memory management",
         init_vm();
+        PageAllocatorBase::memory_management_bootstrapped = true;
     )
 
     INIT_STEP(
