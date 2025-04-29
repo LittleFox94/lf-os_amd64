@@ -10,6 +10,7 @@ add_library(tinystl STATIC
     include/std/bitset
     include/std/cstdint
     include/std/cstddef
+    include/std/cstring
     include/std/forward_list
     include/std/functional
     include/std/initializer_list

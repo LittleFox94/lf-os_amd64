@@ -1,0 +1,17 @@
+// vim: ft=cpp
+#pragma once
+
+#if defined(NAMESPACE_FOR_TESTING)
+#  define _CSTRING_NAMESPACE tinystl_std
+#  undef  NAMESPACE_FOR_TESTING
+#else
+#  define _CSTRING_NAMESPACE std
+#endif
+
+#include <string.h>
+
+namespace _CSTRING_NAMESPACE {
+    using ::memset;
+}
+
+#undef _CSTDDEF_NAMESPACE

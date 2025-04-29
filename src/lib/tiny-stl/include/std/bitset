@@ -10,11 +10,16 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 
 namespace _BITSET_NAMESPACE {
     template<std::size_t N>
     class bitset {
         public:
+            bitset() {
+                std::memset(static_cast<void*>(_data), 0, sizeof(_data));
+            }
+
             bool test(std::size_t pos) const {
                 return (_data[_idx(pos)] & _bit(pos)) != 0;
             }
