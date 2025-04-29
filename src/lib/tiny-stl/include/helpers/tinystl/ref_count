@@ -1,0 +1,52 @@
+// vim: ft=cpp
+#pragma once
+
+#include <cstddef>
+
+namespace tinystl {
+    struct ref_count_control_block {
+        std::size_t _shared_reference_count = 0;
+        std::size_t _weak_reference_count = 0;
+
+        virtual ~ref_count_control_block() { }
+
+        void inc_shared() {
+            ++_shared_reference_count;
+
+            if(_weak_reference_count == 0) {
+                _weak_reference_count = 1;
+            }
+        }
+
+        void dec_shared() {
+            --_shared_reference_count;
+
+            if(_shared_reference_count == 0) {
+                cleanup_shared();
+
+                if(_weak_reference_count == 1) {
+                    _weak_reference_count = 0;
+                }
+            }
+
+            if(_weak_reference_count == 0) {
+                delete this;
+            }
+        }
+
+        protected:
+            virtual void cleanup_shared() = 0;
+    };
+
+    template<class T>
+    struct typed_ref_count_control_block : public ref_count_control_block {
+        T* _data;
+
+        typed_ref_count_control_block(T* d) : _data(d) { }
+
+        virtual void cleanup_shared() override {
+            delete _data;
+            _data = nullptr;
+        }
+    };
+};

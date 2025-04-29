@@ -10,5 +10,6 @@
 
 #include "__memory/allocator"
 #include "__memory/allocator_traits"
+#include "__memory/shared_ptr"
 
 #undef _MEMORY_NAMESPACE

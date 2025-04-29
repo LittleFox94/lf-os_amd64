@@ -18,6 +18,7 @@ add_library(tinystl STATIC
     include/std/memory
     include/std/__memory/allocator
     include/std/__memory/allocator_traits
+    include/std/__memory/shared_ptr
     include/std/new
     include/std/utility
 )
@@ -34,6 +35,7 @@ if(${BUILD_TESTING})
         tests/bitset.cpp
         tests/forward_list.cpp
         tests/map.cpp
+        tests/shared_ptr.cpp
     )
 
     target_compile_options(tinystl_tests PRIVATE -Wall -Werror -Wpedantic)
