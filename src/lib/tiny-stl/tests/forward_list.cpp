@@ -35,10 +35,8 @@ TYPED_TEST(ForwardListTest, Simple) {
 
     TypeParam foo {};
 
-    foo.emplace_front(values[0]);
-
-    auto last = foo.begin();
-    for(auto it = values.begin() + 1; it != values.end(); ++it) {
+    auto last = foo.before_begin();
+    for(auto it = values.begin(); it != values.end(); ++it) {
         last = foo.emplace_after(last, Box(*it));
     }
 

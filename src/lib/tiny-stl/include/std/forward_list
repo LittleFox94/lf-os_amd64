@@ -31,6 +31,11 @@ namespace _FORWARD_LIST_NAMESPACE {
                 }
             };
 
+            enum class special_iterator {
+                normal,
+                before_begin,
+            };
+
             typedef Allocator allocator_type;
             allocator_type _allocator;
 
@@ -42,46 +47,71 @@ namespace _FORWARD_LIST_NAMESPACE {
 
             template<class _T>
             struct _iterator{
-                _iterator() {
-                }
+                private:
+                    friend class forward_list;
 
-                _iterator(node_type* node)
-                    : _node(node) {
-                }
-
-                T& operator*() {
-                    return _node->data;
-                }
-
-                T* operator->() {
-                    return &_node->data;
-                }
-
-                _iterator& operator+() const {
-                    return _iterator(_node->next);
-                }
-
-                _iterator& operator++() {
-                    if(_node) {
-                        _node = _node->next;
+                    _iterator() {
                     }
 
-                    return *this;
-                }
+                    _iterator(node_type* node, special_iterator s)
+                        : _node(node), _special(s) {
+                    }
 
-                bool operator!=(const _iterator& b) const {
-                    return _node != b._node;
-                }
+                    _iterator(node_type* node)
+                        : _node(node) {
+                    }
 
-                bool operator==(const _iterator& b) const {
-                    return _node == b._node;
-                }
+                    node_type* _node = 0;
+                    special_iterator _special = special_iterator::normal;
 
-                operator _iterator<const _T>() const {
-                    return _iterator<const _T>(_node);
-                }
+                public:
+                    T& operator*() {
+                        // this will return unexpected data on a special iterator, but that's undefined behavior.
+                        return _node->data;
+                    }
 
-                node_type* _node = 0;
+                    T* operator->() {
+                        if(_special != special_iterator::normal) { return 0; }
+
+                        return &_node->data;
+                    }
+
+                    _iterator& operator+() const {
+                        if(_special == special_iterator::before_begin) {
+                            return _iterator(_node);
+                        }
+
+                        return _iterator(_node->next);
+                    }
+
+                    _iterator& operator++() {
+                        if(_special == special_iterator::before_begin) {
+                            _special = special_iterator::normal;
+                            return *this;
+                        }
+
+                        if(_node) {
+                            _node = _node->next;
+                        }
+
+                        return *this;
+                    }
+
+                    bool operator!=(const _iterator& b) const {
+                        return _node != b._node && _special != b._special;
+                    }
+
+                    bool operator==(const _iterator& b) const {
+                        return !(*this != b);
+                    }
+
+                    operator _iterator<const _T>() const {
+                        if(_special != special_iterator::normal) {
+                            return _iterator<const _T>(_node, _special);
+                        }
+
+                        return _iterator<const _T>(_node);
+                    }
             };
 
             typedef _iterator<node_type> iterator;
@@ -97,6 +127,18 @@ namespace _FORWARD_LIST_NAMESPACE {
 
             const_iterator cbegin() const noexcept {
                 return const_iterator(_front);
+            }
+
+            iterator before_begin() noexcept {
+                return iterator(_front, special_iterator::before_begin);
+            }
+
+            const_iterator before_begin() const noexcept {
+                return const_iterator(_front, special_iterator::before_begin);
+            }
+
+            const_iterator cbefore_begin() const noexcept {
+                return const_iterator(_front, special_iterator::before_begin);
             }
 
             iterator end() noexcept {
@@ -125,6 +167,10 @@ namespace _FORWARD_LIST_NAMESPACE {
 
             template<class... Args>
             iterator emplace_after(const_iterator pos, Args&&... args) {
+                if(pos._special == special_iterator::before_begin) {
+                    return emplace_front(args...);
+                }
+
                 node_type* node = pos._node;
 
                 if (node) {
@@ -141,6 +187,11 @@ namespace _FORWARD_LIST_NAMESPACE {
             }
 
             iterator erase_after(const_iterator pos) {
+                if(pos._special == special_iterator::before_begin) {
+                    pop_front();
+                    return begin();
+                }
+
                 node_type* node = pos._node;
 
                 if (node && node->next) {
