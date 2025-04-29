@@ -10,6 +10,13 @@
 #include "../bitset_helpers.h"
 
 class SizedAllocatorBase {
+    public:
+        virtual size_t size() = 0;
+
+        virtual void* allocate(size_t n) = 0;
+
+        virtual void deallocate(void* p, size_t n) = 0;
+
     protected:
         template<size_t S>
         struct Helpers {
@@ -127,7 +134,7 @@ template<
     ),
     class PageAllocator = ::PageAllocator
 >
-class SizedAllocator : protected SizedAllocatorBase {
+class SizedAllocator : public SizedAllocatorBase {
     using page_t     = Helpers<S>::template page_t<PageSize>;
     using slot_t     = Helpers<S>::slot_t;
     using list_t     = std::forward_list<page_t, typename PageAllocator::template allocator<page_t, PageSize>>;
@@ -136,6 +143,10 @@ class SizedAllocator : protected SizedAllocatorBase {
 
     public:
         using value_type = slot_t*;
+
+        virtual size_t size() override {
+            return S;
+        }
 
         template<class T>
         T* allocate(size_t n) {
@@ -157,6 +168,10 @@ class SizedAllocator : protected SizedAllocatorBase {
             return reinterpret_cast<T*>(new_page->allocate(n));
         }
 
+        virtual void* allocate(size_t n) override {
+            return allocate<void>(n);
+        }
+
         template<class T>
         void deallocate(T* p, size_t n) {
             auto previous = pages.before_begin();
@@ -173,6 +188,10 @@ class SizedAllocator : protected SizedAllocatorBase {
             }
 
             loge("SizedAllocator", "Cannot deallocate allocation of %d entries at 0x%x: page not found!", n, p);
+        }
+
+        virtual void deallocate(void* ptr, size_t n) override {
+            return deallocate<void>(ptr, n);
         }
 };
 

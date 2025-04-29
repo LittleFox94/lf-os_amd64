@@ -12,6 +12,7 @@ add_custom_command(
 
 add_executable(kernel
     condvar.cpp   condvar.h
+    cpp_runtime.cpp
     elf.cpp       elf.h
     flexarray.cpp flexarray.h
     log.cpp       log.h
