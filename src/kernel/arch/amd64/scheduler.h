@@ -5,7 +5,9 @@
 #include <vm.h>
 #include <cpu.h>
 
+#if !defined(LF_OS_TESTING)
 typedef uint64_t pid_t;
+#endif
 
 enum kill_reason {
     kill_reason_segv  = 1,

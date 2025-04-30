@@ -11,28 +11,26 @@
 #include "lfostest.h"
 #include "../allocator.h"
 
-namespace LFOS {
-    LFOS_API uint64_t scheduler_current_process = 0;
+LFOS_API uint64_t scheduler_current_process = 0;
 
-    extern "C" {
-        LFOS_API void panic_message(const char* message) {
-            fprintf(stderr, "Panic() called: %s\n", message);
-            exit(-1);
-        }
-
-        LFOS_API void panic() {
-            panic_message("Unknown error");
-        }
+extern "C" {
+    LFOS_API void panic_message(const char* message) {
+        fprintf(stderr, "Panic() called: %s\n", message);
+        exit(-1);
     }
 
-    LFOS_API void log(char level, const char* component, const char* fmt, ...) {
-        va_list args;
-        va_start(args, fmt);
-        char buffer[512];
-        int count = vsnprintf(buffer, sizeof(buffer), fmt, args);
-        fprintf(stderr, "%c\t%s\t%s\n",level, component, buffer);
-        va_end(args);
+    LFOS_API void panic() {
+        panic_message("Unknown error");
     }
+}
+
+LFOS_API void log(char level, const char* component, const char* fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    char buffer[512];
+    int count = vsnprintf(buffer, sizeof(buffer), fmt, args);
+    fprintf(stderr, "%c\t%s\t%s\n",level, component, buffer);
+    va_end(args);
 }
 
 LFOS_API allocator_t kernel_alloc = allocator_t {
