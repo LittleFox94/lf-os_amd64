@@ -73,7 +73,7 @@ void log_append(char level, const char* component, const char* message) {
     log_last->current_end += len;
     uint64_t msg_end = log_last->current_end;
 
-    if(fbconsole_active) {
+    if(fbconsole_active && level != 'D') {
         int color_code;
 
         switch(level) {

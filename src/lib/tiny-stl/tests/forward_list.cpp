@@ -44,6 +44,7 @@ TYPED_TEST(ForwardListTest, Simple) {
     for(auto it = foo.begin(); it != foo.end(); ++it) {
         EXPECT_EQ(it->value, values[i++]);
     }
+    EXPECT_EQ(i, values.size());
 
     foo.pop_front();
     values.erase(values.begin());
@@ -51,6 +52,7 @@ TYPED_TEST(ForwardListTest, Simple) {
     for(auto it = foo.begin(); it != foo.end(); ++it) {
         EXPECT_EQ(it->value, values[i++]);
     }
+    EXPECT_EQ(i, values.size());
 
     values.erase(values.begin() + 1);
     foo.erase_after(foo.begin());
@@ -58,6 +60,7 @@ TYPED_TEST(ForwardListTest, Simple) {
     for(auto it = foo.begin(); it != foo.end(); ++it) {
         EXPECT_EQ(it->value, values[i++]);
     }
+    EXPECT_EQ(i, values.size());
 
     foo.clear();
 }

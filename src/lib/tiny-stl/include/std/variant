@@ -1,0 +1,71 @@
+// vim: ft=cpp
+#pragma once
+
+#if defined(NAMESPACE_FOR_TESTING)
+#  define _VARIANT_NAMESPACE tinystl_std
+#  undef  NAMESPACE_FOR_TESTING
+#else
+#  define _VARIANT_NAMESPACE std
+#endif
+
+#include <type_traits>
+
+#include <tinystl/type_index_of>
+
+namespace _VARIANT_NAMESPACE {
+    template<class... Types>
+    class variant {
+        public:
+            template<class T>
+            variant(T&& t) :
+                _data(t),
+                _valid(true),
+                _index(tinystl::type_index_of<T, Types...>()) {
+            }
+
+            constexpr size_t index() const noexcept {
+                return _index;
+            }
+
+            template<class T, class... U>
+            friend constexpr std::add_pointer_t<T> get_if(std::variant<U...>* pv) noexcept;
+
+        private:
+            template<typename T, typename... U>
+            union data {
+                T t;
+                data<U...> u;
+
+                template<class V>
+                data(V&& v) : u(v) { }
+
+                template<>
+                data<T>(T&& v) : t(v) { }
+            };
+
+            template<typename T>
+            union data<T> {
+                T t;
+            };
+
+            using data_t = data<Types...>;
+
+
+            data_t _data;
+            bool _valid;
+            std::size_t _index;
+    };
+
+    template<class T, class... Types>
+    constexpr std::add_pointer_t<T>
+    get_if(std::variant<Types...>* pv) noexcept {
+        std::size_t index = tinystl::type_index_of<T, Types...>();
+        if (!pv->_valid || pv->index() != index) {
+            return 0;
+        }
+
+        return reinterpret_cast<std::add_pointer_t<T>>(&pv->_data);
+    }
+}
+
+#undef _VARIANT_NAMESPACE

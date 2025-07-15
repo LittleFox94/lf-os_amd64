@@ -17,28 +17,6 @@ struct page_descriptor {
     uint32_t refcount;
 };
 
-//! A single entry in a paging table
-struct vm_table_entry {
-    unsigned int present      : 1;
-    unsigned int writeable    : 1;
-    unsigned int userspace    : 1;
-    unsigned int pat0         : 1;
-    unsigned int pat1         : 1;
-    unsigned int accessed     : 1;
-    unsigned int dirty        : 1;
-    unsigned int huge         : 1;
-    unsigned int global       : 1;
-    unsigned int available    : 3;
-    unsigned long next_base   : 40;
-    unsigned int available2   : 11;
-    unsigned int nx           : 1;
-}__attribute__((packed));
-
-//! A paging table, when this is a PML4 it may also be called context
-struct vm_table {
-    struct vm_table_entry entries[512];
-}__attribute__((packed));
-
 static bool vm_direct_mapping_initialized = false;
 static TPA<page_descriptor>* page_descriptors = 0;
 struct vm_table* VM_KERNEL_CONTEXT;
@@ -378,7 +356,17 @@ struct vm_table* vm_context_new(void) {
 }
 
 void vm_context_activate(struct vm_table* context) {
-    load_cr3(vm_context_get_physical_for_virtual(VM_KERNEL_CONTEXT, (uint64_t)context));
+    if(!context) {
+        panic_message("WTF?!");
+    }
+
+    auto phys = vm_context_get_physical_for_virtual(VM_KERNEL_CONTEXT, (uint64_t)context);
+
+    if(!context) {
+        panic_message("uhhh WTF?!?");
+    }
+
+    load_cr3(phys);
 }
 
 static void vm_ensure_table(struct vm_table* table, uint16_t index) {
@@ -391,7 +379,7 @@ static void vm_ensure_table(struct vm_table* table, uint16_t index) {
         entry->next_base = (nt - ALLOCATOR_REGION_DIRECT_MAPPING.start) >> 12;
         entry->present   = 1;
         entry->writeable = 1;
-        entry->userspace = 1;
+        entry->userspace = 0;
     }
 }
 
@@ -409,7 +397,7 @@ void vm_context_map(struct vm_table* pml4, uint64_t virt, uint64_t physical, uin
     pt->entries[PT_INDEX(virt)].next_base = physical >> 12;
     pt->entries[PT_INDEX(virt)].present   = 1;
     pt->entries[PT_INDEX(virt)].writeable = 1;
-    pt->entries[PT_INDEX(virt)].userspace = 1;
+    pt->entries[PT_INDEX(virt)].userspace = 0;
 
     pt->entries[PT_INDEX(virt)].pat0 = !!(pat & 1);
     pt->entries[PT_INDEX(virt)].pat1 = !!(pat & 2);

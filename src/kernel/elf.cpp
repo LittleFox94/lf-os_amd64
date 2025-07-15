@@ -42,7 +42,7 @@ uint64_t load_elf(uint8_t* elf, std::shared_ptr<MemoryContext> context) {
 elf_section_header_t* elf_section_by_name(const char* name, const void* elf) {
     elf_file_header_t* eh = (elf_file_header_t*)elf;
 
-    // "Oh deer, who wrote this code" -- littlefox 2024-02-10 
+    // "Oh deer, who wrote this code" -- littlefox 2024-02-10
     elf_section_header_t* shSectionNames = (elf_section_header_t*)((char*)elf + eh->sectionHeaderOffset + (eh->sectionHeaderEntrySize * eh->sectionHeaderSectionNameIndex));
     char* sectionNames                   = (char*)elf + shSectionNames->offset;
 

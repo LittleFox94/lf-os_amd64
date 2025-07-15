@@ -92,7 +92,7 @@ template<size_t PageSize>
 size_t PageAllocatorBase::helpers<PageSize>::allocated = 0;
 
 template<size_t PageSize>
-PageAllocatorBase::helpers<PageSize>::value_type PageAllocatorBase::helpers<PageSize>::bootstrap_pages[];
+typename PageAllocatorBase::helpers<PageSize>::value_type PageAllocatorBase::helpers<PageSize>::bootstrap_pages[];
 
 template<size_t PageSize>
 std::bitset<PageAllocatorBase::helpers<PageSize>::num_bootstrap_pages> PageAllocatorBase::helpers<PageSize>::bootstrap_page_status;
@@ -113,7 +113,7 @@ struct PageAllocator {
         }
 
         void deallocate(T* p, size_t n) {
-            helper_type::deallocate_pages(reinterpret_cast<helper_type::value_type*>(p), n);
+            helper_type::deallocate_pages(reinterpret_cast<typename helper_type::value_type*>(p), n);
         }
 
         template<typename U>

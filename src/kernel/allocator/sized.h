@@ -6,8 +6,8 @@
 #include <forward_list>
 #include <bitset>
 
-#include "page.h"
-#include "../bitset_helpers.h"
+#include <allocator/page.h>
+#include <bitset_helpers.h>
 
 class SizedAllocatorBase {
     public:
@@ -135,8 +135,8 @@ template<
     class PageAllocator = ::PageAllocator
 >
 class SizedAllocator : public SizedAllocatorBase {
-    using page_t     = Helpers<S>::template page_t<PageSize>;
-    using slot_t     = Helpers<S>::slot_t;
+    using page_t     = typename Helpers<S>::template page_t<PageSize>;
+    using slot_t     = typename Helpers<S>::slot_t;
     using list_t     = std::forward_list<page_t, typename PageAllocator::template allocator<page_t, PageSize>>;
 
     static list_t pages;
@@ -200,6 +200,6 @@ template<
     size_t PageSize,
     class PageAllocator
 >
-SizedAllocator<S, PageSize, PageAllocator>::list_t SizedAllocator<S, PageSize, PageAllocator>::pages;
+typename SizedAllocator<S, PageSize, PageAllocator>::list_t SizedAllocator<S, PageSize, PageAllocator>::pages;
 
 #endif

@@ -6,8 +6,8 @@
 
 struct region_t {
     const char* name;
-    uint64_t start;
-    uint64_t end;
+    const uint64_t start;
+    const uint64_t end;
 };
 
 static const region_t ALLOCATOR_REGION_NULL           { .name = "NULL", .start = 0, .end = 0 };
@@ -20,8 +20,7 @@ static const region_t ALLOCATOR_REGION_USER_HARDWARE  { .name = "User MMIO",    
 static const region_t ALLOCATOR_REGION_USER_IOPERM    { .name = "User ioperm bitmask", .start = 0x00007FFFFFFFE000, .end = 0x00007FFFFFFFFFFF };
 
 static const region_t ALLOCATOR_REGION_SCRATCHPAD     { .name = "Kernel scratchpad", .start = 0xFFFFFFFF80000000, .end = 0xFFFFFFFF80FFFFFF };
-static const region_t ALLOCATOR_REGION_KERNEL_BINARY  { .name = "Kernel binary",     .start = 0xFFFFFFFF81000000, .end = 0xFFFFFFFF88FFFFFF };
-static const region_t ALLOCATOR_REGION_SLAB_4K        { .name = "4k slab allocator", .start = 0xFFFFFFFF89000000, .end = 0xFFFFFFFF8FFFFFFF };
+static const region_t ALLOCATOR_REGION_KERNEL_BINARY  { .name = "Kernel binary",     .start = 0xFFFFFFFF81000000, .end = 0xFFFFFFFF89FFFFFF };
 static const region_t ALLOCATOR_REGION_KERNEL_HEAP    { .name = "Kernel heap",       .start = 0xFFFFFFFF90000000, .end = 0xFFFFFFFFFFFFFFFF };
 
 // this one must be PML4 aligned! (PDP, PD and PT indexes must be zero for the start and 511 for the end)
@@ -41,7 +40,28 @@ static const uint8_t  PageSize4KiB = 0;
 static const uint8_t  PageSize2MiB = 1;
 static const uint8_t  PageSize1GiB = 2;
 
-struct vm_table;
+//! A single entry in a paging table
+struct vm_table_entry {
+    unsigned int present      : 1;
+    unsigned int writeable    : 1;
+    unsigned int userspace    : 1;
+    unsigned int pat0         : 1;
+    unsigned int pat1         : 1;
+    unsigned int accessed     : 1;
+    unsigned int dirty        : 1;
+    unsigned int huge         : 1;
+    unsigned int global       : 1;
+    unsigned int available    : 3;
+    unsigned long next_base   : 40;
+    unsigned int available2   : 11;
+    unsigned int nx           : 1;
+}__attribute__((packed));
+
+//! A paging table, when this is a PML4 it may also be called context
+struct vm_table {
+    struct vm_table_entry entries[512];
+}__attribute__((packed));
+
 extern struct vm_table* VM_KERNEL_CONTEXT;
 
 void init_vm(void);

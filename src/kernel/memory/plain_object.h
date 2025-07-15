@@ -6,6 +6,7 @@
 class PlainMemoryObject : public MemoryObject {
     public:
         PlainMemoryObject(uint8_t* data, size_t len);
+        PlainMemoryObject(size_t len);
 
         virtual std::shared_ptr<MemoryObject> copy() override;
 

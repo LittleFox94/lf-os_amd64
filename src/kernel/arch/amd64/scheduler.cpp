@@ -14,6 +14,7 @@
 
 #include <allocator/typed.h>
 #include <memory/context.h>
+#include <memory/plain_object.h>
 
 #include <memory>
 
@@ -151,12 +152,17 @@ void start_task(std::shared_ptr<MemoryContext> context, uint64_t entry, const ch
         panic_message("Tried to start process without entry");
     }
 
+    const size_t stack_size = 8 * MiB;
+    auto stack = std::make_shared<PlainMemoryObject>(stack_size);
+    context->map(ALLOCATOR_REGION_USER_STACK.start, std::static_pointer_cast<MemoryObject>(stack));
+
     auto pid = setup_process(context);
     auto process = processes[pid];
     process->parent  = INVALID_PID;
     process->context = context;
     process->cpu.rip = entry;
-    process->cpu.rsp = ALLOCATOR_REGION_USER_STACK.end;
+    //process->cpu.rsp = ALLOCATOR_REGION_USER_STACK.end;
+    process->cpu.rsp = (ALLOCATOR_REGION_USER_STACK.start + stack_size) - 8;
 
     strncpy(process->name, name, sizeof(process_t::name));
 }
@@ -281,8 +287,9 @@ void scheduler_process_cleanup(pid_t pid) {
 
     mq_destroy(processes[pid]->mq);
 
-    delete process;
+    process_allocator.destroy(process);
     processes[pid] = 0;
+    process_allocator.deallocate(process, 1);
 }
 
 void scheduler_kill_current(enum kill_reason reason) {

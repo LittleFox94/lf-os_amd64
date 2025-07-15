@@ -49,7 +49,7 @@ class MemoryContext {
 
         std::forward_list<MappedObject> _objects;
 
-        void* _arch_cache;
+        void* _arch_cache = nullptr;
 };
 
 #endif

@@ -15,8 +15,7 @@ LFOS_API uint64_t scheduler_current_process = 0;
 
 extern "C" {
     LFOS_API void panic_message(const char* message) {
-        fprintf(stderr, "Panic() called: %s\n", message);
-        exit(-1);
+        FAIL() << "Panic() called: " << message;
     }
 
     LFOS_API void panic() {
@@ -59,8 +58,6 @@ extern "C" LFOS_API int ksnprintf(char* buffer, int buffer_size, const char* for
 int main(int argc, char* argv[]) {
     dlopen(NULL, RTLD_NOW | RTLD_NOLOAD | RTLD_GLOBAL);
 
-    testing::InitGoogleTest(&argc, argv);
-
     for(int i = 1; i < argc; ++i) {
         if(!dlopen(argv[i], RTLD_NOW)) {
             char* error = dlerror();
@@ -74,5 +71,7 @@ int main(int argc, char* argv[]) {
         }
     }
 
+
+    testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }

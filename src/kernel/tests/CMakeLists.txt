@@ -42,6 +42,7 @@ foreach(test IN LISTS test_files)
         PRIVATE
             -nostdlib -nodefaultlibs -static -fvisibility=hidden -fno-builtin -fpermissive -Wno-write-strings
     )
+    target_compile_features(kerneltest-${test} PRIVATE cxx_std_23)
 
     list(APPEND tests $<TARGET_FILE:kerneltest-${test}>)
 

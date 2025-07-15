@@ -3,6 +3,7 @@ set disassemble-next-line on
 set pagination off
 set history save
 set history remove-duplicates unlimited
+set print static-members off
 
 target remote :1234
 

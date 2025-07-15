@@ -1,0 +1,39 @@
+// vim: ft=cpp
+#pragma once
+
+#if defined(NAMESPACE_FOR_TESTING)
+#  define _OPTIONAL_NAMESPACE tinystl_std
+#  undef  NAMESPACE_FOR_TESTING
+#else
+#  define _OPTIONAL_NAMESPACE std
+#endif
+
+#include <type_traits>
+
+namespace _OPTIONAL_NAMESPACE {
+    template<class T>
+    class optional {
+        public:
+            typedef T value_type;
+
+            constexpr optional() noexcept : _has_value(false) { }
+
+            template<class U = std::remove_cv_t<T>>
+            constexpr optional(U&& value)
+                : _value(value), _has_value(true) { }
+
+            constexpr explicit operator bool() const noexcept {
+                return _has_value;
+            }
+
+            constexpr const T& value() const & {
+                return _value;
+            }
+
+        private:
+            T _value;
+            bool _has_value;
+    };
+}
+
+#undef _OPTIONAL_NAMESPACE

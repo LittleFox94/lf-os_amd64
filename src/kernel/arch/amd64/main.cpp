@@ -135,10 +135,10 @@ void init_mm(struct LoaderStruct* loaderStruct) {
 
     struct MemoryRegion* memoryRegions = (struct MemoryRegion*)((uint64_t)loaderStruct + loaderStruct->size);
 
-    SlabHeader* scratchpad_allocator = (SlabHeader*)ALLOCATOR_REGION_SCRATCHPAD.start;
+    //SlabHeader* scratchpad_allocator = (SlabHeader*)ALLOCATOR_REGION_SCRATCHPAD.start;
     init_slab(ALLOCATOR_REGION_SCRATCHPAD.start, ALLOCATOR_REGION_SCRATCHPAD.end, 4096);
 
-    mm_bootstrap(slab_alloc(scratchpad_allocator));
+    //mm_bootstrap(slab_alloc(scratchpad_allocator));
 
     uint64_t pages_free = 0;
     uint64_t pages_firmware = 0;
@@ -157,9 +157,11 @@ void init_mm(struct LoaderStruct* loaderStruct) {
         else if(desc->flags & MEMORY_REGION_FIRMWARE) {
             desc_status[i % 80] = 'F';
             pages_firmware += desc->num_pages;
+            mm_mark_physical_pages(desc->start_address, desc->num_pages, MM_RESERVED);
         }
         else {
             desc_status[i % 80] = 'X';
+            mm_mark_physical_pages(desc->start_address, desc->num_pages, MM_RESERVED);
         }
 
         if((i % 80) == 79) {
@@ -174,6 +176,8 @@ void init_mm(struct LoaderStruct* loaderStruct) {
         pages_free,     pages_free * 4096,
         pages_firmware, pages_firmware* 4096
     );
+
+    mm_print_regions(MM_INVALID);
 }
 
 void init_symbols(struct LoaderStruct* loaderStruct) {

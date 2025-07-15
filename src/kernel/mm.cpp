@@ -1,178 +1,244 @@
-#include "mm.h"
-#include "vm.h"
-#include "log.h"
-#include "panic.h"
+#include <mm.h>
+#include <vm.h>
+#include <log.h>
+#include <panic.h>
+#include <allocator/typed.h>
 
-#define PRESENT_BIT 1
+#include <forward_list>
+#include <optional>
 
-struct mm_page_list_entry_t {
-    uint64_t                start;
-    uint64_t                count;
-    mm_page_list_entry_t*   next;
-    mm_page_status_t        status;
+struct mm_page_list_entry {
+    const uint64_t         start  = 0;
+    const uint64_t         count  = 0;
+    const mm_page_status_t status = MM_INVALID;
+
+    uint64_t end() const {
+        return start + (count * 4096);
+    }
+
+    bool intersects(const mm_page_list_entry& other) const {
+        return (
+            (start <= other.start && end() > other.start)  ||
+            (start >= other.start && end() <= other.end()) ||
+
+            (other.start <= start && other.end() > start)  ||
+            (other.start >= start && other.end() <= end())
+        );
+    }
+
+    std::optional<mm_page_list_entry> part_before(const mm_page_list_entry& other) const {
+        if(!intersects(other)) {
+            return {};
+        }
+
+        if(start >= other.start) {
+            return {};
+        }
+
+        auto new_end = other.start;
+        if(new_end == start) {
+            return {};
+        }
+
+        return mm_page_list_entry{
+            start,
+            (new_end - start) / 4096,
+            status,
+        };
+    }
+
+    std::optional<mm_page_list_entry> part_after(const mm_page_list_entry& other) const {
+        if(!intersects(other)) {
+            return {};
+        }
+
+        if(end() <= other.end()) {
+            return {};
+        }
+
+        auto new_start = other.end();
+        auto new_count = (end() - new_start) / 4096;
+
+        if(new_count == 0) {
+            return {};
+        }
+
+        return mm_page_list_entry{
+            new_start,
+            new_count,
+            status,
+        };
+    }
+
+    bool operator==(const mm_page_list_entry& other) const {
+        return start == other.start && count == other.count && status == other.status;
+    }
 };
 
-mm_page_list_entry_t* mm_physical_page_list = 0;
+typedef std::forward_list<mm_page_list_entry, TypedAllocator<mm_page_list_entry>> page_list_t;
+//typedef std::forward_list<mm_page_list_entry> page_list_t;
+page_list_t mm_physical_page_list;
 
-void mm_del_page_list_entry(mm_page_list_entry_t* entry) {
-    entry->start  = 0;
-    entry->count  = 0;
-    entry->status = MM_UNKNOWN;
+static void mm_check_integrity() {
+    auto prev = mm_physical_page_list.before_begin();
+
+    for(auto it = mm_physical_page_list.begin(); it != mm_physical_page_list.end(); ++it) {
+        if (it->count == 0) {
+            panic_message("MM: count == 0 region detected!");
+        }
+
+        if (prev != mm_physical_page_list.before_begin() && prev->start > it->start) {
+            panic_message("MM: unordered bullshit detected!");
+        }
+    }
 }
 
 void* mm_alloc_pages(uint64_t count) {
-    mm_page_list_entry_t* current = mm_physical_page_list;
+    mm_check_integrity();
 
-    while(current) {
-        if(current->status == MM_FREE && current->count >= count) {
-            current->count -= count;
-            void* ret = (void*)current->start;
-
-            if(current->count) {
-                current->start += 4096 * count;
-            }
-            else {
-                mm_del_page_list_entry(current);
-            }
-
-            return ret;
+    for(auto it = mm_physical_page_list.begin(); it != mm_physical_page_list.end(); ++it) {
+        if(it->status == MM_FREE && it->count >= count) {
+            auto start = it->start;
+            mm_mark_physical_pages(start, count, MM_ALLOCATED);
+            mm_check_integrity();
+            return reinterpret_cast<void*>(start);
         }
-
-        current = current->next;
     }
 
+    mm_check_integrity();
     panic_message("Out of memory in mm_alloc_pages");
 }
 
-mm_page_list_entry_t* mm_get_page_list_entry(mm_page_list_entry_t* start) {
-    mm_page_list_entry_t* previous = 0;
-
-    while(start) {
-        if(start->status == MM_UNKNOWN && start->start == 0 && start->count == 0) {
-            return start;
-        }
-
-        previous = start;
-        start    = start->next;
-    }
-
-    mm_page_list_entry_t* new_entry = (mm_page_list_entry_t*)vm_context_alloc_pages(VM_KERNEL_CONTEXT, ALLOCATOR_REGION_KERNEL_HEAP, 1);
-
-    for(unsigned long i = 0; i < 4096 / sizeof(mm_page_list_entry_t); i++) {
-        new_entry[i].start  = 0;
-        new_entry[i].count  = 0;
-        new_entry[i].status = MM_UNKNOWN;
-
-        if(i) {
-            new_entry[i - 1].next = new_entry + i;
-        }
-    }
-
-    previous->next = new_entry;
-    return new_entry;
-}
-
-void mm_bootstrap(uint64_t usable_page) {
-    while(usable_page % 4096);
-
-    // bootstrap memory management with the first page given to us
-    mm_page_list_entry_t* page_list = (mm_page_list_entry_t*)usable_page;
-    mm_physical_page_list = page_list;
-
-    for(unsigned long i = 0; i < 4096 / sizeof(mm_page_list_entry_t); i++) {
-        page_list[i].start  = 0;
-        page_list[i].count  = 0;
-        page_list[i].status = MM_UNKNOWN;
-        page_list[i].next   = &page_list[i + 1];
-    }
-
-    page_list[(4096 / sizeof(mm_page_list_entry_t)) - 1].next = 0;
-}
-
 void mm_mark_physical_pages(uint64_t start, uint64_t count, mm_page_status_t status) {
-    if(!count) {
-        return;
+    mm_check_integrity();
+
+    mm_page_list_entry mark { start, count, status };
+
+    auto prev = mm_physical_page_list.before_begin();
+    auto insertion_point = prev;
+    bool inserted = false;
+
+    for(auto it = mm_physical_page_list.begin(); it != mm_physical_page_list.end(); ++it) {
+        if(it->start > mark.start && insertion_point == mm_physical_page_list.before_begin()) {
+            insertion_point = prev;
+        }
+
+        if(it->intersects(mark)) {
+            auto before = it->part_before(mark);
+            auto after = it->part_after(mark);
+
+            mm_physical_page_list.erase_after(prev);
+
+            if(before) {
+                if(inserted) {
+                    loge("mm", "Something weird is going on!");
+                }
+
+                prev = mm_physical_page_list.insert_after(prev, before.value());
+                mm_check_integrity();
+            }
+
+            if(!inserted) {
+                prev = mm_physical_page_list.insert_after(prev, mark);
+                inserted = true;
+                mm_check_integrity();
+            }
+
+            if(after) {
+                prev = mm_physical_page_list.insert_after(prev, after.value());
+                mm_check_integrity();
+            }
+
+            it = prev;
+            continue;
+        }
+
+        prev = it;
     }
 
-    if(!mm_physical_page_list && status == MM_FREE) {
-        mm_bootstrap(start);
-        return;
-    }
-    else if(!mm_physical_page_list && status != MM_FREE) {
-        panic_message("mm not bootstrapped with free page first!");
+    if(!inserted) {
+        if(insertion_point == mm_physical_page_list.before_begin()) {
+            insertion_point = prev;
+        }
+
+        mm_physical_page_list.insert_after(insertion_point, mark);
+        mm_check_integrity();
     }
 
-    mm_page_list_entry_t* current = mm_physical_page_list;
-    while(current) {
-        if(start >= current->start && start + (count * 4096) <= current->start + (current->count * 4096)) {
-            if(current->status == status) {
-                return;
+    auto changed = true;
+
+    while(changed) {
+        changed = false;
+        auto prev_prev = mm_physical_page_list.before_begin();
+        prev = mm_physical_page_list.begin();
+
+        for(auto it = prev; it != mm_physical_page_list.end(); ++it) {
+            if(it == prev) {
+                // would be great if we could just "it + 1" but no, not a thing ...
+                continue;
+            }
+
+            if(prev->status == it->status && prev->end() == it->start) {
+                mm_page_list_entry merged{ prev->start, prev->count + it->count, prev->status };
+                mm_physical_page_list.erase_after(prev);
+                mm_physical_page_list.erase_after(prev_prev);
+                prev = it = mm_physical_page_list.insert_after(prev_prev, merged);
+                mm_check_integrity();
+                changed = true;
             }
             else {
-                mm_page_status_t old_status = current->status;
-
-                uint64_t start_first  = current->start;
-                uint64_t count_first  = (start - start_first) / 4096;
-
-                if(count_first == 0) {
-                    mm_del_page_list_entry(current);
-                }
-                else {
-                    current->start = start_first;
-                    current->count = count_first;
-                }
-
-                uint64_t start_second = start + (count * 4096);
-                uint64_t count_second = (current->start + (current->count * 4096)) - (start + (count * 4096));
-
-                if(count_second) {
-                    mm_page_list_entry_t* entry = mm_get_page_list_entry(mm_physical_page_list);
-                    entry->start  = start_second;
-                    entry->count  = count_second;
-                    entry->status = old_status;
-                }
-
-                mm_page_list_entry_t* entry = mm_get_page_list_entry(mm_physical_page_list);
-                entry->start  = start;
-                entry->count  = count;
-                entry->status = status;
-
-                return;
+                prev_prev = prev;
+                prev = it;
             }
         }
-
-        current = current->next;
-    }
-
-    mm_page_list_entry_t* new_entry = mm_get_page_list_entry(mm_physical_page_list);
-    new_entry->start  = start;
-    new_entry->count  = count;
-    new_entry->status = status;
-}
-
-void mm_print_physical_free_regions(void) {
-    mm_page_list_entry_t* current = mm_physical_page_list;
-
-    while(current) {
-        if(current->status == MM_FREE) {
-            logd("mm", "%d free pages starting at 0x%x\n", current->count, current->start);
-        }
-
-        current = current->next;
     }
 }
 
 uint64_t mm_highest_address(void) {
     uint64_t res = 0;
-    mm_page_list_entry_t* current = mm_physical_page_list;
 
-    while(current) {
-        if(current->start + current->count > res) {
-            res = current->start + (current->count * 4096);
+    for(auto it = mm_physical_page_list.begin(); it != mm_physical_page_list.end(); ++it) {
+        uint64_t candidate = it->start + (it->count * 4096);
+        if(candidate > res) {
+            res = candidate;
         }
-
-        current = current->next;
     }
 
     return res;
 }
+
+void mm_print_regions(mm_page_status_t filter_status) {
+    logd("mm", "===== Memory regions dump start =====");
+    for(auto it = mm_physical_page_list.begin(); it != mm_physical_page_list.end(); ++it) {
+        if(filter_status == MM_INVALID || it->status == filter_status) {
+            const char* status;
+            switch(it->status) {
+                case MM_FREE:
+                    status = "free";
+                    break;
+                case MM_ALLOCATED:
+                    status = "allocated";
+                    break;
+                case MM_RESERVED:
+                    status = "reserved";
+                    break;
+                case MM_UEFI_MAPPING_REQUIRED:
+                    status = "uefi-mapping-required";
+                    break;
+
+                case MM_UNKNOWN:
+                default:
+                    status = "unknown";
+                    break;
+            }
+
+            logd("mm", "%u %s (%u) pages starting at 0x%x", it->count, status, static_cast<uint64_t>(it->status), it->start);
+        }
+    }
+    logd("mm", "===== Memory regions dump end =====");
+}
+
+void mm_print_physical_free_regions(void) {
+    mm_print_regions(MM_FREE);
+}
+

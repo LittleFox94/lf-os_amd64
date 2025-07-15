@@ -1,0 +1,28 @@
+// vim: ft=cpp
+#pragma once
+
+#include <type_traits>
+
+namespace tinystl {
+    /** We search the index of the Needle in the Haystack .. but because this
+     *  is a recursive template, we need the first Hay and the rest of the
+     *  Haystack
+     */
+    template<typename Needle, typename Hay, typename... Haystack>
+    constexpr auto type_index_of_impl(std::size_t i) {
+        if constexpr (std::is_same<Needle, Hay>::value) {
+            return i;
+        }
+        else if constexpr (sizeof...(Haystack) != 0) {
+            return type_index_of_impl<Needle, Haystack...>(i + 1);
+        }
+        else {
+            static_assert(false, "type not in list");
+        }
+    };
+
+    template<typename Needle, typename... Haystack>
+    constexpr auto type_index_of() {
+        return type_index_of_impl<Needle, Haystack...>(0);
+    }
+};

@@ -45,6 +45,10 @@ namespace _FORWARD_LIST_NAMESPACE {
         public:
             forward_list() : _allocator(allocator_type()) { }
 
+            ~forward_list() {
+                clear();
+            }
+
             template<class _T>
             struct _iterator{
                 private:
@@ -98,11 +102,11 @@ namespace _FORWARD_LIST_NAMESPACE {
                     }
 
                     bool operator!=(const _iterator& b) const {
-                        return _node != b._node && _special != b._special;
+                        return _node != b._node || _special != b._special;
                     }
 
                     bool operator==(const _iterator& b) const {
-                        return !(*this != b);
+                        return _node == b._node && _special == b._special;
                     }
 
                     operator _iterator<const _T>() const {
@@ -130,15 +134,15 @@ namespace _FORWARD_LIST_NAMESPACE {
             }
 
             iterator before_begin() noexcept {
-                return iterator(_front, special_iterator::before_begin);
+                return iterator(0, special_iterator::before_begin);
             }
 
             const_iterator before_begin() const noexcept {
-                return const_iterator(_front, special_iterator::before_begin);
+                return const_iterator(0, special_iterator::before_begin);
             }
 
             const_iterator cbefore_begin() const noexcept {
-                return const_iterator(_front, special_iterator::before_begin);
+                return const_iterator(0, special_iterator::before_begin);
             }
 
             iterator end() noexcept {
@@ -164,7 +168,6 @@ namespace _FORWARD_LIST_NAMESPACE {
                 return iterator(_front);
             }
 
-
             template<class... Args>
             iterator emplace_after(const_iterator pos, Args&&... args) {
                 if(pos._special == special_iterator::before_begin) {
@@ -177,6 +180,36 @@ namespace _FORWARD_LIST_NAMESPACE {
                     auto next = node->next;
                     node->next = std::allocator_traits<node_allocator_type>::allocate(_node_allocator, 1);
                     std::allocator_traits<node_allocator_type>::construct(_node_allocator, node->next, args...);
+
+                    node->next->next = next;
+
+                    return iterator(node->next);
+                }
+
+                return end();
+            }
+
+            iterator insert_front(const T& value) {
+                auto elem = std::allocator_traits<node_allocator_type>::allocate(_node_allocator, 1);
+                std::allocator_traits<node_allocator_type>::construct(_node_allocator, elem, value);
+
+                elem->next = _front;
+                _front = elem;
+
+                return iterator(_front);
+            }
+
+            iterator insert_after(const_iterator pos, const T& value) {
+                if(pos._special == special_iterator::before_begin) {
+                    return insert_front(value);
+                }
+
+                node_type* node = pos._node;
+
+                if (node) {
+                    auto next = node->next;
+                    node->next = std::allocator_traits<node_allocator_type>::allocate(_node_allocator, 1);
+                    std::allocator_traits<node_allocator_type>::construct(_node_allocator, node->next, value);
 
                     node->next->next = next;
 

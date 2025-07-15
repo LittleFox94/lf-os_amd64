@@ -12,6 +12,7 @@
 
 namespace _CSTRING_NAMESPACE {
     using ::memset;
+    using ::memcpy;
 }
 
 #undef _CSTDDEF_NAMESPACE

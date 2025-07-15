@@ -1,8 +1,8 @@
 #ifndef _ALLOCATOR_TYPED_H_INCLUDED
 #define _ALLOCATOR_TYPED_H_INCLUDED
 
-#include "base.h"
-#include "sized.h"
+#include <allocator/base.h>
+#include <allocator/sized.h>
 
 template<
     class T,
@@ -13,12 +13,14 @@ struct TypedAllocator : public AllocatorBase<T> {
         Allocator _allocator;
 
     public:
+        using value_type = T;
+
         T* allocate(size_t n) {
             return _allocator.template allocate<T>(n);
         }
 
         void deallocate(T* p, size_t n) {
-            return _allocator.deallocate(reinterpret_cast<Allocator::value_type>(p), n);
+            return _allocator.deallocate(reinterpret_cast<typename Allocator::value_type>(p), n);
         }
 
         template<typename U>

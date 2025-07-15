@@ -10,8 +10,10 @@
 #define TiB (1024ULL * GiB)
 
 typedef enum {
+    MM_INVALID,
     MM_UNKNOWN,
     MM_FREE,
+    MM_ALLOCATED,
     MM_RESERVED,
     MM_UEFI_MAPPING_REQUIRED,
 } mm_page_status_t;
@@ -49,6 +51,8 @@ void mm_mark_physical_pages(uint64_t start, uint64_t count, mm_page_status_t sta
  * \param writeable Shall the page be writeable or readonly?
  */
 void mm_make_writeable(uint64_t address, int writeable);
+
+void mm_print_regions(mm_page_status_t filter_status);
 
 void mm_print_physical_free_regions(void);
 

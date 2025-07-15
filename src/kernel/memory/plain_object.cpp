@@ -21,6 +21,17 @@ PlainMemoryObject::PlainMemoryObject(uint8_t* data, size_t len) {
     }
 }
 
+PlainMemoryObject::PlainMemoryObject(size_t len) {
+    logd("PlainMemoryObject", "Constructing %llu zero bytes", len);
+
+    auto it = _pages.before_begin();
+    for(size_t i = 0; i < len; i+= 4096) {
+        uint8_t* page = static_cast<uint8_t*>(mm_alloc_pages(1));
+        it = _pages.emplace_after(it, (uint64_t)page);
+        memset(page + ALLOCATOR_REGION_DIRECT_MAPPING.start, 0, 4096);
+    }
+}
+
 std::shared_ptr<MemoryObject> PlainMemoryObject::copy() {
     // TODO: implement
     return std::shared_ptr<MemoryObject>(this);
@@ -32,7 +43,8 @@ std::forward_list<MemoryObject::Mapping> PlainMemoryObject::getMappings() {
     uint64_t vaddr = 0;
     auto mapping_it = ret.before_begin();
     for(auto page_it = _pages.begin(); page_it != _pages.end(); ++page_it) {
-        ret.emplace_after(mapping_it, vaddr, *page_it, 4096, MemoryAccess::Execute);
+        mapping_it = ret.emplace_after(mapping_it, vaddr, *page_it, 4096, MemoryAccess::Execute);
+        vaddr += 4096;
     }
 
     return ret;

@@ -1,8 +1,14 @@
 #include <panic.h>
 #include <allocator/sized.h>
 
-extern "C" void __cxa_pure_virtual() {
-    panic_message("Voi ei, a pure-virtual method was called!");
+extern "C" {
+    void __cxa_pure_virtual() {
+        panic_message("Voi ei, a pure-virtual method was called!");
+    }
+
+    void __cxa_atexit() {
+        // no-op
+    }
 }
 
 static SizedAllocator<8> sa8;
@@ -53,3 +59,7 @@ void operator delete(void* ptr, unsigned long len) {
         return alloc->deallocate(ptr, 1);
     }
 }
+
+//void operator delete(void* ptr) {
+//    loge("operator delete(void*)", "I was called for 0x%x - this shouldn't happen?!", ptr);
+//}

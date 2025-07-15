@@ -138,7 +138,7 @@ void init_hpet(struct acpi_table_header* header) {
         return;
     }
 
-    hpet = (struct hpet_mmio*)vm_context_find_free(VM_KERNEL_CONTEXT, ALLOCATOR_REGION_SLAB_4K, 1);
+    hpet = (struct hpet_mmio*)vm_context_find_free(VM_KERNEL_CONTEXT, ALLOCATOR_REGION_KERNEL_HEAP, 1);
     vm_context_map(VM_KERNEL_CONTEXT, (uint64_t)hpet, (uint64_t)table->base_address.address, 6);
 
     uint64_t period = hpet->capabilities.counter_clk_period;

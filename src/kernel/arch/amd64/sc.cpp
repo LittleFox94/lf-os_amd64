@@ -320,20 +320,20 @@ void init_sc(void) {
     write_msr(0xC0000102, (uint64_t)(_cpu0));
 }
 
-static void enable_iopb(struct vm_table* context) {
-    uint64_t iopb_pages[2] = {
-        vm_context_get_physical_for_virtual(context, ALLOCATOR_REGION_USER_IOPERM.start),
-        vm_context_get_physical_for_virtual(context, ALLOCATOR_REGION_USER_IOPERM.start + 4*KiB),
-    };
-
-    uint64_t iopb = (uint64_t)&_cpu0->tss + _cpu0->tss.iopb_offset;
-
-    vm_context_map(context, iopb,         iopb_pages[0], 0);
-    vm_context_map(context, iopb + 4*KiB, iopb_pages[1], 0);
-
-    asm("invlpg (%0)"::"r"(iopb));
-    asm("invlpg (%0)"::"r"(iopb + (4*KiB)));
-}
+//static void enable_iopb(struct vm_table* context) {
+//    uint64_t iopb_pages[2] = {
+//        vm_context_get_physical_for_virtual(context, ALLOCATOR_REGION_USER_IOPERM.start),
+//        vm_context_get_physical_for_virtual(context, ALLOCATOR_REGION_USER_IOPERM.start + 4*KiB),
+//    };
+//
+//    uint64_t iopb = (uint64_t)&_cpu0->tss + _cpu0->tss.iopb_offset;
+//
+//    vm_context_map(context, iopb,         iopb_pages[0], 0);
+//    vm_context_map(context, iopb + 4*KiB, iopb_pages[1], 0);
+//
+//    asm("invlpg (%0)"::"r"(iopb));
+//    asm("invlpg (%0)"::"r"(iopb + (4*KiB)));
+//}
 
 static cpu_state* schedule_process(cpu_state* old_cpu) {
     cpu_state*  new_cpu = old_cpu; // for idle task we only change some fields,
@@ -343,7 +343,7 @@ static cpu_state* schedule_process(cpu_state* old_cpu) {
     struct vm_table* new_context;
     schedule_next(&new_cpu, &new_context);
     vm_context_activate(new_context);
-    enable_iopb(new_context);
+    //enable_iopb(new_context);
 
     return new_cpu;
 }
@@ -436,6 +436,6 @@ extern "C" cpu_state* syscall_handler(cpu_state* cpu) {
         vm_context_activate(new_context);
     }
 
-    enable_iopb(new_context);
+    //enable_iopb(new_context);
     return new_cpu;
 }
