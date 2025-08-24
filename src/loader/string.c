@@ -127,20 +127,17 @@ CHAR16 towlower(CHAR16 c) {
 int wcscasecmp(const CHAR16* s1, const CHAR16* s2) {
     size_t i = 0;
     while(s1[i] && s2[i]) {
-        CHAR16 a = s1[i];
-        CHAR16 b = s2[i];
+        CHAR16 a = towlower(s1[i]);
+        CHAR16 b = towlower(s2[i]);
 
         ++i;
 
-        if(
-            (a != b) &&
-            (towlower(a) != towlower(b))
-        ) {
-            break;
+        if(a != b) {
+            return a - b;
         }
     }
 
-    return *(s2 + i) - *(s1 + i);
+    return s1[i] - s2[i];
 }
 
 
