@@ -173,8 +173,7 @@ void init_hpet(struct acpi_table_header* header) {
     config_and_caps.tn_val_set_cnf = 1;
 
     hpet->timers[0].config_and_caps = config_and_caps;
-    hpet->timers[0].comparator_value.val64 = 0;
-    hpet->timers[0].comparator_value.val64 = 100000 * ticks_to_ns_multiplier;
+    hpet->timers[0].comparator_value.val64 = 1000000 * ticks_to_ns_multiplier;
 
     configuration.enable_cnf = 1;
     hpet->configuration = configuration;

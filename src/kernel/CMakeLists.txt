@@ -77,6 +77,7 @@ target_compile_options(kernel PRIVATE
     -Wno-overlength-strings
     -mno-omit-leaf-frame-pointer -fno-omit-frame-pointer
     -fno-stack-protector -mno-red-zone
+    -mno-sse
     -fno-exceptions
     -fno-rtti
     -fno-builtin

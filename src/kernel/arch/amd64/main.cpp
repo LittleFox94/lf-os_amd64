@@ -120,6 +120,7 @@ extern "C" void main(struct LoaderStruct* loaderStruct) {
 
     LAST_INIT_STEP = (char*)"Kernel initialization complete";
     asm("sti");
+    asm("int $0x20");
     asm("jmp ."); // guess what: `while(1);` is Undefined Behavior in C++ and silently dropped (:
 }
 

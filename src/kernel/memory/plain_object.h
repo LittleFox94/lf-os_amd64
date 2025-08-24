@@ -5,8 +5,10 @@
 
 class PlainMemoryObject : public MemoryObject {
     public:
-        PlainMemoryObject(uint8_t* data, size_t len);
-        PlainMemoryObject(size_t len);
+        PlainMemoryObject(size_t size);
+        PlainMemoryObject(size_t size, uint8_t* data, size_t data_len, size_t offset_from_start = 0);
+        PlainMemoryObject(uint8_t* data, size_t data_len)
+            : PlainMemoryObject(data_len, data, data_len, 0) { }
 
         virtual std::shared_ptr<MemoryObject> copy() override;
 

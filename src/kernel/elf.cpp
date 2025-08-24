@@ -32,7 +32,8 @@ uint64_t load_elf(uint8_t* elf, std::shared_ptr<MemoryContext> context) {
             continue;
         }
 
-        auto obj = std::make_shared<PlainMemoryObject>(elf + programHeader->offset, programHeader->fileLength);
+        auto offset_from_page_start = programHeader->vaddr & 0xFFF;
+        auto obj = std::make_shared<PlainMemoryObject>(programHeader->memLength + offset_from_page_start, elf + programHeader->offset, programHeader->fileLength, offset_from_page_start);
         context->map(programHeader->vaddr, std::static_pointer_cast<MemoryObject>(obj));
     }
 

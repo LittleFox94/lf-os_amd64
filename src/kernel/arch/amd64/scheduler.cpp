@@ -177,7 +177,7 @@ void scheduler_process_save(cpu_state* cpu) {
     }
 }
 
-bool scheduler_idle_if_needed(cpu_state** cpu, struct vm_table** context) {
+bool schedule_idle_if_needed(cpu_state** cpu, struct vm_table** context) {
     auto process = current_process();
     if (!process || (
             process->state != process_state_runnable &&
@@ -186,8 +186,8 @@ bool scheduler_idle_if_needed(cpu_state** cpu, struct vm_table** context) {
     ) {
         *context = VM_KERNEL_CONTEXT;
         (*cpu)->rip    = (uint64_t)idle_task;
-        (*cpu)->cs     = 0x2B;
-        (*cpu)->ss     = 0x23;
+        (*cpu)->cs     = 0x08;
+        (*cpu)->ss     = 0x10;
         (*cpu)->rflags = 0x200;
 
         scheduler_current_process = INVALID_PID;
@@ -237,7 +237,7 @@ void schedule_next(cpu_state** cpu, struct vm_table** context) {
         }
     }
 
-    if(scheduler_idle_if_needed(cpu, context)) {
+    if(schedule_idle_if_needed(cpu, context)) {
         return;
     }
 
@@ -246,9 +246,11 @@ void schedule_next(cpu_state** cpu, struct vm_table** context) {
 
 bool schedule_next_if_needed(cpu_state** cpu, struct vm_table** context) {
     auto process = current_process();
-    if (process &&
-        process->state != process_state_runnable &&
-        process->state != process_state_running
+    if (!process ||
+        (
+            process->state != process_state_runnable &&
+            process->state != process_state_running
+        )
     ) {
         schedule_next(cpu, context);
         return true;
@@ -391,6 +393,9 @@ void scheduler_waitable_done(enum wait_reason reason, union wait_data data, size
         pid_t pid = (scheduler_current_process + i) % MAX_PROCS;
 
         process_t* p = processes[pid];
+        if(!p) {
+            continue;
+        }
 
         if(p->state == process_state_waiting && p->waiting_for == reason) {
             switch(reason) {

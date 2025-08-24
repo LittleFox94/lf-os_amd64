@@ -60,7 +60,7 @@ class PageTableBase {
 
         template<typename _NextLevel>
         void cleanup_nested_tables() {
-            logd("PageTableBase", "Cleaning nested tables from %u to %u (PageTableBase<%u>)", CleanupStart, CleanupEnd, AddressBits);
+            //logd("PageTableBase", "Cleaning nested tables from %u to %u (PageTableBase<%u>)", CleanupStart, CleanupEnd, AddressBits);
 
             for(size_t i = CleanupStart; i <= CleanupEnd; ++i) {
                 auto next_v = entries[i]();
@@ -90,7 +90,7 @@ class PageTableBase {
             n /= 4096;
 
             void* ret = mm_alloc_pages(n);
-            logd("PageTableBase", "Allocated new PageTableBase<%u> instances: %u at 0x%x", AddressBits, n, ret);
+            //logd("PageTableBase", "Allocated new PageTableBase<%u> instances: %u at 0x%x", AddressBits, n, ret);
             return reinterpret_cast<void*>(reinterpret_cast<uint64_t>(ret) + DirectMappingStart);
         }
 
@@ -98,7 +98,7 @@ class PageTableBase {
             n /= 4096;
 
             uint64_t addr = reinterpret_cast<uint64_t>(ptr) - DirectMappingStart;
-            logd("PageTableBase", "Freeing PageTableBase<%u> instances: %u at 0x%x", AddressBits, n, addr);
+            //logd("PageTableBase", "Freeing PageTableBase<%u> instances: %u at 0x%x", AddressBits, n, addr);
 
             mm_mark_physical_pages(addr, n, MM_FREE);
         }
@@ -163,7 +163,7 @@ class PML4 : public PageTableBase<39, PDP, 0, 255>  {
             uint64_t current_cr3 = 0;
             asm volatile("mov %%cr3, %0":"=r"(current_cr3));
             if(addr == current_cr3) {
-                logd("PageTableBase", "Handling deletion of the currently active context by activating VM_KERNEL_CONTEXT instead");
+                //logd("PageTableBase", "Handling deletion of the currently active context by activating VM_KERNEL_CONTEXT instead");
                 vm_context_activate(VM_KERNEL_CONTEXT);
             }
         }
