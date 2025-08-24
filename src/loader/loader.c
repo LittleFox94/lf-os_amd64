@@ -22,12 +22,14 @@ static const int gDebugMode = 1;
 static const int gDebugMode = 0;
 #endif
 
-static void pause(EFI_SYSTEM_TABLE* st) {
+extern EFI_SYSTEM_TABLE* ST;
+
+static void pause() {
 #if DEBUG
     wprintf(L"Debug pause, press any key to continue ..");
 
     uint64_t keyEvent = 0;
-    BS->WaitForEvent(1, &st->ConIn->WaitForKey, &keyEvent);
+    BS->WaitForEvent(1, &ST->ConIn->WaitForKey, &keyEvent);
     wprintf(L"\n");
 #endif
 }
@@ -40,6 +42,7 @@ static void pause(EFI_SYSTEM_TABLE* st) {
         if(!gDebugMode) \
             wprintf(L"[%s:%d] " #protocol "->" #function " ", WIDEN(__FUNCTION__), __LINE__, status); \
         wprintf(L" failed: %d\n", status); \
+        pause();               \
     } \
     else { \
         DEBUG_TRACE(L" succeeded: %d\n", status); \
@@ -656,7 +659,7 @@ EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE* system_table) {
 
     unsigned int try_counter = 3;
 
-    pause(system_table);
+    pause();
 
     wprintf(L"Preparing memory map and exiting boot services ... ");
 

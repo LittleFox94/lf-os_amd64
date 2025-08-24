@@ -4,7 +4,7 @@
 #include <efi.h>
 
 static bool uart_out = false;
-static EFI_SYSTEM_TABLE* st;
+EFI_SYSTEM_TABLE* ST;
 EFI_BOOT_SERVICES* BS;
 
 static void outb(uint16_t port, uint8_t data) {
@@ -34,7 +34,7 @@ static void uart_write(char* msg, size_t len) {
 }
 
 static void conwrite(CHAR16* s) {
-    st->ConOut->OutputString(st->ConOut, s);
+    ST->ConOut->OutputString(ST->ConOut, s);
 
     size_t len = wcslen(s);
     char* msg  = malloc(len + 1);
@@ -337,19 +337,19 @@ static void init_uart() {
         // good enough for debugging - but then Debian decided to change the
         // vendor string, annoying me in my test runs so this test is now
         // awfully specific.
-        if(wcscmp(st->FirmwareVendor, L"Debian distribution of EDK II") != 0) {
+        if(wcscmp(ST->FirmwareVendor, L"Debian distribution of EDK II") != 0) {
             uart_out = true;
         }
 
         wprintf(L"UART configured and output%senabled\n", uart_out ? L" " : L" NOT ");
-        wprintf(L"Firmware vendor: %s\n", st->FirmwareVendor);
+        wprintf(L"Firmware vendor: %s\n", ST->FirmwareVendor);
     }
 }
 
 void init_stdlib(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE* system_table) {
-    st = system_table;
-    BS = st->BootServices;
-    st->ConOut->ClearScreen(st->ConOut);
+    ST = system_table;
+    BS = ST->BootServices;
+    ST->ConOut->ClearScreen(ST->ConOut);
 
     init_uart();
 }
