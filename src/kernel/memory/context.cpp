@@ -2,11 +2,7 @@
 
 void MemoryContext::map(uint64_t vaddr, std::shared_ptr<MemoryObject> object) {
     auto prev = _objects.before_begin();
-    for(auto it = _objects.begin(); it != _objects.end(); ++it) {
-        if(it->vaddr > vaddr) {
-            break;
-        }
-
+    for(auto it = _objects.begin(); it != _objects.end() && vaddr > it->vaddr; ++it) {
         prev = it;
     }
 
