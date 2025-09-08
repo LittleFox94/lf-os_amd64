@@ -58,19 +58,65 @@ groups:
   name:   memory
   desc:   Syscalls affecting memory mappings for this or other processes
   syscalls:
-  - number: 0
-    name:   sbrk
-    desc:   Increment the data segment by inc bytes and return the new end of the data segment.
+  # number 0 was sbrk, let's not reuse that.
+
+  - number: 1
+    name: create_memory_object
+    desc: Create a memory object that can later be mapped into contexts
     parameters:
-    - name: inc
-      desc: Minimum number of bytes to add the data segment
-      type: int64_t
+    - name: size
+      type: uint64_t
       reg:  rax
+      desc: Size of the memory object in bytes
+    - name: source
+      type: uint64_t
+      reg:  rsi
+      desc: What memory is wrapped by this object; heavily depends on flags
+    - name: flags
+      type: uint64_t
+      reg:  rdi
+      desc: Flags; is the source (a physical address, an existing memory object, some virtual memory region in the calling process, nothing [so allocate physical memory for it], ...), protection flags, caching flags, ...
+
     returns:
-    - name: data_end
-      type: void*
+    - name: error
+      type: uint64_t
       reg:  rax
-      desc: Pointer to the last byte in the data segment
+      desc: Error code, zero on success
+    - name: memory_object_handle
+      type: uint64_t
+      reg:  rsi
+      desc: Handle to the memory object to use for further operations
+
+  - number: 2
+    name: map
+    desc: Map a memory object into virtual memory
+    parameters:
+    - name: memory_object
+      type: uint64_t
+      reg:  rsi
+      desc: Handle of the memory object to map
+    - name: vaddr
+      type: void*
+      reg:  rdi
+      desc: Where to map the memory object
+    - name: flags
+      type: uint64_t
+      reg:  rax
+      desc: Flags; stricter protection than what the memory object specifies itself, different caching flags than specified by the memory object, automatically find a suitable virtual address, ...
+
+    returns:
+    - name: error
+      type: uint64_t
+      reg:  rax
+      desc: Error code, zero on success
+    - name: mapped_address
+      type: void*
+      reg:  rsi
+      desc: Virtual address where the object has been mapped
+    - name: length
+      type: size_t
+      reg:  rdi
+      desc: Length of the mapped region in bytes, so consumers of a memory object don't have to query its size before mapping it and still know how much of their address space is in use now
 
 - number: 2
   name:   hardware

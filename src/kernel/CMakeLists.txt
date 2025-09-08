@@ -37,6 +37,7 @@ add_executable(kernel
                                 memory/types.h
                                 memory/object.h
     memory/plain_object.cpp     memory/plain_object.h
+    memory/syscalls.cpp
     ${PROJECT_BINARY_DIR}/syscalls.gen.cpp
     ${PROJECT_BINARY_DIR}/config.h
 
