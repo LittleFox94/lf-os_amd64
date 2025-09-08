@@ -16,22 +16,42 @@ namespace _OPTIONAL_NAMESPACE {
         public:
             typedef T value_type;
 
-            constexpr optional() noexcept : _has_value(false) { }
+            constexpr optional() noexcept : _storage(false), _has_value(false) { }
 
             template<class U = std::remove_cv_t<T>>
             constexpr optional(U&& value)
-                : _value(value), _has_value(true) { }
+                : _storage(value), _has_value(true) { }
+
+            constexpr ~optional() {
+                if(_has_value) {
+                    _storage.value.~T();
+                }
+            }
 
             constexpr explicit operator bool() const noexcept {
                 return _has_value;
             }
 
             constexpr const T& value() const & {
-                return _value;
+                return _storage.value;
+            }
+
+            constexpr const T* operator->() const noexcept {
+                if(!_has_value) { return nullptr; }
+                return &_storage.value;
             }
 
         private:
-            T _value;
+            union storage {
+                T value;
+                bool dummy;
+
+                storage(T val) : value(val) { }
+                storage(bool x) : dummy(x) { }
+                ~storage() {}
+            };
+
+            storage _storage;
             bool _has_value;
     };
 }
