@@ -264,9 +264,12 @@ bool schedule_next_if_needed(cpu_state** cpu, struct vm_table** context) {
         return true;
     }
 
+    // rebuild the paging structures after e.g. a mmap syscall
+    // TODO: this is absolutely the wrong place for this
+    *context = static_cast<vm_table*>(process->context->arch_context());
+
     return false;
 }
-
 
 void scheduler_process_cleanup(pid_t pid) {
     mutex_unlock_holder(pid);

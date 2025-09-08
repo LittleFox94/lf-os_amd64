@@ -432,9 +432,9 @@ extern "C" cpu_state* syscall_handler(cpu_state* cpu) {
                                // correct but slow, so we just reuse the old one
     struct vm_table* new_context = vm_current_context();
 
-    if(schedule_next_if_needed(&new_cpu, &new_context)) {
-        vm_context_activate(new_context);
-    }
+    schedule_next_if_needed(&new_cpu, &new_context);
+    vm_context_activate(VM_KERNEL_CONTEXT);
+    vm_context_activate(new_context);
 
     //enable_iopb(new_context);
     return new_cpu;
