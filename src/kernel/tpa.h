@@ -1,6 +1,8 @@
 #ifndef _TPA_H_INCLUDED
 #define _TPA_H_INCLUDED
 
+#include <new>
+
 #include <allocator.h>
 #include <stdint.h>
 #include <string.h>
@@ -75,49 +77,52 @@ template<typename T> class TPA {
         void set(size_t idx, T* data) {
             tpa_page_header* page = this->get_page_for_idx(idx);
 
+            if(!page && data) {
+                page = (tpa_page_header*)this->allocator->alloc(this->allocator, this->page_size);
+                memset(page, 0, this->page_size);
+                page->start_idx = (idx / this->entries_per_page()) * this->entries_per_page();
+
+                tpa_page_header* current = this->first;
+                while(current && current->next && current->next->start_idx < page->start_idx) {
+                    current = current->next;
+                }
+
+                if(current && current->start_idx < page->start_idx) {
+                    tpa_page_header* next = current->next;
+                    page->next = next;
+
+                    current->next = page;
+                    page->prev = current;
+
+                    if(next) {
+                        next->prev = page;
+                    }
+                }
+                else {
+                    if(current && current->start_idx > page->start_idx) {
+                        page->next = current;
+                        page->prev = current->prev;
+                        current->prev = page;
+                    }
+
+                    this->first = page;
+                }
+            }
+
+
+            T* ptr = reinterpret_cast<T*>((uint64_t)page + this->offset_in_page(idx - page->start_idx) + 8);
+
             if(!data) {
                 if(page) {
+                    ptr->~T();
                     *(this->get_marker(page, idx - page->start_idx)) = 0;
                     this->clean_page(page);
                     return;
                 }
             }
             else {
-                if(!page) {
-                    page = (tpa_page_header*)this->allocator->alloc(this->allocator, this->page_size);
-                    memset(page, 0, this->page_size);
-                    page->start_idx = (idx / this->entries_per_page()) * this->entries_per_page();
-
-                    tpa_page_header* current = this->first;
-                    while(current && current->next && current->next->start_idx < page->start_idx) {
-                        current = current->next;
-                    }
-
-                    if(current && current->start_idx < page->start_idx) {
-                        tpa_page_header* next = current->next;
-                        page->next = next;
-
-                        current->next = page;
-                        page->prev = current;
-
-                        if(next) {
-                            next->prev = page;
-                        }
-                    }
-                    else {
-                        if(current && current->start_idx > page->start_idx) {
-                            page->next = current;
-                            page->prev = current->prev;
-                            current->prev = page;
-                        }
-
-                        this->first = page;
-
-                    }
-                }
-
                 *(this->get_marker(page, idx - page->start_idx)) = 1;
-                memcpy((void*)((uint64_t)page + this->offset_in_page(idx - page->start_idx) + 8), data, this->entry_size);
+                new (ptr) T(*data);
             }
         }
 
