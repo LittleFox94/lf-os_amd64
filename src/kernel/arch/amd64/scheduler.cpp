@@ -109,6 +109,14 @@ void init_scheduler(void) {
     memset((uint8_t*)processes, 0, sizeof(processes));
 }
 
+std::optional<std::shared_ptr<MemoryContext>> process_context(pid_t pid) {
+    if(pid < 0 || pid >= MAX_PROCS || pid == INVALID_PID) {
+        return std::optional<std::shared_ptr<MemoryContext>>();
+    }
+
+    return processes[pid]->context;
+}
+
 static process_t* current_process() {
     if (scheduler_current_process >= 0 &&
         scheduler_current_process <= sizeof(processes) / sizeof(processes[0])

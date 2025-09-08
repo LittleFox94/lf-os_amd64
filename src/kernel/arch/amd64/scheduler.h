@@ -2,6 +2,9 @@
 #define _SCHEDULER_H_INCLUDED
 
 #include <stdint.h>
+#include <optional>
+#include <memory>
+
 #include <vm.h>
 #include <cpu.h>
 #include <memory/context.h>
@@ -38,6 +41,8 @@ union wait_data {
 
 void init_scheduler(void);
 void start_task(std::shared_ptr<MemoryContext> context, uint64_t entry, const char* name);
+
+std::optional<std::shared_ptr<MemoryContext>> process_context(pid_t pid);
 
 void schedule_next(cpu_state** cpu, struct vm_table** context);
 bool schedule_next_if_needed(cpu_state** cpu, struct vm_table** context);
