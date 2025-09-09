@@ -59,6 +59,10 @@ int main(int argc, char* argv[]) {
     dlopen(NULL, RTLD_NOW | RTLD_NOLOAD | RTLD_GLOBAL);
 
     for(int i = 1; i < argc; ++i) {
+        if(argv[i][0] == '-') {
+            continue;
+        }
+
         if(!dlopen(argv[i], RTLD_NOW)) {
             char* error = dlerror();
 
