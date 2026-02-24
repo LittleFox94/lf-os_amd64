@@ -28,11 +28,11 @@ convert the symbolized trace file to a stack trace file compatible with
 
 Here are profiling results from LF OS, running from `_start()` to `nyi()`:
 
-![FlameChart](https://0x0a.software/lf-os.flamechart.svg)
+![FlameChart](examples/lf-os.flamechart.svg)
 
-![Aggregated](https://0x0a.software/lf-os.aggregated.svg)
+![Aggregated](examples/lf-os.aggregated.svg)
 
-(those SVGs are interactive when opened in an extra tab, use your browser functions for that)
+(those SVGs are interactive when opened as raw file in their own tab or window, use your browser functions for that)
 
 ## Docs
 
