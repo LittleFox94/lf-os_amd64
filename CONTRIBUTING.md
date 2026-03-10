@@ -6,6 +6,20 @@ Woah, you wanna contribute? You don't know how happy that will make me o.o
 
 Here are some guidelines, infos where to find help and stuff.
 
+## AI usage
+
+Authors take full responsibility for their code; having a full understanding of
+what it does, how it does it and that it does things as sensibly as the author
+can tell.
+
+Comments like "my chatbot said I should do X" or "Claude generated this code"
+or "Claude generated the test cases" will lead to the author being banned from
+the project. I don't want any slop in here.
+
+If you want to ask a chatbot how to do something but then write the code
+yourself with your own understanding of it, okay, be my guest. But fucking
+don't tell me "how great 'AI' is" - I don't wanna hear or read it.
+
 
 ## Canonical sources
 
