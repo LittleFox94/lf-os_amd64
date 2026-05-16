@@ -393,9 +393,24 @@ extern "C" cpu_state* interrupt_handler(cpu_state* cpu) {
         panic_cpu(cpu);
     }
     else if(cpu->interrupt >= 32 && cpu->interrupt < 48) {
+        uint8_t irq = cpu->interrupt - 0x20;
+
+        /**
+         * Handle spurious interrupts appropriately.
+         * Essentially, if we got irq number 7 or 15, ensure
+         * that we actually have pending interrupt.
+         *
+         * If not, return without sending EOI.
+         */
+        if (irq == 7 || irq == 15) {
+            uint16_t isr = pic_get_isr();
+            if (!isr) {
+                return schedule_process(cpu);
+            }
+        }
+
         pic_set_handled(cpu->interrupt);
 
-        uint8_t irq = cpu->interrupt - 0x20;
         if(interrupt_queues[irq]) {
             size_t len             = flexarray_length(interrupt_queues[irq]);
             const uint64_t* queues = (uint64_t*)flexarray_getall(interrupt_queues[irq]);
